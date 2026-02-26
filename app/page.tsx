@@ -40,6 +40,8 @@ export default function Home() {
   const [editingListName, setEditingListName] = useState("");
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
   const [editingTaskTitle, setEditingTaskTitle] = useState("");
+  const [showCompleted, setShowCompleted] = useState(false);
+  const [confirmDeleteListId, setConfirmDeleteListId] = useState<number | null>(null);
   const taskInputRef = useRef<HTMLInputElement>(null);
 
   async function fetchLists() {
@@ -83,6 +85,7 @@ export default function Home() {
     const remaining = lists.filter((l) => l.id !== id);
     setLists(remaining);
     if (selectedListId === id) setSelectedListId(remaining[0]?.id ?? null);
+    setConfirmDeleteListId(null);
   }
 
   async function saveListName(id: number) {
@@ -108,7 +111,7 @@ export default function Home() {
     });
     const task = await res.json();
     setNewTaskTitle("");
-    setTasks((prev) => [task, ...prev]);
+    setTasks((prev) => [...prev, task]);
     taskInputRef.current?.focus();
   }
 
@@ -174,6 +177,22 @@ export default function Home() {
                   if (e.key === "Escape") setEditingListId(null);
                 }}
               />
+            ) : confirmDeleteListId === list.id ? (
+              <div className="flex items-center gap-1 px-2 py-1.5 rounded bg-red-950 border border-red-800">
+                <span className="text-xs text-red-300 flex-1">Delete?</span>
+                <button
+                  onClick={() => deleteList(list.id)}
+                  className="text-xs px-1.5 py-0.5 rounded bg-red-600 hover:bg-red-500 text-white"
+                >
+                  Yes
+                </button>
+                <button
+                  onClick={() => setConfirmDeleteListId(null)}
+                  className="text-xs px-1.5 py-0.5 rounded bg-gray-700 hover:bg-gray-600 text-gray-300"
+                >
+                  No
+                </button>
+              </div>
             ) : (
               <button
                 onClick={() => setSelectedListId(list.id)}
@@ -187,7 +206,7 @@ export default function Home() {
                     : "text-gray-300 hover:bg-gray-800"
                 }`}
               >
-                <span className="truncate">{list.name}</span>
+                <span className="truncate pr-6">{list.name}</span>
                 {list._count.tasks > 0 && (
                   <span className="text-xs opacity-60 ml-1 flex-shrink-0">
                     {list._count.tasks}
@@ -195,9 +214,9 @@ export default function Home() {
                 )}
               </button>
             )}
-            {editingListId !== list.id && (
+            {editingListId !== list.id && confirmDeleteListId !== list.id && (
               <button
-                onClick={() => deleteList(list.id)}
+                onClick={() => setConfirmDeleteListId(list.id)}
                 className="absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover:flex items-center justify-center w-5 h-5 rounded text-gray-500 hover:text-red-400 hover:bg-gray-700 text-xs"
                 title="Delete list"
               >
@@ -221,7 +240,7 @@ export default function Home() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 flex flex-col min-w-0 p-6">
+      <main className="flex-1 flex flex-col min-w-0 p-6 overflow-y-auto">
         {selectedList ? (
           <>
             <h2 className="text-xl font-semibold text-gray-100 mb-4">
@@ -240,7 +259,23 @@ export default function Home() {
 
             <div className="space-y-1 max-w-xl">
               {activeTasks.length === 0 && completedTasks.length === 0 && (
-                <p className="text-sm text-gray-600">No tasks yet.</p>
+                <div className="flex flex-col items-center justify-center py-16 text-gray-600">
+                  <svg
+                    className="w-12 h-12 mb-3 opacity-30"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={1}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    />
+                  </svg>
+                  <p className="text-sm font-medium">No tasks yet</p>
+                  <p className="text-xs mt-1">Type above to add your first task</p>
+                </div>
               )}
 
               {activeTasks.map((task) => (
@@ -261,39 +296,77 @@ export default function Home() {
                 />
               ))}
 
-              {sortedGroupKeys.map((dateKey) => (
-                <div key={dateKey} className="mt-6">
-                  <p className="text-xs font-medium uppercase tracking-wider text-gray-600 mb-2 px-1">
-                    Completed — {dateKey}
-                  </p>
-                  <div className="space-y-1">
-                    {completedGroups[dateKey].map((task) => (
-                      <TaskRow
-                        key={task.id}
-                        task={task}
-                        isEditing={editingTaskId === task.id}
-                        editValue={editingTaskTitle}
-                        onToggle={() => toggleTask(task)}
-                        onDelete={() => deleteTask(task.id)}
-                        onStartEdit={() => {
-                          setEditingTaskId(task.id);
-                          setEditingTaskTitle(task.title);
-                        }}
-                        onEditChange={setEditingTaskTitle}
-                        onEditSave={() => saveTaskTitle(task.id)}
-                        onEditCancel={() => setEditingTaskId(null)}
+              {completedTasks.length > 0 && (
+                <div className="mt-6">
+                  <button
+                    onClick={() => setShowCompleted(!showCompleted)}
+                    className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-gray-500 hover:text-gray-400 transition-colors px-1 py-1"
+                  >
+                    <svg
+                      className={`w-3 h-3 transition-transform duration-200 ${showCompleted ? "rotate-90" : ""}`}
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                        clipRule="evenodd"
                       />
-                    ))}
-                  </div>
+                    </svg>
+                    Completed ({completedTasks.length})
+                  </button>
+
+                  {showCompleted && (
+                    <div className="mt-2 space-y-4">
+                      {sortedGroupKeys.map((dateKey) => (
+                        <div key={dateKey}>
+                          <p className="text-xs font-medium uppercase tracking-wider text-gray-600 mb-2 px-1">
+                            {dateKey}
+                          </p>
+                          <div className="space-y-1">
+                            {completedGroups[dateKey].map((task) => (
+                              <TaskRow
+                                key={task.id}
+                                task={task}
+                                isEditing={editingTaskId === task.id}
+                                editValue={editingTaskTitle}
+                                onToggle={() => toggleTask(task)}
+                                onDelete={() => deleteTask(task.id)}
+                                onStartEdit={() => {
+                                  setEditingTaskId(task.id);
+                                  setEditingTaskTitle(task.title);
+                                }}
+                                onEditChange={setEditingTaskTitle}
+                                onEditSave={() => saveTaskTitle(task.id)}
+                                onEditCancel={() => setEditingTaskId(null)}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              ))}
+              )}
             </div>
           </>
         ) : (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-gray-600 text-sm">
-              Create a list to get started.
-            </p>
+          <div className="flex flex-col items-center justify-center h-full text-gray-600">
+            <svg
+              className="w-16 h-16 mb-4 opacity-20"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={1}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+              />
+            </svg>
+            <p className="text-sm font-medium">No lists yet</p>
+            <p className="text-xs mt-1">Create one in the sidebar to get started</p>
           </div>
         )}
       </main>
@@ -326,32 +399,32 @@ function TaskRow({
 }: TaskRowProps) {
   return (
     <div
-      className={`group flex items-center gap-2 rounded px-2 py-1.5 hover:bg-gray-800 transition-colors ${
+      className={`group flex items-center gap-2 rounded px-2 py-1.5 hover:bg-gray-800 transition-all duration-200 ${
         task.completed ? "opacity-40" : ""
       }`}
     >
       <button
         onClick={onToggle}
-        className={`flex-shrink-0 w-4 h-4 rounded border transition-colors flex items-center justify-center ${
+        className={`flex-shrink-0 w-4 h-4 rounded border transition-all duration-200 flex items-center justify-center ${
           task.completed
-            ? "bg-gray-500 border-gray-500"
-            : "border-gray-600 hover:border-blue-400"
+            ? "bg-blue-500 border-blue-500"
+            : "border-gray-600 hover:border-blue-400 hover:bg-blue-400/10"
         }`}
         title={task.completed ? "Reinstate task" : "Complete task"}
       >
-        {task.completed && (
-          <svg
-            viewBox="0 0 10 10"
-            className="w-3 h-3 text-gray-200"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M1.5 5 L4 7.5 L8.5 2.5" />
-          </svg>
-        )}
+        <svg
+          viewBox="0 0 10 10"
+          className={`w-3 h-3 text-white transition-all duration-200 ${
+            task.completed ? "opacity-100 scale-100" : "opacity-0 scale-50"
+          }`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M1.5 5 L4 7.5 L8.5 2.5" />
+        </svg>
       </button>
 
       {isEditing ? (
@@ -369,7 +442,7 @@ function TaskRow({
       ) : (
         <span
           onDoubleClick={onStartEdit}
-          className={`flex-1 text-sm select-none cursor-default ${
+          className={`flex-1 text-sm select-none cursor-default transition-all duration-200 ${
             task.completed ? "line-through text-gray-400" : "text-gray-200"
           }`}
         >
