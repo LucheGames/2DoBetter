@@ -1,12 +1,12 @@
 # ToDoBetter
 
-Personal todo app with list management and task organization.
+Personal todo and ideas tracker with list management and task organization. Runs entirely locally — zero cloud dependencies, zero cost.
 
 ## Tech Stack
-- Next.js 14
+- Next.js 14 (webpack mode)
 - Prisma 6
-- MySQL (Railway)
+- SQLite (local file)
 - Tailwind CSS
 
 ## Status
-Stage 1 (desktop MVP) complete. Stage 2 (Expo mobile app) planned.
+Desktop MVP — local-only personal tool. No auth, no deployment, by design.
