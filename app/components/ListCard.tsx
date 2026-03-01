@@ -21,10 +21,12 @@ import { CSS } from "@dnd-kit/utilities";
 import { ListData, Task } from "../types";
 import TaskRow from "./TaskRow";
 
+type DragHandleProps = React.HTMLAttributes<HTMLButtonElement>;
+
 type ListCardProps = {
   list: ListData;
   onRefresh: () => void;
-  dragHandleProps?: Record<string, unknown>;
+  dragHandleProps?: DragHandleProps;
 };
 
 let taskIdCounter = -1;
@@ -82,8 +84,8 @@ function SortableTaskRow({
         dragHandle={
           <button
             className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-700 hover:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity touch-none mt-0.5"
-            {...(attributes as Record<string, unknown>)}
-            {...(listeners as Record<string, unknown>)}
+            {...(attributes as DragHandleProps)}
+            {...(listeners as DragHandleProps)}
             tabIndex={-1}
             title="Drag to reorder"
           >
@@ -255,7 +257,7 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
         {dragHandleProps && (
           <button
             className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-700 hover:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity touch-none"
-            {...(dragHandleProps as React.HTMLAttributes<HTMLButtonElement>)}
+            {...dragHandleProps}
             tabIndex={-1}
             title="Drag to reorder list"
           >

@@ -58,7 +58,7 @@ function SortableListCard({
       <ListCard
         list={list}
         onRefresh={onRefresh}
-        dragHandleProps={{ ...attributes, ...listeners } as Record<string, unknown>}
+        dragHandleProps={{ ...attributes, ...(listeners ?? {}) } as React.HTMLAttributes<HTMLButtonElement>}
       />
     </div>
   );
