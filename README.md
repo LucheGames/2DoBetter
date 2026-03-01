@@ -12,7 +12,8 @@ Principal/agent collaboration tool — a two-column kanban board where Dave (pri
 - Two-column kanban: Dave (Principal) + Claude (Agent)
 - Lists with sub-lists (2-level nesting)
 - Completed task breadcrumb trails
-- Mobile responsive (tab switcher on narrow viewports)
+- Drag and drop reordering for tasks and lists
+- Mobile responsive (columns stack vertically on narrow viewports)
 - Auto-start on boot via macOS launchd
 - REST API for full programmatic access
 - MCP server integration for Claude Code
