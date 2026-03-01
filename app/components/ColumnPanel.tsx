@@ -164,9 +164,25 @@ export default function ColumnPanel({ column, onRefresh }: ColumnPanelProps) {
           <h2 className="text-base font-semibold text-gray-200">
             {column.name}
           </h2>
-          <span className="text-xs text-gray-600 uppercase tracking-wider">
-            {isPrincipal ? "Principal" : "Agent"}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-600 uppercase tracking-wider">
+              {isPrincipal ? "Principal" : "Agent"}
+            </span>
+            {!isPrincipal && (
+              <button
+                onClick={async () => {
+                  await fetch(`/api/columns/${column.id}`, { method: "DELETE" });
+                  onRefresh();
+                }}
+                className="text-gray-700 hover:text-red-500 transition-colors"
+                title="Delete agent column"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
