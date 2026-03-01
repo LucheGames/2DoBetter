@@ -7,20 +7,38 @@ datasource db {
   url      = "file:./dev.db"
 }
 
-model List {
+model Column {
   id        Int      @id @default(autoincrement())
   name      String
+  slug      String   @unique
+  order     Int      @default(0)
   createdAt DateTime @default(now())
-  tasks     Task[]
+  lists     List[]
+}
+
+model List {
+  id        Int      @id @default(autoincrement())
+  columnId  Int
+  parentId  Int?
+  name      String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  column   Column @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  parent   List?  @relation("ListToSubList", fields: [parentId], references: [id], onDelete: Cascade)
+  children List[] @relation("ListToSubList")
+  tasks    Task[]
 }
 
 model Task {
-  id          Int       @id @default(autoincrement())
-  listId      Int
-  title       String
-  completed   Boolean   @default(false)
-  completedAt DateTime?
-  order       Int       @default(0)
-  createdAt   DateTime  @default(now())
-  list        List      @relation(fields: [listId], references: [id], onDelete: Cascade)
+  id                  Int       @id @default(autoincrement())
+  listId              Int
+  title               String
+  completed           Boolean   @default(false)
+  completedAt         DateTime?
+  completedBreadcrumb String?
+  order               Int       @default(0)
+  createdAt           DateTime  @default(now())
+
+  list List @relation(fields: [listId], references: [id], onDelete: Cascade)
 }
