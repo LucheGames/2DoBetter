@@ -155,6 +155,8 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
 
     submittingRef.current = true;
     setNewTaskTitle("");
+    // Reset to single line so the next entry doesn't inherit the expanded height
+    if (taskInputRef.current) taskInputRef.current.style.height = "";
     const tempId = taskIdCounter--;
     const tempTask: Task = {
       id: tempId,
@@ -477,6 +479,8 @@ function SubList({ list, onRefresh }: { list: ListData; onRefresh: () => void })
 
     submittingRef.current = true;
     setNewTaskTitle("");
+    // Reset to single line so the next entry doesn't inherit the expanded height
+    if (taskInputRef.current) taskInputRef.current.style.height = "";
     const tempId = taskIdCounter--;
     const tempTask: Task = {
       id: tempId,

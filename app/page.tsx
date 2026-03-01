@@ -42,13 +42,14 @@ export default function Home() {
       </header>
 
       {/* Columns — side by side on desktop, stacked on mobile.
-          Min width per column so many-agent boards scroll horizontally
-          rather than squishing columns into unreadable slivers. */}
+          Each column targets 1/3 viewport width on desktop. With flex-1 +
+          min-w-[33vw]: 1-2 columns fill the screen evenly, 3 columns sit at
+          exactly 1/3 each, 4+ overflow and scroll horizontally. */}
       <div className="flex-1 flex flex-col md:flex-row md:min-h-0 overflow-y-auto md:overflow-x-auto md:overflow-y-hidden">
         {board.columns.map((col, i) => (
           <div
             key={col.id}
-            className={`flex flex-col md:min-h-0 md:flex-shrink-0 md:w-72 xl:flex-1 xl:min-w-72 ${
+            className={`flex flex-col md:min-h-0 md:flex-1 md:min-w-[33vw] ${
               i < board.columns.length - 1
                 ? "border-b md:border-b-0 md:border-r border-gray-800"
                 : ""
