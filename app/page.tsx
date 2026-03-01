@@ -41,12 +41,14 @@ export default function Home() {
         </h1>
       </header>
 
-      {/* Columns — side by side on desktop, stacked on mobile */}
-      <div className="flex-1 flex flex-col md:flex-row md:min-h-0 overflow-y-auto md:overflow-hidden">
+      {/* Columns — side by side on desktop, stacked on mobile.
+          Min width per column so many-agent boards scroll horizontally
+          rather than squishing columns into unreadable slivers. */}
+      <div className="flex-1 flex flex-col md:flex-row md:min-h-0 overflow-y-auto md:overflow-x-auto md:overflow-y-hidden">
         {board.columns.map((col, i) => (
           <div
             key={col.id}
-            className={`flex flex-col min-w-0 md:flex-1 md:min-h-0 ${
+            className={`flex flex-col md:min-h-0 md:flex-shrink-0 md:w-72 xl:flex-1 xl:min-w-72 ${
               i < board.columns.length - 1
                 ? "border-b md:border-b-0 md:border-r border-gray-800"
                 : ""

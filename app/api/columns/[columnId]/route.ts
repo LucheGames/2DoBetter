@@ -26,3 +26,25 @@ export async function DELETE(
   await prisma.column.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }
+
+export async function PATCH(
+  req: Request,
+  { params }: { params: Promise<{ columnId: string }> }
+) {
+  const { columnId } = await params;
+  const id = parseInt(columnId);
+  if (isNaN(id)) {
+    return NextResponse.json({ error: "Invalid column ID" }, { status: 400 });
+  }
+
+  const { name } = await req.json();
+  if (!name?.trim()) {
+    return NextResponse.json({ error: "Name required" }, { status: 400 });
+  }
+
+  const column = await prisma.column.update({
+    where: { id },
+    data: { name: name.trim() },
+  });
+  return NextResponse.json(column);
+}
