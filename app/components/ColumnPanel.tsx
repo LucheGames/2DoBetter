@@ -69,6 +69,13 @@ export default function ColumnPanel({ column, onRefresh }: ColumnPanelProps) {
   const [showNewListInput, setShowNewListInput] = useState(false);
   const listInputRef = useRef<HTMLInputElement>(null);
 
+  // New agent column — only the principal (first column) can create these
+  const [newAgentName, setNewAgentName] = useState("");
+  const [showNewAgentInput, setShowNewAgentInput] = useState(false);
+  const agentInputRef = useRef<HTMLInputElement>(null);
+
+  const isPrincipal = column.order === 0;
+
   // Local list order state — synced from props, updated optimistically on drag
   const listIdsStr = column.lists.map((l) => l.id).join(",");
   const [listIds, setListIds] = useState<number[]>(() => column.lists.map((l) => l.id));
@@ -124,6 +131,31 @@ export default function ColumnPanel({ column, onRefresh }: ColumnPanelProps) {
     }
   }
 
+  async function createColumn(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newAgentName.trim()) return;
+    await fetch("/api/columns", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newAgentName }),
+    });
+    setNewAgentName("");
+    setShowNewAgentInput(false);
+    onRefresh();
+  }
+
+  function openNewAgentInput() {
+    setShowNewAgentInput(true);
+    setTimeout(() => agentInputRef.current?.focus(), 0);
+  }
+
+  function cancelNewAgent() {
+    if (!newAgentName.trim()) {
+      setShowNewAgentInput(false);
+      setNewAgentName("");
+    }
+  }
+
   return (
     <div className="flex flex-col min-w-0 md:flex-1 md:min-h-0">
       {/* Column header */}
@@ -133,7 +165,7 @@ export default function ColumnPanel({ column, onRefresh }: ColumnPanelProps) {
             {column.name}
           </h2>
           <span className="text-xs text-gray-600 uppercase tracking-wider">
-            {column.slug === "dave" ? "Principal" : "Agent"}
+            {isPrincipal ? "Principal" : "Agent"}
           </span>
         </div>
       </div>
@@ -174,13 +206,13 @@ export default function ColumnPanel({ column, onRefresh }: ColumnPanelProps) {
           </SortableContext>
         </DndContext>
 
-        {/* New list: button → input */}
+        {/* New task (list): button → input */}
         {showNewListInput ? (
           <form onSubmit={createList}>
             <input
               ref={listInputRef}
               className="w-full rounded-lg px-3 py-2 bg-gray-900/50 border border-gray-700 text-sm text-gray-200 placeholder-gray-600 outline-none focus:border-blue-500 transition-all"
-              placeholder="List name..."
+              placeholder="Task name..."
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
               onBlur={cancelNewList}
@@ -198,8 +230,38 @@ export default function ColumnPanel({ column, onRefresh }: ColumnPanelProps) {
             className="w-full rounded-lg px-3 py-2 text-sm text-gray-600 hover:text-gray-400 hover:bg-gray-900/30 border border-transparent hover:border-gray-800/50 transition-all text-left"
             style={{ cursor: "pointer" }}
           >
-            + New agent
+            + New task
           </button>
+        )}
+
+        {/* New agent column — only shown on the principal column */}
+        {isPrincipal && (
+          showNewAgentInput ? (
+            <form onSubmit={createColumn} className="mt-1">
+              <input
+                ref={agentInputRef}
+                className="w-full rounded-lg px-3 py-2 bg-gray-900/50 border border-violet-800/60 text-sm text-gray-200 placeholder-gray-500 outline-none focus:border-violet-500 transition-all"
+                placeholder="Agent name..."
+                value={newAgentName}
+                onChange={(e) => setNewAgentName(e.target.value)}
+                onBlur={cancelNewAgent}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setShowNewAgentInput(false);
+                    setNewAgentName("");
+                  }
+                }}
+              />
+            </form>
+          ) : (
+            <button
+              onClick={openNewAgentInput}
+              className="w-full rounded-lg px-3 py-2 text-sm text-violet-700 hover:text-violet-400 hover:bg-violet-950/30 border border-transparent hover:border-violet-900/50 transition-all text-left mt-1"
+              style={{ cursor: "pointer" }}
+            >
+              + New agent
+            </button>
+          )
         )}
 
         {/* Completed section */}

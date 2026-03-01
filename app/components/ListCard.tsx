@@ -433,7 +433,7 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
 
           {/* Sub-lists */}
           {list.children.map((child) => (
-            <div key={child.id} className="ml-3 mt-2 border-l-2 border-gray-800 pl-2">
+            <div key={child.id} className="ml-3 mt-2 border-l-2 border-blue-900/50 pl-2">
               <SubList list={child} onRefresh={onRefresh} />
             </div>
           ))}
