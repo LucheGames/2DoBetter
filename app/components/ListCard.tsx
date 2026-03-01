@@ -140,7 +140,7 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [optimisticTasks, setOptimisticTasks] = useState<Task[]>([]);
   const submittingRef = useRef(false);
-  const taskInputRef = useRef<HTMLInputElement>(null);
+  const taskInputRef = useRef<HTMLTextAreaElement>(null);
 
   const realActiveTasks = list.tasks.filter((t) => !t.completed);
   const { taskIds, sensors, handleDragEnd } = useTaskDnd(realActiveTasks, onRefresh);
@@ -382,14 +382,23 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
           {/* Add task: button → input */}
           {showTaskInput ? (
             <form onSubmit={createTask} className="px-2 mt-1">
-              <input
+              <textarea
                 ref={taskInputRef}
-                className="w-full rounded px-2 py-1 bg-gray-800/50 text-sm text-gray-200 placeholder-gray-600 outline-none focus:ring-1 focus:ring-blue-500/50 transition-colors"
+                rows={1}
+                className="w-full rounded px-2 py-1 bg-gray-800/50 text-sm text-gray-200 placeholder-gray-600 outline-none focus:ring-1 focus:ring-blue-500/50 transition-colors resize-none overflow-hidden"
                 placeholder="Task name..."
                 value={newTaskTitle}
-                onChange={(e) => setNewTaskTitle(e.target.value)}
+                onChange={(e) => {
+                  setNewTaskTitle(e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = e.target.scrollHeight + "px";
+                }}
                 onBlur={cancelTaskInput}
                 onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    createTask(e as unknown as React.FormEvent);
+                  }
                   if (e.key === "Escape") {
                     setShowTaskInput(false);
                     setNewTaskTitle("");
@@ -453,7 +462,7 @@ function SubList({ list, onRefresh }: { list: ListData; onRefresh: () => void })
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [optimisticTasks, setOptimisticTasks] = useState<Task[]>([]);
   const submittingRef = useRef(false);
-  const taskInputRef = useRef<HTMLInputElement>(null);
+  const taskInputRef = useRef<HTMLTextAreaElement>(null);
 
   const realActiveTasks = list.tasks.filter((t) => !t.completed);
   const { taskIds, sensors, handleDragEnd } = useTaskDnd(realActiveTasks, onRefresh);
@@ -656,14 +665,23 @@ function SubList({ list, onRefresh }: { list: ListData; onRefresh: () => void })
 
           {showTaskInput ? (
             <form onSubmit={createTask} className="px-2 mt-0.5">
-              <input
+              <textarea
                 ref={taskInputRef}
-                className="w-full rounded px-2 py-0.5 bg-gray-800/50 text-xs text-gray-200 placeholder-gray-600 outline-none focus:ring-1 focus:ring-blue-500/50 transition-colors"
+                rows={1}
+                className="w-full rounded px-2 py-0.5 bg-gray-800/50 text-xs text-gray-200 placeholder-gray-600 outline-none focus:ring-1 focus:ring-blue-500/50 transition-colors resize-none overflow-hidden"
                 placeholder="Task name..."
                 value={newTaskTitle}
-                onChange={(e) => setNewTaskTitle(e.target.value)}
+                onChange={(e) => {
+                  setNewTaskTitle(e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = e.target.scrollHeight + "px";
+                }}
                 onBlur={cancelTaskInput}
                 onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    createTask(e as unknown as React.FormEvent);
+                  }
                   if (e.key === "Escape") {
                     setShowTaskInput(false);
                     setNewTaskTitle("");

@@ -64,14 +64,23 @@ export default function TaskRow({
 
       <div className="flex-1 min-w-0">
         {isEditing ? (
-          <input
-            className="w-full bg-transparent outline-none text-sm text-gray-100 border-b border-blue-500"
+          <textarea
+            className="w-full bg-transparent outline-none text-sm text-gray-100 border-b border-blue-500 resize-none overflow-hidden"
             value={editValue}
+            rows={1}
             autoFocus
-            onChange={(e) => setEditValue(e.target.value)}
+            onChange={(e) => {
+              setEditValue(e.target.value);
+              e.target.style.height = "auto";
+              e.target.style.height = e.target.scrollHeight + "px";
+            }}
+            onFocus={(e) => {
+              e.target.style.height = "auto";
+              e.target.style.height = e.target.scrollHeight + "px";
+            }}
             onBlur={handleSave}
             onKeyDown={(e) => {
-              if (e.key === "Enter") handleSave();
+              if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSave(); }
               if (e.key === "Escape") setIsEditing(false);
             }}
           />
@@ -82,7 +91,7 @@ export default function TaskRow({
                 setIsEditing(true);
                 setEditValue(task.title);
               }}
-              className={`text-sm select-none cursor-default transition-all duration-200 ${
+              className={`text-sm select-none cursor-default transition-all duration-200 whitespace-pre-wrap break-words ${
                 task.completed ? "line-through text-gray-400" : "text-gray-200"
               }`}
             >
