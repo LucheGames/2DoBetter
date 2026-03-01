@@ -53,17 +53,18 @@ The `2dobetter` MCP server is registered. Use these tools for all task operation
 
 ## Project Setup
 
-- **App:** `~/2DoBetter/` (stable install, production build)
-- **Dev source:** `_Repos/github/_staging/2-Do-Better/` (GitHub canonical)
-- **Dev server:** `npm run dev -- --webpack` (no Turbopack — it crashes on this machine)
+- **Everything lives in:** `~/2DoBetter/` — this is the ONE source of truth (git repo + node_modules + production build + DB)
+- **Dev server:** `node_modules/.bin/next dev --webpack --port 3001` (port 3001 — production service owns 3000)
 - **Node:** `/Users/macbeast/.nvm/versions/node/v20.20.0/bin/node`
-- **DB:** `prisma/dev.db` (SQLite, local only)
-- **Service:** launchd — auto-starts on login, KeepAlive
+- **DB:** `prisma/dev.db` (SQLite, local only — gitignored)
+- **Production service:** launchd on port 3000 — auto-starts on login, KeepAlive
 - **Logs:** `~/Library/Logs/2dobetter.log`
+- **After code changes:** rebuild with `node_modules/.bin/next build`, then restart service with `launchctl unload/load`
 
 ## Git Rules
 
-- GitHub is source of truth: `_Repos/github/_staging/2-Do-Better/` → remote `LucheGames/ToDoBetter`
+- `~/2DoBetter/` is the working git repo → remote `LucheGames/ToDoBetter`
+- `_Repos/github/_staging/2-Do-Better/` is now retired (legacy — do not use)
 - Never push without Dave's explicit permission
 - Branch for features, commit straight to master for small fixes
 - See `.git-workflow.md` for full conventions
