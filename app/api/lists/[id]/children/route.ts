@@ -41,6 +41,14 @@ export async function POST(
     );
   }
 
+  // Reject duplicate sub-list name under same parent
+  const existing = await prisma.list.findFirst({
+    where: { parentId: Number(id), name: name.trim() },
+  });
+  if (existing) {
+    return NextResponse.json(existing);
+  }
+
   const maxOrder = await prisma.list.aggregate({
     where: { parentId: Number(id) },
     _max: { order: true },

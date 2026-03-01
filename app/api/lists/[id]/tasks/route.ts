@@ -22,6 +22,13 @@ export async function POST(
   if (!title?.trim()) {
     return NextResponse.json({ error: "Title required" }, { status: 400 });
   }
+  // Reject duplicate title in same list (prevents rapid-fire double-submits)
+  const existing = await prisma.task.findFirst({
+    where: { listId: Number(id), title: title.trim(), completed: false },
+  });
+  if (existing) {
+    return NextResponse.json(existing); // Return existing instead of creating duplicate
+  }
   // Place new task at the end of the active list
   const maxOrder = await prisma.task.aggregate({
     where: { listId: Number(id), completed: false },

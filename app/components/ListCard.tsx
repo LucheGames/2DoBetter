@@ -9,6 +9,8 @@ type ListCardProps = {
   onRefresh: () => void;
 };
 
+let taskIdCounter = -1; // Negative IDs for optimistic tasks (replaced on refresh)
+
 export default function ListCard({ list, onRefresh }: ListCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [newTaskTitle, setNewTaskTitle] = useState("");
@@ -17,21 +19,49 @@ export default function ListCard({ list, onRefresh }: ListCardProps) {
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(list.name);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [optimisticTasks, setOptimisticTasks] = useState<Task[]>([]);
+  const submittingRef = useRef(false);
   const taskInputRef = useRef<HTMLInputElement>(null);
 
-  const activeTasks = list.tasks.filter((t) => !t.completed);
+  const activeTasks = [
+    ...list.tasks.filter((t) => !t.completed),
+    ...optimisticTasks,
+  ];
 
   async function createTask(e: React.FormEvent) {
     e.preventDefault();
-    if (!newTaskTitle.trim()) return;
-    await fetch(`/api/lists/${list.id}/tasks`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: newTaskTitle }),
-    });
+    const title = newTaskTitle.trim();
+    if (!title || submittingRef.current) return;
+
+    // Instant: clear input + show optimistic task
+    submittingRef.current = true;
     setNewTaskTitle("");
-    onRefresh();
+    const tempId = taskIdCounter--;
+    const tempTask: Task = {
+      id: tempId,
+      listId: list.id,
+      title,
+      completed: false,
+      completedAt: null,
+      completedBreadcrumb: null,
+      order: 999,
+      createdAt: new Date().toISOString(),
+    };
+    setOptimisticTasks((prev) => [...prev, tempTask]);
     taskInputRef.current?.focus();
+
+    // Background: persist + sync
+    try {
+      await fetch(`/api/lists/${list.id}/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+    } finally {
+      setOptimisticTasks((prev) => prev.filter((t) => t.id !== tempId));
+      submittingRef.current = false;
+      onRefresh();
+    }
   }
 
   async function toggleTask(task: Task) {
@@ -248,19 +278,45 @@ function SubList({
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(list.name);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [optimisticTasks, setOptimisticTasks] = useState<Task[]>([]);
+  const submittingRef = useRef(false);
 
-  const activeTasks = list.tasks.filter((t) => !t.completed);
+  const activeTasks = [
+    ...list.tasks.filter((t) => !t.completed),
+    ...optimisticTasks,
+  ];
 
   async function createTask(e: React.FormEvent) {
     e.preventDefault();
-    if (!newTaskTitle.trim()) return;
-    await fetch(`/api/lists/${list.id}/tasks`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: newTaskTitle }),
-    });
+    const title = newTaskTitle.trim();
+    if (!title || submittingRef.current) return;
+
+    submittingRef.current = true;
     setNewTaskTitle("");
-    onRefresh();
+    const tempId = taskIdCounter--;
+    const tempTask: Task = {
+      id: tempId,
+      listId: list.id,
+      title,
+      completed: false,
+      completedAt: null,
+      completedBreadcrumb: null,
+      order: 999,
+      createdAt: new Date().toISOString(),
+    };
+    setOptimisticTasks((prev) => [...prev, tempTask]);
+
+    try {
+      await fetch(`/api/lists/${list.id}/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+    } finally {
+      setOptimisticTasks((prev) => prev.filter((t) => t.id !== tempId));
+      submittingRef.current = false;
+      onRefresh();
+    }
   }
 
   async function toggleTask(task: Task) {
