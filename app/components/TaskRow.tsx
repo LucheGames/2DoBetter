@@ -9,6 +9,7 @@ type TaskRowProps = {
   onDelete: (id: number) => void;
   onSave: (id: number, title: string) => void;
   showBreadcrumb?: boolean;
+  dragHandle?: React.ReactNode;
 };
 
 export default function TaskRow({
@@ -17,6 +18,7 @@ export default function TaskRow({
   onDelete,
   onSave,
   showBreadcrumb,
+  dragHandle,
 }: TaskRowProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(task.title);
@@ -34,6 +36,8 @@ export default function TaskRow({
         task.completed ? "opacity-40" : ""
       }`}
     >
+      {dragHandle}
+
       <button
         onClick={() => onToggle(task)}
         className={`flex-shrink-0 w-4 h-4 mt-0.5 rounded border transition-all duration-200 flex items-center justify-center ${

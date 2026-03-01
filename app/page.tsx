@@ -6,7 +6,6 @@ import ColumnPanel from "./components/ColumnPanel";
 
 export default function Home() {
   const [board, setBoard] = useState<BoardData | null>(null);
-  const [activeTab, setActiveTab] = useState<number>(0);
 
   const fetchBoard = useCallback(async () => {
     const res = await fetch("/api/overview");
@@ -42,31 +41,16 @@ export default function Home() {
         </h1>
       </header>
 
-      {/* Mobile tab switcher (visible < md) */}
-      <div className="flex-shrink-0 md:hidden flex border-b border-gray-800">
-        {board.columns.map((col, i) => (
-          <button
-            key={col.id}
-            onClick={() => setActiveTab(i)}
-            className={`flex-1 py-2 text-sm font-medium text-center transition-colors ${
-              activeTab === i
-                ? "text-blue-400 border-b-2 border-blue-400"
-                : "text-gray-500 hover:text-gray-300"
-            }`}
-          >
-            {col.name}
-          </button>
-        ))}
-      </div>
-
-      {/* Columns */}
-      <div className="flex-1 flex min-h-0">
+      {/* Columns — side by side on desktop, stacked on mobile */}
+      <div className="flex-1 flex flex-col md:flex-row md:min-h-0 overflow-y-auto md:overflow-hidden">
         {board.columns.map((col, i) => (
           <div
             key={col.id}
-            className={`flex-1 flex flex-col min-w-0 ${
-              i < board.columns.length - 1 ? "border-r border-gray-800" : ""
-            } ${i === activeTab ? "" : "hidden md:flex"}`}
+            className={`flex flex-col min-w-0 md:flex-1 md:min-h-0 ${
+              i < board.columns.length - 1
+                ? "border-b md:border-b-0 md:border-r border-gray-800"
+                : ""
+            }`}
           >
             <ColumnPanel column={col} onRefresh={fetchBoard} />
           </div>

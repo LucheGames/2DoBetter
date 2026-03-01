@@ -1,37 +1,195 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  arrayMove,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { ListData, Task } from "../types";
 import TaskRow from "./TaskRow";
 
 type ListCardProps = {
   list: ListData;
   onRefresh: () => void;
+  dragHandleProps?: Record<string, unknown>;
 };
 
-export default function ListCard({ list, onRefresh }: ListCardProps) {
+let taskIdCounter = -1;
+
+function GripIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="currentColor">
+      <circle cx="5" cy="4" r="1.2" />
+      <circle cx="11" cy="4" r="1.2" />
+      <circle cx="5" cy="8" r="1.2" />
+      <circle cx="11" cy="8" r="1.2" />
+      <circle cx="5" cy="12" r="1.2" />
+      <circle cx="11" cy="12" r="1.2" />
+    </svg>
+  );
+}
+
+/** Sortable wrapper for a single task row */
+function SortableTaskRow({
+  task,
+  onToggle,
+  onDelete,
+  onSave,
+}: {
+  task: Task;
+  onToggle: (task: Task) => void;
+  onDelete: (id: number) => void;
+  onSave: (id: number, title: string) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: task.id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+        position: "relative",
+        zIndex: isDragging ? 10 : undefined,
+      }}
+    >
+      <TaskRow
+        task={task}
+        onToggle={onToggle}
+        onDelete={onDelete}
+        onSave={onSave}
+        dragHandle={
+          <button
+            className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-700 hover:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity touch-none mt-0.5"
+            {...(attributes as Record<string, unknown>)}
+            {...(listeners as Record<string, unknown>)}
+            tabIndex={-1}
+            title="Drag to reorder"
+          >
+            <GripIcon className="w-3 h-3" />
+          </button>
+        }
+      />
+    </div>
+  );
+}
+
+/** Custom hook: manages local sort order for a list of tasks */
+function useTaskDnd(tasks: Task[], onRefresh: () => void) {
+  const taskIdsStr = tasks.map((t) => t.id).join(",");
+  const [taskIds, setTaskIds] = useState<number[]>(() => tasks.map((t) => t.id));
+
+  // Re-sync when the underlying task list changes (after API refresh)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setTaskIds(tasks.map((t) => t.id)); }, [taskIdsStr]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = taskIds.indexOf(Number(active.id));
+    const newIndex = taskIds.indexOf(Number(over.id));
+    const newIds = arrayMove(taskIds, oldIndex, newIndex);
+    setTaskIds(newIds);
+    await fetch("/api/tasks/reorder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: newIds }),
+    });
+    onRefresh();
+  }
+
+  return { taskIds, sensors, handleDragEnd };
+}
+
+export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [showTaskInput, setShowTaskInput] = useState(false);
   const [newSubListName, setNewSubListName] = useState("");
   const [showAddSubList, setShowAddSubList] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(list.name);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [optimisticTasks, setOptimisticTasks] = useState<Task[]>([]);
+  const submittingRef = useRef(false);
   const taskInputRef = useRef<HTMLInputElement>(null);
 
-  const activeTasks = list.tasks.filter((t) => !t.completed);
+  const realActiveTasks = list.tasks.filter((t) => !t.completed);
+  const { taskIds, sensors, handleDragEnd } = useTaskDnd(realActiveTasks, onRefresh);
+  const orderedActiveTasks = taskIds
+    .map((id) => realActiveTasks.find((t) => t.id === id))
+    .filter(Boolean) as Task[];
 
   async function createTask(e: React.FormEvent) {
     e.preventDefault();
-    if (!newTaskTitle.trim()) return;
-    await fetch(`/api/lists/${list.id}/tasks`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: newTaskTitle }),
-    });
+    const title = newTaskTitle.trim();
+    if (!title || submittingRef.current) return;
+
+    submittingRef.current = true;
     setNewTaskTitle("");
-    onRefresh();
+    const tempId = taskIdCounter--;
+    const tempTask: Task = {
+      id: tempId,
+      listId: list.id,
+      title,
+      completed: false,
+      completedAt: null,
+      completedBreadcrumb: null,
+      order: 999,
+      createdAt: new Date().toISOString(),
+    };
+    setOptimisticTasks((prev) => [...prev, tempTask]);
     taskInputRef.current?.focus();
+
+    try {
+      await fetch(`/api/lists/${list.id}/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+    } finally {
+      setOptimisticTasks((prev) => prev.filter((t) => t.id !== tempId));
+      submittingRef.current = false;
+      onRefresh();
+    }
+  }
+
+  function openTaskInput() {
+    setShowTaskInput(true);
+    setTimeout(() => taskInputRef.current?.focus(), 0);
+  }
+
+  function cancelTaskInput() {
+    if (!newTaskTitle.trim()) {
+      setShowTaskInput(false);
+      setNewTaskTitle("");
+    }
   }
 
   async function toggleTask(task: Task) {
@@ -87,10 +245,24 @@ export default function ListCard({ list, onRefresh }: ListCardProps) {
     onRefresh();
   }
 
+  const totalActive = orderedActiveTasks.length + optimisticTasks.length;
+
   return (
     <div className="rounded-lg bg-gray-900/50 border border-gray-800/50">
       {/* List header */}
       <div className="group flex items-center gap-1 px-3 py-2">
+        {/* Drag handle for list reordering — only rendered when parent passes props */}
+        {dragHandleProps && (
+          <button
+            className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-700 hover:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity touch-none"
+            {...(dragHandleProps as React.HTMLAttributes<HTMLButtonElement>)}
+            tabIndex={-1}
+            title="Drag to reorder list"
+          >
+            <GripIcon className="w-3 h-3" />
+          </button>
+        )}
+
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className="flex-shrink-0 text-gray-500 hover:text-gray-300"
@@ -167,39 +339,70 @@ export default function ListCard({ list, onRefresh }: ListCardProps) {
           </div>
         )}
 
-        {activeTasks.length > 0 && !editingName && !confirmDelete && (
-          <span className="text-xs text-gray-600 flex-shrink-0">
-            {activeTasks.length}
-          </span>
+        {totalActive > 0 && !editingName && !confirmDelete && (
+          <span className="text-xs text-gray-600 flex-shrink-0">{totalActive}</span>
         )}
       </div>
 
       {/* List content */}
       {isExpanded && (
         <div className="px-1 pb-2">
-          {/* Tasks */}
-          <div className="space-y-0">
-            {activeTasks.map((task) => (
-              <TaskRow
-                key={task.id}
-                task={task}
-                onToggle={toggleTask}
-                onDelete={deleteTask}
-                onSave={saveTaskTitle}
-              />
-            ))}
-          </div>
+          {/* Sortable tasks */}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+              {orderedActiveTasks.map((task) => (
+                <SortableTaskRow
+                  key={task.id}
+                  task={task}
+                  onToggle={toggleTask}
+                  onDelete={deleteTask}
+                  onSave={saveTaskTitle}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
 
-          {/* Add task input */}
-          <form onSubmit={createTask} className="px-2 mt-1">
-            <input
-              ref={taskInputRef}
-              className="w-full rounded px-2 py-1 bg-transparent text-sm text-gray-400 placeholder-gray-700 outline-none focus:bg-gray-800/50 focus:placeholder-gray-600 transition-colors"
-              placeholder="+ Add task"
-              value={newTaskTitle}
-              onChange={(e) => setNewTaskTitle(e.target.value)}
+          {/* Optimistic tasks (not sortable — replaced immediately on refresh) */}
+          {optimisticTasks.map((task) => (
+            <TaskRow
+              key={task.id}
+              task={task}
+              onToggle={toggleTask}
+              onDelete={deleteTask}
+              onSave={saveTaskTitle}
             />
-          </form>
+          ))}
+
+          {/* Add task: button → input */}
+          {showTaskInput ? (
+            <form onSubmit={createTask} className="px-2 mt-1">
+              <input
+                ref={taskInputRef}
+                className="w-full rounded px-2 py-1 bg-gray-800/50 text-sm text-gray-200 placeholder-gray-600 outline-none focus:ring-1 focus:ring-blue-500/50 transition-colors"
+                placeholder="Task name..."
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                onBlur={cancelTaskInput}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setShowTaskInput(false);
+                    setNewTaskTitle("");
+                  }
+                }}
+              />
+            </form>
+          ) : (
+            <button
+              onClick={openTaskInput}
+              className="w-full text-left px-4 py-1 mt-1 text-sm text-gray-600 hover:text-gray-400 transition-colors cursor-pointer"
+            >
+              + Add subtask
+            </button>
+          )}
 
           {/* Sub-list creation form */}
           {showAddSubList && (
@@ -210,6 +413,12 @@ export default function ListCard({ list, onRefresh }: ListCardProps) {
                 value={newSubListName}
                 autoFocus
                 onChange={(e) => setNewSubListName(e.target.value)}
+                onBlur={() => {
+                  if (!newSubListName.trim()) {
+                    setShowAddSubList(false);
+                    setNewSubListName("");
+                  }
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Escape") {
                     setShowAddSubList(false);
@@ -222,10 +431,7 @@ export default function ListCard({ list, onRefresh }: ListCardProps) {
 
           {/* Sub-lists */}
           {list.children.map((child) => (
-            <div
-              key={child.id}
-              className="ml-3 mt-2 border-l-2 border-gray-800 pl-2"
-            >
+            <div key={child.id} className="ml-3 mt-2 border-l-2 border-gray-800 pl-2">
               <SubList list={child} onRefresh={onRefresh} />
             </div>
           ))}
@@ -235,32 +441,68 @@ export default function ListCard({ list, onRefresh }: ListCardProps) {
   );
 }
 
-/* Sub-list component (no further nesting allowed) */
-function SubList({
-  list,
-  onRefresh,
-}: {
-  list: ListData;
-  onRefresh: () => void;
-}) {
+/** Sub-list — same task DnD as ListCard, no further nesting */
+function SubList({ list, onRefresh }: { list: ListData; onRefresh: () => void }) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [showTaskInput, setShowTaskInput] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(list.name);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [optimisticTasks, setOptimisticTasks] = useState<Task[]>([]);
+  const submittingRef = useRef(false);
+  const taskInputRef = useRef<HTMLInputElement>(null);
 
-  const activeTasks = list.tasks.filter((t) => !t.completed);
+  const realActiveTasks = list.tasks.filter((t) => !t.completed);
+  const { taskIds, sensors, handleDragEnd } = useTaskDnd(realActiveTasks, onRefresh);
+  const orderedActiveTasks = taskIds
+    .map((id) => realActiveTasks.find((t) => t.id === id))
+    .filter(Boolean) as Task[];
 
   async function createTask(e: React.FormEvent) {
     e.preventDefault();
-    if (!newTaskTitle.trim()) return;
-    await fetch(`/api/lists/${list.id}/tasks`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: newTaskTitle }),
-    });
+    const title = newTaskTitle.trim();
+    if (!title || submittingRef.current) return;
+
+    submittingRef.current = true;
     setNewTaskTitle("");
-    onRefresh();
+    const tempId = taskIdCounter--;
+    const tempTask: Task = {
+      id: tempId,
+      listId: list.id,
+      title,
+      completed: false,
+      completedAt: null,
+      completedBreadcrumb: null,
+      order: 999,
+      createdAt: new Date().toISOString(),
+    };
+    setOptimisticTasks((prev) => [...prev, tempTask]);
+    taskInputRef.current?.focus();
+
+    try {
+      await fetch(`/api/lists/${list.id}/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+    } finally {
+      setOptimisticTasks((prev) => prev.filter((t) => t.id !== tempId));
+      submittingRef.current = false;
+      onRefresh();
+    }
+  }
+
+  function openTaskInput() {
+    setShowTaskInput(true);
+    setTimeout(() => taskInputRef.current?.focus(), 0);
+  }
+
+  function cancelTaskInput() {
+    if (!newTaskTitle.trim()) {
+      setShowTaskInput(false);
+      setNewTaskTitle("");
+    }
   }
 
   async function toggleTask(task: Task) {
@@ -302,6 +544,8 @@ function SubList({
     setConfirmDelete(false);
     onRefresh();
   }
+
+  const totalActive = orderedActiveTasks.length + optimisticTasks.length;
 
   return (
     <div>
@@ -373,16 +617,32 @@ function SubList({
           </button>
         )}
 
-        {activeTasks.length > 0 && !editingName && !confirmDelete && (
-          <span className="text-xs text-gray-700 flex-shrink-0">
-            {activeTasks.length}
-          </span>
+        {totalActive > 0 && !editingName && !confirmDelete && (
+          <span className="text-xs text-gray-700 flex-shrink-0">{totalActive}</span>
         )}
       </div>
 
       {isExpanded && (
         <div>
-          {activeTasks.map((task) => (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+              {orderedActiveTasks.map((task) => (
+                <SortableTaskRow
+                  key={task.id}
+                  task={task}
+                  onToggle={toggleTask}
+                  onDelete={deleteTask}
+                  onSave={saveTaskTitle}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+
+          {optimisticTasks.map((task) => (
             <TaskRow
               key={task.id}
               task={task}
@@ -391,14 +651,32 @@ function SubList({
               onSave={saveTaskTitle}
             />
           ))}
-          <form onSubmit={createTask} className="px-2 mt-0.5">
-            <input
-              className="w-full rounded px-2 py-0.5 bg-transparent text-xs text-gray-500 placeholder-gray-700 outline-none focus:bg-gray-800/50 transition-colors"
-              placeholder="+ Add task"
-              value={newTaskTitle}
-              onChange={(e) => setNewTaskTitle(e.target.value)}
-            />
-          </form>
+
+          {showTaskInput ? (
+            <form onSubmit={createTask} className="px-2 mt-0.5">
+              <input
+                ref={taskInputRef}
+                className="w-full rounded px-2 py-0.5 bg-gray-800/50 text-xs text-gray-200 placeholder-gray-600 outline-none focus:ring-1 focus:ring-blue-500/50 transition-colors"
+                placeholder="Task name..."
+                value={newTaskTitle}
+                onChange={(e) => setNewTaskTitle(e.target.value)}
+                onBlur={cancelTaskInput}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setShowTaskInput(false);
+                    setNewTaskTitle("");
+                  }
+                }}
+              />
+            </form>
+          ) : (
+            <button
+              onClick={openTaskInput}
+              className="w-full text-left px-4 py-0.5 mt-0.5 text-xs text-gray-600 hover:text-gray-400 transition-colors cursor-pointer"
+            >
+              + Add subtask
+            </button>
+          )}
         </div>
       )}
     </div>
