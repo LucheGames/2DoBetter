@@ -20,6 +20,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { ListData, Task } from "../types";
 import TaskRow from "./TaskRow";
+import HoldToDelete from "./HoldToDelete";
+import { MoveTaskButton, MoveProjectButton } from "./MoveMenu";
 
 type DragHandleProps = React.HTMLAttributes<HTMLButtonElement>;
 
@@ -50,11 +52,13 @@ function SortableTaskRow({
   onToggle,
   onDelete,
   onSave,
+  moveButton,
 }: {
   task: Task;
   onToggle: (task: Task) => void;
   onDelete: (id: number) => void;
   onSave: (id: number, title: string) => void;
+  moveButton?: React.ReactNode;
 }) {
   const {
     attributes,
@@ -81,9 +85,10 @@ function SortableTaskRow({
         onToggle={onToggle}
         onDelete={onDelete}
         onSave={onSave}
+        moveButton={moveButton}
         dragHandle={
           <button
-            className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-700 hover:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity touch-none mt-0.5"
+            className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-700 hover:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity touch-none"
             {...(attributes as DragHandleProps)}
             {...(listeners as DragHandleProps)}
             tabIndex={-1}
@@ -137,7 +142,6 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
   const [showAddSubList, setShowAddSubList] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(list.name);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [optimisticTasks, setOptimisticTasks] = useState<Task[]>([]);
   const submittingRef = useRef(false);
   const taskInputRef = useRef<HTMLTextAreaElement>(null);
@@ -230,9 +234,26 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
     onRefresh();
   }
 
+  async function moveTask(taskId: number, targetListId: number) {
+    await fetch(`/api/tasks/${taskId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ listId: targetListId }),
+    });
+    onRefresh();
+  }
+
+  async function moveProject(targetColumnId: number) {
+    await fetch(`/api/lists/${list.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ columnId: targetColumnId }),
+    });
+    onRefresh();
+  }
+
   async function deleteList() {
     await fetch(`/api/lists/${list.id}`, { method: "DELETE" });
-    setConfirmDelete(false);
     onRefresh();
   }
 
@@ -254,11 +275,11 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
   return (
     <div className="rounded-lg bg-gray-900/50 border border-gray-800/50">
       {/* List header */}
-      <div className="group flex items-center gap-1 px-3 py-2">
-        {/* Drag handle for list reordering — only rendered when parent passes props */}
+      <div className="group flex items-center gap-0.5 px-1 py-0.5">
+        {/* Drag handle */}
         {dragHandleProps && (
           <button
-            className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-700 hover:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity touch-none"
+            className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-700 hover:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity touch-none min-w-[36px] min-h-[36px] flex items-center justify-center"
             {...dragHandleProps}
             tabIndex={-1}
             title="Drag to reorder list"
@@ -267,12 +288,13 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
           </button>
         )}
 
+        {/* Collapse chevron — 36px tap target */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex-shrink-0 text-gray-500 hover:text-gray-300"
+          className="flex-shrink-0 min-w-[36px] min-h-[36px] flex items-center justify-center text-gray-500 hover:text-gray-300 rounded transition-colors"
         >
           <svg
-            className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
+            className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
             fill="currentColor"
             viewBox="0 0 20 20"
           >
@@ -296,22 +318,6 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
               if (e.key === "Escape") setEditingName(false);
             }}
           />
-        ) : confirmDelete ? (
-          <div className="flex-1 flex items-center gap-2">
-            <span className="text-xs text-red-300">Delete list?</span>
-            <button
-              onClick={deleteList}
-              className="text-xs px-1.5 py-0.5 rounded bg-red-600 hover:bg-red-500 text-white"
-            >
-              Yes
-            </button>
-            <button
-              onClick={() => setConfirmDelete(false)}
-              className="text-xs px-1.5 py-0.5 rounded bg-gray-700 hover:bg-gray-600 text-gray-300"
-            >
-              No
-            </button>
-          </div>
         ) : (
           <span
             onDoubleClick={() => {
@@ -324,27 +330,23 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
           </span>
         )}
 
-        {!editingName && !confirmDelete && (
-          <div className="hidden group-hover:flex items-center gap-1">
+        {!editingName && (
+          <div className="hidden group-hover:flex items-center">
+            {/* Add sub-list — 36px tap target */}
             <button
               onClick={() => setShowAddSubList(!showAddSubList)}
-              className="text-gray-600 hover:text-gray-400 text-xs px-1"
+              className="min-w-[36px] min-h-[36px] flex items-center justify-center text-gray-600 hover:text-gray-300 rounded transition-colors text-base leading-none"
               title="Add sub-list"
             >
               +
             </button>
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="text-gray-600 hover:text-red-400 text-xs px-1"
-              title="Delete list"
-            >
-              ×
-            </button>
+            <MoveProjectButton currentColumnId={list.columnId} onMove={moveProject} />
+            <HoldToDelete onConfirm={deleteList} label="Delete project?" />
           </div>
         )}
 
-        {totalActive > 0 && !editingName && !confirmDelete && (
-          <span className="text-xs text-gray-600 flex-shrink-0">{totalActive}</span>
+        {totalActive > 0 && !editingName && (
+          <span className="text-xs text-gray-600 flex-shrink-0 px-1">{totalActive}</span>
         )}
       </div>
 
@@ -365,6 +367,12 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
                   onToggle={toggleTask}
                   onDelete={deleteTask}
                   onSave={saveTaskTitle}
+                  moveButton={
+                    <MoveTaskButton
+                      currentListId={list.id}
+                      onMove={(targetListId) => moveTask(task.id, targetListId)}
+                    />
+                  }
                 />
               ))}
             </SortableContext>
@@ -413,7 +421,7 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
               onClick={openTaskInput}
               className="w-full text-left px-4 py-1 mt-1 text-sm text-gray-600 hover:text-gray-400 transition-colors cursor-pointer"
             >
-              + Add subtask
+              + Add task
             </button>
           )}
 
@@ -461,7 +469,6 @@ function SubList({ list, onRefresh }: { list: ListData; onRefresh: () => void })
   const [showTaskInput, setShowTaskInput] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(list.name);
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [optimisticTasks, setOptimisticTasks] = useState<Task[]>([]);
   const submittingRef = useRef(false);
   const taskInputRef = useRef<HTMLTextAreaElement>(null);
@@ -556,7 +563,6 @@ function SubList({ list, onRefresh }: { list: ListData; onRefresh: () => void })
 
   async function deleteSubList() {
     await fetch(`/api/lists/${list.id}`, { method: "DELETE" });
-    setConfirmDelete(false);
     onRefresh();
   }
 
@@ -594,22 +600,6 @@ function SubList({ list, onRefresh }: { list: ListData; onRefresh: () => void })
               if (e.key === "Escape") setEditingName(false);
             }}
           />
-        ) : confirmDelete ? (
-          <div className="flex-1 flex items-center gap-2">
-            <span className="text-xs text-red-300">Delete?</span>
-            <button
-              onClick={deleteSubList}
-              className="text-xs px-1 py-0.5 rounded bg-red-600 hover:bg-red-500 text-white"
-            >
-              Yes
-            </button>
-            <button
-              onClick={() => setConfirmDelete(false)}
-              className="text-xs px-1 py-0.5 rounded bg-gray-700 hover:bg-gray-600 text-gray-300"
-            >
-              No
-            </button>
-          </div>
         ) : (
           <span
             onDoubleClick={() => {
@@ -622,17 +612,15 @@ function SubList({ list, onRefresh }: { list: ListData; onRefresh: () => void })
           </span>
         )}
 
-        {!editingName && !confirmDelete && (
-          <button
-            onClick={() => setConfirmDelete(true)}
-            className="hidden group-hover:block text-gray-700 hover:text-red-400 text-xs px-1"
-            title="Delete sub-list"
-          >
-            ×
-          </button>
+        {!editingName && (
+          <HoldToDelete
+            onConfirm={deleteSubList}
+            className="hidden group-hover:flex"
+            label="Delete sub-list?"
+          />
         )}
 
-        {totalActive > 0 && !editingName && !confirmDelete && (
+        {totalActive > 0 && !editingName && (
           <span className="text-xs text-gray-700 flex-shrink-0">{totalActive}</span>
         )}
       </div>
@@ -698,7 +686,7 @@ function SubList({ list, onRefresh }: { list: ListData; onRefresh: () => void })
               onClick={openTaskInput}
               className="w-full text-left px-4 py-0.5 mt-0.5 text-xs text-gray-600 hover:text-gray-400 transition-colors cursor-pointer"
             >
-              + Add subtask
+              + Add task
             </button>
           )}
         </div>

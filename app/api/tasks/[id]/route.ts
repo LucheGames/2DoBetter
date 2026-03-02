@@ -46,12 +46,39 @@ export async function PATCH(
     data.completedAt = body.completed ? new Date() : null;
 
     if (body.completed) {
+      // Completing a task: record where it came from
       const task = await prisma.task.findUnique({
         where: { id: Number(id) },
         select: { listId: true },
       });
       if (task) {
         data.completedBreadcrumb = await computeBreadcrumb(task.listId);
+      }
+    } else {
+      // Un-completing a task: if the parent project is archived, resurrect it
+      const task = await prisma.task.findUnique({
+        where: { id: Number(id) },
+        select: { listId: true },
+      });
+      if (task) {
+        // Walk up to find the top-level list
+        let list = await prisma.list.findUnique({
+          where: { id: task.listId },
+          select: { id: true, parentId: true, archivedAt: true },
+        });
+        // If this is a sub-list task, find the top-level parent
+        if (list?.parentId) {
+          list = await prisma.list.findUnique({
+            where: { id: list.parentId },
+            select: { id: true, parentId: true, archivedAt: true },
+          });
+        }
+        if (list?.archivedAt) {
+          await prisma.list.update({
+            where: { id: list.id },
+            data: { archivedAt: null },
+          });
+        }
       }
     }
   }

@@ -21,6 +21,8 @@ import { CSS } from "@dnd-kit/utilities";
 import { ColumnData, ListData } from "../types";
 import ListCard from "./ListCard";
 import CompletedSection from "./CompletedSection";
+import HoldToDelete from "./HoldToDelete";
+import GraveyardPanel from "./GraveyardPanel";
 
 type ColumnPanelProps = {
   column: ColumnData;
@@ -211,23 +213,18 @@ export default function ColumnPanel({ column, onRefresh }: ColumnPanelProps) {
               {column.name}
             </h2>
           )}
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-shrink-0 min-h-[36px]">
             <span className="text-xs text-gray-600 uppercase tracking-wider">
               {isPrincipal ? "Principal" : "Agent"}
             </span>
             {!isPrincipal && (
-              <button
-                onClick={async () => {
+              <HoldToDelete
+                onConfirm={async () => {
                   await fetch(`/api/columns/${column.id}`, { method: "DELETE" });
                   onRefresh();
                 }}
-                className="text-gray-700 hover:text-red-500 transition-colors"
-                title="Delete agent column"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+                label="Delete column?"
+              />
             )}
           </div>
         </div>
@@ -275,7 +272,7 @@ export default function ColumnPanel({ column, onRefresh }: ColumnPanelProps) {
             <input
               ref={listInputRef}
               className="w-full rounded-lg px-3 py-2 bg-gray-900/50 border border-gray-700 text-sm text-gray-200 placeholder-gray-600 outline-none focus:border-blue-500 transition-all"
-              placeholder="Task name..."
+              placeholder="Project name..."
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
               onBlur={cancelNewList}
@@ -293,7 +290,7 @@ export default function ColumnPanel({ column, onRefresh }: ColumnPanelProps) {
             className="w-full rounded-lg px-3 py-2 text-sm text-gray-600 hover:text-gray-400 hover:bg-gray-900/30 border border-transparent hover:border-gray-800/50 transition-all text-left"
             style={{ cursor: "pointer" }}
           >
-            + New task
+            + New project
           </button>
         )}
 
@@ -329,6 +326,9 @@ export default function ColumnPanel({ column, onRefresh }: ColumnPanelProps) {
 
         {/* Completed section */}
         <CompletedSection lists={column.lists} onRefresh={onRefresh} />
+
+        {/* Graveyard — shown on every column, scoped to that column's archived projects */}
+        <GraveyardPanel columnId={column.id} onResurrect={onRefresh} />
       </div>
     </div>
   );

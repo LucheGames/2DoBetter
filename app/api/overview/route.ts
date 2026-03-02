@@ -6,7 +6,7 @@ export async function GET() {
     orderBy: { order: "asc" },
     include: {
       lists: {
-        where: { parentId: null },
+        where: { parentId: null, archivedAt: null },
         orderBy: { order: "asc" },
         include: {
           tasks: {

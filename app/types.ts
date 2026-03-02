@@ -16,6 +16,7 @@ export type ListData = {
   name: string;
   order: number;
   createdAt: string;
+  archivedAt: string | null;
   tasks: Task[];
   children: ListData[];
 };

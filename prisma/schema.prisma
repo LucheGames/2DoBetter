@@ -17,12 +17,13 @@ model Column {
 }
 
 model List {
-  id        Int      @id @default(autoincrement())
-  columnId  Int
-  parentId  Int?
-  name      String
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
+  id         Int       @id @default(autoincrement())
+  columnId   Int
+  parentId   Int?
+  name       String
+  order      Int       @default(0)
+  createdAt  DateTime  @default(now())
+  archivedAt DateTime?
 
   column   Column @relation(fields: [columnId], references: [id], onDelete: Cascade)
   parent   List?  @relation("ListToSubList", fields: [parentId], references: [id], onDelete: Cascade)
