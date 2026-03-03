@@ -4,15 +4,15 @@
 
 At the start of every session, do this automatically (no need to ask):
 
-1. **Check the service is running:**
+1. **Check the server is reachable** (production runs on Ubuntu):
    ```bash
    curl -sk -o /dev/null -w "%{http_code}" https://localhost:3000/ --max-time 2
    ```
-   If not `200` or `307`, start it:
+   If not `200` or `307`, the Ubuntu service may be down. SSH to Ubuntu and check:
    ```bash
-   launchctl load ~/Library/LaunchAgents/com.luchegames.2dobetter.plist 2>/dev/null || true
+   systemctl --user status 2dobetter
+   systemctl --user restart 2dobetter
    ```
-   Wait a few seconds, verify it came up.
 
 2. **Check the board** using the `get_board` MCP tool.
    Review what's in Dave's column and the Claude column. Note anything in-progress or blocked.
@@ -53,21 +53,29 @@ The `2dobetter` MCP server is registered. Use these tools for all task operation
 
 ## Project Setup
 
-- **Everything lives in:** `~/2DoBetter/` — this is the ONE source of truth (git repo + node_modules + production build + DB)
-- **Dev server:** `node_modules/.bin/next dev --webpack --port 3001` (port 3001 — production service owns 3000)
-- **Node:** `/Users/macbeast/.nvm/versions/node/v20.20.0/bin/node`
-- **DB:** `prisma/dev.db` (SQLite, local only — gitignored)
-- **Production service:** launchd, HTTPS on port 3000, HTTP redirect on port 3001 — auto-starts on login, KeepAlive
-- **TLS:** Self-signed certs in `certs/` (gitignored). Regenerate with `bash generate-certs.sh`
-- **Auth:** Token-based. Token stored in `.env` as `AUTH_TOKEN`. MCP server reads this from env.
-- **Logs:** `~/Library/Logs/2dobetter.log`
-- **After code changes:** rebuild with `node_modules/.bin/next build`, then restart service with `launchctl unload/load`
-- **MCP server note:** Uses `NODE_TLS_REJECT_UNAUTHORIZED=0` for local HTTPS + `AUTH_TOKEN` cookie for auth
+- **Server lives on:** Ubuntu box (LAN), `~/2DoBetter/` — always-on via Ethernet
+- **Mac is client only** — launchd service disabled; `.app` launcher opens Ubuntu URL
+- **Phone is client only** — PWA installed pointing to Ubuntu URL
+- **Git repo (Mac):** `~/2DoBetter/` → remote `LucheGames/ToDoBetter`
+- **DB:** `~/2DoBetter/prisma/dev.db` on Ubuntu (SQLite, gitignored — single source of truth)
+- **Production service (Ubuntu):** systemd user service, HTTPS on port 3000, HTTP redirect on port 3001
+  - Status: `systemctl --user status 2dobetter`
+  - Restart: `systemctl --user restart 2dobetter`
+  - Logs: `journalctl --user -u 2dobetter -n 100 -f`
+- **TLS:** Self-signed certs in `~/2DoBetter/certs/` on Ubuntu (gitignored). Regenerate with `bash generate-certs.sh`
+- **Auth:** Token-based. `AUTH_TOKEN` + `AUTH_USERNAME` in `~/2DoBetter/.env` on Ubuntu
+- **MCP server:** Runs on Mac, talks to Ubuntu's API. Uses `NODE_TLS_REJECT_UNAUTHORIZED=0` for local HTTPS.
+- **After code changes on Mac:**
+  ```bash
+  git push origin master
+  # Then on Ubuntu (SSH in):
+  cd ~/2DoBetter && git pull && npm install && npm run build
+  systemctl --user restart 2dobetter
+  ```
+- **Dev server (Mac, local testing only):** `node_modules/.bin/next dev --webpack --port 3001`
 
 ## Git Rules
 
-- `~/2DoBetter/` is the working git repo → remote `LucheGames/ToDoBetter`
-- `_Repos/github/_staging/2-Do-Better/` is now retired (legacy — do not use)
+- `~/2DoBetter/` on Mac is the working git repo → remote `LucheGames/ToDoBetter`
 - Never push without Dave's explicit permission
 - Branch for features, commit straight to master for small fixes
-- See `.git-workflow.md` for full conventions
