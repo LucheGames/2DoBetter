@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { broadcast } from "@/lib/events";
 
 export async function POST(req: Request) {
   const { ids } = await req.json();
@@ -11,5 +12,6 @@ export async function POST(req: Request) {
       prisma.task.update({ where: { id }, data: { order: index } })
     )
   );
+  broadcast();
   return NextResponse.json({ ok: true });
 }

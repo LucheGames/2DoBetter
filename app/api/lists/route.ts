@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { broadcast } from "@/lib/events";
 
 export async function GET() {
   const lists = await prisma.list.findMany({
@@ -23,5 +24,6 @@ export async function POST(req: Request) {
   const list = await prisma.list.create({
     data: { name: name.trim(), columnId: Number(columnId) },
   });
+  broadcast();
   return NextResponse.json(list, { status: 201 });
 }

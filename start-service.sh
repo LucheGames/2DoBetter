@@ -8,5 +8,5 @@ export NODE_ENV="production"
 APP_DIR="$HOME/2DoBetter"
 cd "$APP_DIR" || exit 1
 
-# Start the pre-built production server (build is done during install, not on every boot)
-exec node_modules/.bin/next start --port 3000
+# Start the custom HTTPS/HTTP server (build is done during install, not on every boot)
+exec node server.js

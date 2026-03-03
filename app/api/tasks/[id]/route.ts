@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { broadcast } from "@/lib/events";
 
 async function computeBreadcrumb(listId: number): Promise<string> {
   const parts: string[] = [];
@@ -87,6 +88,7 @@ export async function PATCH(
     where: { id: Number(id) },
     data,
   });
+  broadcast();
   return NextResponse.json(task);
 }
 
@@ -96,5 +98,6 @@ export async function DELETE(
 ) {
   const { id } = await params;
   await prisma.task.delete({ where: { id: Number(id) } });
+  broadcast();
   return new NextResponse(null, { status: 204 });
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { broadcast } from "@/lib/events";
 
 /** POST /api/graveyard/[id]/resurrect — restore an archived project to the active board */
 export async function POST(
@@ -15,5 +16,6 @@ export async function POST(
     where: { id: Number(id) },
     data: { archivedAt: null },
   });
+  broadcast();
   return NextResponse.json({ ok: true });
 }

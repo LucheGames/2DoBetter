@@ -42,6 +42,9 @@ next-env.d.ts
 
 /app/generated/prisma
 
+# TLS certificates (generated locally)
+certs/
+
 # sqlite database
 prisma/dev.db
 prisma/dev.db.bak

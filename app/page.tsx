@@ -24,6 +24,18 @@ export default function Home() {
     fetchBoard();
   }, [fetchBoard]);
 
+  // Real-time sync: listen for server-sent events from other clients
+  useEffect(() => {
+    const es = new EventSource("/api/events");
+    es.onmessage = () => {
+      fetchBoard();
+    };
+    es.onerror = () => {
+      // EventSource auto-reconnects — no action needed
+    };
+    return () => es.close();
+  }, [fetchBoard]);
+
   if (!board) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-950 text-gray-600">

@@ -2,12 +2,23 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
-const API_BASE = process.env.API_BASE_URL || "http://localhost:3000";
+// Trust self-signed certs for local HTTPS
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
+const API_BASE = process.env.API_BASE_URL || "https://localhost:3000";
+const AUTH_TOKEN = process.env.AUTH_TOKEN || "";
 
 async function api(path: string, options?: RequestInit) {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options?.headers as Record<string, string>),
+  };
+  if (AUTH_TOKEN) {
+    headers["Cookie"] = `auth_token=${AUTH_TOKEN}`;
+  }
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
-    headers: { "Content-Type": "application/json", ...options?.headers },
+    headers,
   });
   if (res.status === 204) return { success: true };
   return res.json();

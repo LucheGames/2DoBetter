@@ -6,9 +6,9 @@ At the start of every session, do this automatically (no need to ask):
 
 1. **Check the service is running:**
    ```bash
-   curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ --max-time 2
+   curl -sk -o /dev/null -w "%{http_code}" https://localhost:3000/ --max-time 2
    ```
-   If not `200`, start it:
+   If not `200` or `307`, start it:
    ```bash
    launchctl load ~/Library/LaunchAgents/com.luchegames.2dobetter.plist 2>/dev/null || true
    ```
@@ -57,9 +57,12 @@ The `2dobetter` MCP server is registered. Use these tools for all task operation
 - **Dev server:** `node_modules/.bin/next dev --webpack --port 3001` (port 3001 — production service owns 3000)
 - **Node:** `/Users/macbeast/.nvm/versions/node/v20.20.0/bin/node`
 - **DB:** `prisma/dev.db` (SQLite, local only — gitignored)
-- **Production service:** launchd on port 3000 — auto-starts on login, KeepAlive
+- **Production service:** launchd, HTTPS on port 3000, HTTP redirect on port 3001 — auto-starts on login, KeepAlive
+- **TLS:** Self-signed certs in `certs/` (gitignored). Regenerate with `bash generate-certs.sh`
+- **Auth:** Token-based. Token stored in `.env` as `AUTH_TOKEN`. MCP server reads this from env.
 - **Logs:** `~/Library/Logs/2dobetter.log`
 - **After code changes:** rebuild with `node_modules/.bin/next build`, then restart service with `launchctl unload/load`
+- **MCP server note:** Uses `NODE_TLS_REJECT_UNAUTHORIZED=0` for local HTTPS + `AUTH_TOKEN` cookie for auth
 
 ## Git Rules
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { broadcast } from "@/lib/events";
 
 export async function PATCH(
   req: Request,
@@ -19,6 +20,7 @@ export async function PATCH(
     where: { id: Number(id) },
     data,
   });
+  broadcast();
   return NextResponse.json(list);
 }
 
@@ -40,5 +42,6 @@ export async function DELETE(
   } else {
     await prisma.list.delete({ where: { id: Number(id) } });
   }
+  broadcast();
   return new NextResponse(null, { status: 204 });
 }

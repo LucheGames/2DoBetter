@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { broadcast } from "@/lib/events";
 
 export async function GET() {
   const columns = await prisma.column.findMany({
@@ -53,5 +54,6 @@ export async function POST(req: Request) {
     include: { lists: true },
   });
 
+  broadcast();
   return NextResponse.json(column, { status: 201 });
 }

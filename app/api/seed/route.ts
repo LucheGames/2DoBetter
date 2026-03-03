@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { broadcast } from "@/lib/events";
 
 export async function POST() {
   const existing = await prisma.column.findMany();
@@ -25,6 +26,7 @@ export async function POST() {
     },
   });
 
+  broadcast();
   return NextResponse.json(
     { message: "Seeded", columns: [dave, claude] },
     { status: 201 }

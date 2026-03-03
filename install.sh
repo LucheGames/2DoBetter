@@ -72,12 +72,31 @@ echo -e "  ${YELLOW}Setting up database...${NC}"
 (cd "$APP_DIR" && npx prisma migrate deploy --schema=prisma/schema.prisma 2>&1 | grep -v "^warn\|^┌\|^│\|^└\|Update")
 echo -e "  ${GREEN}✓ Database ready${NC}"
 
-# ── 6. Build for production ──────────────────────────────────────────────────
+# ── 6a. Generate auth token ────────────────────────────────────────────────────
+if [ ! -f "$APP_DIR/.env" ] || ! grep -q "AUTH_TOKEN" "$APP_DIR/.env" 2>/dev/null; then
+  echo -e "  ${YELLOW}Generating access token...${NC}"
+  TOKEN=$(openssl rand -hex 32)
+  echo "AUTH_TOKEN=$TOKEN" >> "$APP_DIR/.env"
+  echo -e "  ${GREEN}✓ Access token generated${NC}"
+else
+  TOKEN=$(grep AUTH_TOKEN "$APP_DIR/.env" | cut -d= -f2)
+  echo -e "  ${GREEN}✓ Access token already exists${NC}"
+fi
+
+# ── 6b. Generate TLS certificates ─────────────────────────────────────────────
+if [ ! -f "$APP_DIR/certs/server.crt" ]; then
+  echo -e "  ${YELLOW}Generating TLS certificates...${NC}"
+  bash "$APP_DIR/generate-certs.sh"
+else
+  echo -e "  ${GREEN}✓ TLS certificates already exist${NC}"
+fi
+
+# ── 7. Build for production ──────────────────────────────────────────────────
 echo -e "  ${YELLOW}Building app (this takes ~30 seconds)...${NC}"
 (cd "$APP_DIR" && npm run build --silent 2>&1 | grep -E "✓|Error|error" | head -5)
 echo -e "  ${GREEN}✓ Production build complete${NC}"
 
-# ── 7. Write plist (with actual node path) ───────────────────────────────────
+# ── 8. Write plist (with actual node path) ───────────────────────────────────
 echo -e "  ${YELLOW}Registering background service...${NC}"
 launchctl unload "$PLIST_PATH" 2>/dev/null || true
 
@@ -119,21 +138,21 @@ PLIST
 launchctl load "$PLIST_PATH"
 echo -e "  ${GREEN}✓ Service registered (starts on login)${NC}"
 
-# ── 8. Create .app launcher ──────────────────────────────────────────────────
+# ── 9. Create .app launcher ──────────────────────────────────────────────────
 echo -e "  ${YELLOW}Creating 2DoBetter.app launcher...${NC}"
 APPLESCRIPT_TMP=$(mktemp /tmp/2dobetter_XXXXXX.applescript)
 cat > "$APPLESCRIPT_TMP" << 'APPL'
-set serverURL to "http://localhost:3000"
+set serverURL to "https://localhost:3000"
 set plistPath to (POSIX path of (path to home folder)) & "Library/LaunchAgents/com.luchegames.2dobetter.plist"
 
 try
-  do shell script "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/ --max-time 2"
+  do shell script "curl -sk -o /dev/null -w '%{http_code}' https://localhost:3000/ --max-time 2"
   set httpCode to result
 on error
   set httpCode to "000"
 end try
 
-if httpCode is not "200" then
+if httpCode is not "200" and httpCode is not "307" then
   try
     do shell script "launchctl load " & quoted form of plistPath & " 2>/dev/null; true"
   end try
@@ -142,8 +161,8 @@ if httpCode is not "200" then
     delay 1
     set attempts to attempts + 1
     try
-      do shell script "curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/ --max-time 1"
-      if result is "200" then exit repeat
+      do shell script "curl -sk -o /dev/null -w '%{http_code}' https://localhost:3000/ --max-time 1"
+      if result is "200" or result is "307" then exit repeat
     end try
     if attempts > 8 then
       display alert "2 Do Better" message "Server could not start. Check ~/Library/Logs/2dobetter-error.log" as critical
@@ -159,17 +178,17 @@ osacompile -o "/Applications/2DoBetter.app" "$APPLESCRIPT_TMP"
 rm "$APPLESCRIPT_TMP"
 echo -e "  ${GREEN}✓ 2DoBetter.app created in /Applications${NC}"
 
-# ── 9. Verify ────────────────────────────────────────────────────────────────
+# ── 10. Verify ───────────────────────────────────────────────────────────────
 echo ""
 echo -e "  ${YELLOW}Waiting for server to start...${NC}"
 for i in {1..10}; do
-  CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ --max-time 1 2>/dev/null || echo "000")
-  if [ "$CODE" = "200" ]; then break; fi
+  CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://localhost:3000/ --max-time 1 2>/dev/null || echo "000")
+  if [ "$CODE" = "200" ] || [ "$CODE" = "307" ]; then break; fi
   sleep 1
 done
 
-if [ "$CODE" = "200" ]; then
-  echo -e "  ${GREEN}✓ Server is running at http://localhost:3000${NC}"
+if [ "$CODE" = "200" ] || [ "$CODE" = "307" ]; then
+  echo -e "  ${GREEN}✓ Server is running at https://localhost:3000${NC}"
 else
   echo -e "  ${YELLOW}⚠ Server not yet responding — it may still be starting.${NC}"
   echo "    Check ~/Library/Logs/2dobetter.log for details."
@@ -181,4 +200,47 @@ echo ""
 echo "  • Double-click 2DoBetter in /Applications to open"
 echo "  • The server runs in the background and starts automatically on login"
 echo "  • Logs: ~/Library/Logs/2dobetter.log"
+echo ""
+
+# ── 11. Phone setup instructions ─────────────────────────────────────────────
+# Detect LAN info for phone instructions
+if command -v ipconfig &>/dev/null; then
+  LAN_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "")
+else
+  LAN_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "")
+fi
+RAW_HOSTNAME=$(hostname)
+if [[ "$RAW_HOSTNAME" == *.local ]]; then
+  MDNS_HOSTNAME="$RAW_HOSTNAME"
+else
+  MDNS_HOSTNAME="${RAW_HOSTNAME}.local"
+fi
+HTTP_PORT=3001
+
+echo -e "  ${CYAN}═══════════════════════════════════════${NC}"
+echo -e "  ${CYAN}  Phone Setup${NC}"
+echo -e "  ${CYAN}═══════════════════════════════════════${NC}"
+echo ""
+echo "  1. Download CA cert on your phone:"
+if [ -n "$LAN_IP" ]; then
+  echo "     http://${LAN_IP}:${HTTP_PORT}/ca.crt"
+fi
+echo "     http://${MDNS_HOSTNAME}:${HTTP_PORT}/ca.crt"
+echo ""
+echo "  2. Install the certificate:"
+echo "     iOS:     Settings > General > VPN & Device Management > Install"
+echo "              Then: About > Certificate Trust Settings > Enable"
+echo "     Android: Settings > Security > Install certificates > CA"
+echo ""
+echo "  3. Open the app:"
+if [ -n "$LAN_IP" ]; then
+  echo "     https://${LAN_IP}:3000"
+fi
+echo "     https://${MDNS_HOSTNAME}:3000"
+echo ""
+echo "  4. Enter token: ${TOKEN}"
+echo ""
+echo "  5. Tap Share > Add to Home Screen"
+echo ""
+echo -e "  ${CYAN}═══════════════════════════════════════${NC}"
 echo ""

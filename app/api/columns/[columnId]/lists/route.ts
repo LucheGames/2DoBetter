@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { broadcast } from "@/lib/events";
 
 export async function GET(
   _req: Request,
@@ -42,5 +43,6 @@ export async function POST(
       order: (maxOrder._max.order ?? -1) + 1,
     },
   });
+  broadcast();
   return NextResponse.json(list, { status: 201 });
 }

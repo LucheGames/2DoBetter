@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "PATH=\"/Users/macbeast/.nvm/versions/node/v20.20.0/bin:$PATH\" next build",
-    "start": "next start",
+    "start": "node server.js",
     "service:install": "cp com.luchegames.2dobetter.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.luchegames.2dobetter.plist",
     "service:uninstall": "launchctl unload ~/Library/LaunchAgents/com.luchegames.2dobetter.plist && rm ~/Library/LaunchAgents/com.luchegames.2dobetter.plist",
     "service:restart": "launchctl kickstart -k gui/$(id -u)/com.luchegames.2dobetter"
