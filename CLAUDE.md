@@ -4,12 +4,14 @@
 
 At the start of every session, do this automatically (no need to ask):
 
-1. **Check the server is reachable** (production runs on Ubuntu):
+1. **Check the server is reachable** (production runs on Ubuntu, accessible via Tailscale):
    ```bash
-   curl -sk -o /dev/null -w "%{http_code}" https://localhost:3000/ --max-time 2
+   curl -sk -o /dev/null -w "%{http_code}" https://2dobetter.duckdns.org:3000/ --max-time 5
    ```
-   If not `200` or `307`, the Ubuntu service may be down. SSH to Ubuntu and check:
+   If not `200`, check Tailscale is running, then SSH to Ubuntu:
    ```bash
+   ssh davistator@100.105.251.44   # via Tailscale (works anywhere)
+   # or: ssh davistator@192.168.10.165  # LAN only
    systemctl --user status 2dobetter
    systemctl --user restart 2dobetter
    ```
@@ -53,18 +55,25 @@ The `2dobetter` MCP server is registered. Use these tools for all task operation
 
 ## Project Setup
 
-- **Server lives on:** Ubuntu box (LAN), `~/2DoBetter/` — always-on via Ethernet
-- **Mac is client only** — launchd service disabled; `.app` launcher opens Ubuntu URL
-- **Phone is client only** — PWA installed pointing to Ubuntu URL
+- **Server lives on:** Ubuntu HP Z2 Tower, `davistator@192.168.10.165` (LAN) / `davistator@100.105.251.44` (Tailscale)
+- **App URL:** `https://2dobetter.duckdns.org:3000` — works anywhere with Tailscale running
+- **Mac is client only** — launchd service disabled; `.app` launcher opens `https://2dobetter.duckdns.org:3000`
+- **Phone is client only** — PWA installed at `https://2dobetter.duckdns.org:3000`
 - **Git repo (Mac):** `~/2DoBetter/` → remote `LucheGames/ToDoBetter`
 - **DB:** `~/2DoBetter/prisma/dev.db` on Ubuntu (SQLite, gitignored — single source of truth)
-- **Production service (Ubuntu):** systemd user service, HTTPS on port 3000, HTTP redirect on port 3001
+- **Production service (Ubuntu):** systemd user service, HTTPS port 3000, HTTP redirect port 3001
   - Status: `systemctl --user status 2dobetter`
   - Restart: `systemctl --user restart 2dobetter`
   - Logs: `journalctl --user -u 2dobetter -n 100 -f`
-- **TLS:** Self-signed certs in `~/2DoBetter/certs/` on Ubuntu (gitignored). Regenerate with `bash generate-certs.sh`
-- **Auth:** Token-based. `AUTH_TOKEN` + `AUTH_USERNAME` in `~/2DoBetter/.env` on Ubuntu
-- **MCP server:** Runs on Mac, talks to Ubuntu's API. Uses `NODE_TLS_REJECT_UNAUTHORIZED=0` for local HTTPS.
+- **TLS:** Let's Encrypt cert for `2dobetter.duckdns.org` in `~/2DoBetter/certs/` on Ubuntu
+  - Auto-renews via acme.sh cron (DuckDNS DNS-01 challenge — no ports needed)
+  - Check: `~/.acme.sh/acme.sh --list`
+- **Networking:** Tailscale mesh (Ubuntu + Mac + Phone). DuckDNS `2dobetter.duckdns.org` → Tailscale IP `100.105.251.44`
+  - DuckDNS refreshes every 5 min via cron
+  - Ubuntu `/etc/hosts`: `127.0.0.1 2dobetter.duckdns.org` (local access without Tailscale hop)
+  - Ubuntu static IP via netplan: `192.168.10.165` (router-independent)
+- **Auth:** Token-based. `AUTH_TOKEN` + `AUTH_USERNAME` in `~/2DoBetter/.env` on Ubuntu (chmod 600)
+- **MCP server:** Runs on Mac, talks to Ubuntu via `https://2dobetter.duckdns.org:3000`. Uses `NODE_EXTRA_CA_CERTS` for cert trust.
 - **After code changes on Mac:**
   ```bash
   git push origin master

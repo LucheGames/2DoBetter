@@ -52,3 +52,4 @@ prisma/dev.db.bak
 # mcp server build output & deps
 mcp/dist/
 mcp/node_modules/
+ubuntu-ca.crt
