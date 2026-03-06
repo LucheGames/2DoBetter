@@ -7,8 +7,9 @@ const http = require('http');
 const https = require('https');
 const os = require('os');
 
-// Load .env if present (dotenv is already a project dependency)
+// Load .env then .env.local (local overrides base — written by npm run setup)
 try { require('dotenv').config(); } catch {}
+try { require('dotenv').config({ path: '.env.local', override: true }); } catch {}
 
 const next = require('next');
 
