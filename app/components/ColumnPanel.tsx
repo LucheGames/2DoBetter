@@ -100,14 +100,14 @@ export default function ColumnPanel({ column, currentUser, onRefresh }: ColumnPa
 
   const isPrincipal = column.order === 0;
 
-  // Multi-user badge: "YOU" on your column, owner username on others.
+  // Multi-user badge: "YOU" on your column, "TEAMMATE" on other humans, "AGENT" on unowned.
   // Falls back to Principal/Agent labels for legacy installs with no ownerUsername.
   const isMultiUser = currentUser !== null;
   const isOwnColumn = isMultiUser && column.ownerUsername === currentUser;
   const badgeLabel = isOwnColumn
     ? 'YOU'
     : column.ownerUsername
-    ? column.ownerUsername
+    ? 'TEAMMATE'
     : isPrincipal
     ? 'Principal'
     : 'Agent';
