@@ -1,8 +1,23 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { BoardData } from "./types";
+import { BoardData, ColumnData } from "./types";
 import ColumnPanel from "./components/ColumnPanel";
+
+/** Sort columns: own column → agent/unowned → teammates (by order). */
+function sortColumns(columns: ColumnData[], currentUser: string | null): ColumnData[] {
+  if (!currentUser) return columns;
+  return [...columns].sort((a, b) => {
+    const aOwn = a.ownerUsername === currentUser ? 0 : 1;
+    const bOwn = b.ownerUsername === currentUser ? 0 : 1;
+    if (aOwn !== bOwn) return aOwn - bOwn;
+    // Within non-own: unowned (agent) columns before other users
+    const aAgent = !a.ownerUsername ? 0 : 1;
+    const bAgent = !b.ownerUsername ? 0 : 1;
+    if (aAgent !== bAgent) return aAgent - bAgent;
+    return a.order - b.order;
+  });
+}
 
 export default function Home() {
   const [board, setBoard] = useState<BoardData | null>(null);
@@ -28,9 +43,11 @@ export default function Home() {
       if (data.columns.length === 0) {
         await fetch("/api/seed", { method: "POST" });
         const res2 = await fetch("/api/overview");
-        const data2 = await res2.json();
+        const data2: BoardData = await res2.json();
+        data2.columns = sortColumns(data2.columns, data2.currentUser);
         setBoard(data2);
       } else {
+        data.columns = sortColumns(data.columns, data.currentUser);
         setBoard(data);
       }
     } catch {

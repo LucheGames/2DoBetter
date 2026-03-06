@@ -18,13 +18,17 @@ export function middleware(request: NextRequest) {
   }
 
   const tokenCookie = request.cookies.get('auth_token')?.value;
+  const userCookie = request.cookies.get('auth_user')?.value;
 
   // ── Multi-user mode (AUTH_USERS_JSON) ────────────────────────────────────
   const usersJson = process.env.AUTH_USERS_JSON;
   if (usersJson) {
     try {
       const users: Array<{ username: string; token: string }> = JSON.parse(usersJson);
-      const user = users.find(u => u.token === tokenCookie);
+      // Match on both username + token to handle duplicate passwords correctly
+      const user = userCookie
+        ? users.find(u => u.username === userCookie && u.token === tokenCookie)
+        : users.find(u => u.token === tokenCookie);
       if (user) {
         // Inject authenticated username for API routes to consume
         const headers = new Headers(request.headers);
