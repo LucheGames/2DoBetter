@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BoardData } from "./types";
 import ColumnPanel from "./components/ColumnPanel";
 
 export default function Home() {
   const [board, setBoard] = useState<BoardData | null>(null);
   const [offline, setOffline] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const importRef = useRef<HTMLInputElement>(null);
 
   const fetchBoard = useCallback(async () => {
     try {
@@ -44,6 +46,43 @@ export default function Home() {
   useEffect(() => {
     window.addEventListener("online", fetchBoard);
     return () => window.removeEventListener("online", fetchBoard);
+  }, [fetchBoard]);
+
+  // ── Import handler ────────────────────────────────────────────────────────
+  const handleImport = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!window.confirm(
+      "⚠️ Import will REPLACE all current data with the contents of this file.\n\nThis cannot be undone. Continue?"
+    )) {
+      if (importRef.current) importRef.current.value = "";
+      return;
+    }
+
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const json = JSON.parse(text);
+      const res = await fetch("/api/import", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(json),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(`Import failed: ${err.error}`);
+        return;
+      }
+      const { columns, lists, tasks } = await res.json();
+      alert(`✓ Imported ${columns} column${columns !== 1 ? "s" : ""}, ${lists} list${lists !== 1 ? "s" : ""}, ${tasks} task${tasks !== 1 ? "s" : ""}.`);
+      fetchBoard();
+    } catch {
+      alert("Import failed — make sure the file is a valid 2Do Better export.");
+    } finally {
+      setImporting(false);
+      if (importRef.current) importRef.current.value = "";
+    }
   }, [fetchBoard]);
 
   // Real-time sync: listen for server-sent events from other clients
@@ -87,15 +126,49 @@ export default function Home() {
         <h1 className="text-xs font-semibold uppercase tracking-widest text-gray-500">
           2 Do Better
         </h1>
-        <a
-          href="https://www.buymeacoffee.com/luchegames"
-          target="_blank"
-          rel="noopener noreferrer"
-          title="2Do Better is free — support development ☕"
-          className="text-base leading-none text-gray-700 hover:text-yellow-400 transition-colors duration-200 select-none"
-        >
-          ☕
-        </a>
+
+        <div className="flex items-center gap-4">
+          {/* Export — direct link, browser sends auth cookie automatically */}
+          <a
+            href="/api/export"
+            download
+            title="Download your board as JSON"
+            className="text-xs text-gray-600 hover:text-gray-300 transition-colors select-none"
+          >
+            ↓ export
+          </a>
+
+          {/* Import — hidden file input triggered by label */}
+          <label
+            title="Restore from a 2Do Better JSON export"
+            className={`text-xs transition-colors select-none ${
+              importing
+                ? "text-gray-600 cursor-wait"
+                : "text-gray-600 hover:text-gray-300 cursor-pointer"
+            }`}
+          >
+            {importing ? "importing…" : "↑ import"}
+            <input
+              ref={importRef}
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              onChange={handleImport}
+              disabled={importing}
+            />
+          </label>
+
+          {/* Buy Me a Coffee */}
+          <a
+            href="https://www.buymeacoffee.com/luchegames"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="2Do Better is free — support development ☕"
+            className="text-base leading-none text-gray-700 hover:text-yellow-400 transition-colors duration-200 select-none"
+          >
+            ☕
+          </a>
+        </div>
       </header>
 
       {/* Columns — side by side on desktop, stacked on mobile.
