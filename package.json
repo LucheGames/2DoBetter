@@ -9,6 +9,7 @@
     "admin": "node scripts/admin.js",
     "export-data": "node scripts/admin.js export-data",
     "import-data": "node scripts/admin.js import-data",
+    "restart": "node scripts/admin.js restart",
     "dev": "next dev --webpack",
     "build": "bash scripts/build.sh",
     "start": "node server.js",

@@ -5,13 +5,16 @@
 //   npm run export-data        Export board to JSON (default filename)
 //   npm run export-data out.json
 //   npm run import-data backup.json
+//   npm run restart            Restart the 2Do Better service
 'use strict';
 
-const fs       = require('fs');
-const path     = require('path');
-const https    = require('https');
-const http     = require('http');
-const readline = require('readline');
+const fs         = require('fs');
+const path       = require('path');
+const https      = require('https');
+const http       = require('http');
+const readline   = require('readline');
+const os         = require('os');
+const { spawnSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -174,6 +177,49 @@ async function importData() {
   console.log('');
 }
 
+// ── restart ───────────────────────────────────────────────────────────────────
+function getRestartCommand() {
+  if (process.platform === 'darwin') {
+    const plist = path.join(os.homedir(), 'Library/LaunchAgents/com.luchegames.2dobetter.plist');
+    if (fs.existsSync(plist)) {
+      return { cmd: 'launchctl', args: ['kickstart', '-k', 'gui/' + process.getuid() + '/com.luchegames.2dobetter'] };
+    }
+  }
+  if (process.platform === 'linux') {
+    const probe = spawnSync('systemctl', ['--user', 'cat', '2dobetter.service'], { stdio: 'pipe' });
+    if (probe.status === 0) {
+      return { cmd: 'systemctl', args: ['--user', 'restart', '2dobetter.service'] };
+    }
+  }
+  return null; // no managed service found
+}
+
+function restartService() {
+  const svc = getRestartCommand();
+  if (!svc) {
+    console.log('\n  No managed service detected on this machine.');
+    console.log('  If you started the server manually, stop it and run:');
+    console.log('    npm start\n');
+    return;
+  }
+
+  const displayCmd = [svc.cmd].concat(svc.args).join(' ');
+  console.log('\n  Restarting service...');
+  info('  Command: ' + displayCmd);
+
+  const result = spawnSync(svc.cmd, svc.args, { stdio: 'inherit' });
+
+  if (result.error) {
+    throw new Error('Failed to run restart command: ' + result.error.message);
+  }
+  if (result.status !== 0) {
+    throw new Error('Restart command exited with code ' + result.status);
+  }
+
+  ok('Service restarted successfully.');
+  console.log('');
+}
+
 // ── help ──────────────────────────────────────────────────────────────────────
 function printHelp() {
   console.log(`
@@ -192,7 +238,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     npm run import-data <file>      Import board from JSON ${C.yellow}(replaces ALL data)${C.reset}
 
   ${C.bold}Service:${C.reset}
-    npm run service:restart         Restart the server (picks up user changes)
+    npm run restart                 Restart the server (auto-detects launchctl / systemctl)
     npm run service:install         Install as auto-start service
     npm run service:uninstall       Remove auto-start service
 `);
@@ -203,6 +249,7 @@ const cmd = process.argv[2];
 const dispatch = {
   'export-data': exportData,
   'import-data': importData,
+  'restart':     () => { restartService(); return Promise.resolve(); },
 };
 
 if (dispatch[cmd]) {
