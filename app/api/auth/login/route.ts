@@ -33,13 +33,10 @@ async function ensureUserColumn(username: string) {
   const existing = await prisma.column.findFirst({ where: { ownerUsername: username } });
   if (existing) return;
 
-  // Claim an unclaimed column whose name matches this username
-  const namedMatch = await prisma.column.findFirst({
-    where: {
-      ownerUsername: null,
-      name: { equals: username, mode: 'insensitive' },
-    },
-  });
+  // Claim an unclaimed column whose name matches this username (case-insensitive)
+  // Note: mode:'insensitive' is Postgres-only; compare in JS for SQLite compatibility
+  const unclaimedCols = await prisma.column.findMany({ where: { ownerUsername: null } });
+  const namedMatch = unclaimedCols.find(c => c.name.toLowerCase() === username.toLowerCase());
   if (namedMatch) {
     await prisma.column.update({
       where: { id: namedMatch.id },
