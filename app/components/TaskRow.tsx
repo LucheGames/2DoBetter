@@ -93,11 +93,11 @@ export default function TaskRow({
         ) : (
           <div>
             <span
-              onDoubleClick={() => {
+              onClick={() => {
                 setIsEditing(true);
                 setEditValue(task.title);
               }}
-              className={`text-sm select-none cursor-default transition-all duration-200 whitespace-pre-wrap break-words ${
+              className={`text-sm select-none cursor-pointer transition-all duration-200 whitespace-pre-wrap break-words ${
                 task.completed ? "line-through text-gray-400" : "text-gray-200"
               }`}
             >
@@ -112,9 +112,9 @@ export default function TaskRow({
         )}
       </div>
 
-      {/* Action buttons — hidden until hover */}
+      {/* Action buttons — hidden until hover on desktop, always visible on touch */}
       {!isEditing && (
-        <div className="hidden group-hover:flex items-center flex-shrink-0">
+        <div className="hidden group-hover:flex [@media(pointer:coarse)]:flex items-center flex-shrink-0">
           {moveButton}
           <HoldToDelete
             onConfirm={() => onDelete(task.id)}

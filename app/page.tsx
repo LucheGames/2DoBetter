@@ -6,22 +6,44 @@ import ColumnPanel from "./components/ColumnPanel";
 
 export default function Home() {
   const [board, setBoard] = useState<BoardData | null>(null);
+  const [offline, setOffline] = useState(false);
 
   const fetchBoard = useCallback(async () => {
-    const res = await fetch("/api/overview");
-    const data: BoardData = await res.json();
-    if (data.columns.length === 0) {
-      await fetch("/api/seed", { method: "POST" });
-      const res2 = await fetch("/api/overview");
-      const data2 = await res2.json();
-      setBoard(data2);
-    } else {
-      setBoard(data);
+    try {
+      const res = await fetch("/api/overview");
+      if (res.status === 401) {
+        // Auth cookie expired — navigate to login (reload would loop)
+        window.location.href = "/login";
+        return;
+      }
+      if (!res.ok) {
+        setOffline(true);
+        return;
+      }
+      const data: BoardData = await res.json();
+      setOffline(false);
+      if (data.columns.length === 0) {
+        await fetch("/api/seed", { method: "POST" });
+        const res2 = await fetch("/api/overview");
+        const data2 = await res2.json();
+        setBoard(data2);
+      } else {
+        setBoard(data);
+      }
+    } catch {
+      // Network error — server unreachable
+      setOffline(true);
     }
   }, []);
 
   useEffect(() => {
     fetchBoard();
+  }, [fetchBoard]);
+
+  // Retry when the device comes back online
+  useEffect(() => {
+    window.addEventListener("online", fetchBoard);
+    return () => window.removeEventListener("online", fetchBoard);
   }, [fetchBoard]);
 
   // Real-time sync: listen for server-sent events from other clients
@@ -35,6 +57,20 @@ export default function Home() {
     };
     return () => es.close();
   }, [fetchBoard]);
+
+  if (offline) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 h-screen bg-gray-950 text-gray-500">
+        <div className="text-sm">Server unreachable</div>
+        <button
+          onClick={fetchBoard}
+          className="px-3 py-1.5 text-xs rounded bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   if (!board) {
     return (
