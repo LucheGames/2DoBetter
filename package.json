@@ -1,5 +1,5 @@
 {
-  "name": "todo-app",
+  "name": "2dobetter",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -29,5 +29,6 @@
     "@types/react-dom": "^19",
     "tailwindcss": "^4",
     "typescript": "^5"
-  }
+  },
+  "description": "Self-hosted, privacy-first todo app. Real-time sync, PWA, no cloud lock-in."
 }
