@@ -108,6 +108,16 @@ function saveUsers(users) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), { mode: 0o600 });
 }
 
+// ── SQLite helper (uses sqlite3 CLI; no Prisma needed) ────────────────────────
+const DB_PATH = path.join(ROOT, 'prisma', 'dev.db');
+
+function runSql(sql) {
+  if (!fs.existsSync(DB_PATH)) return { ok: false, out: '' };
+  const result = spawnSync('sqlite3', [DB_PATH, sql], { encoding: 'utf8' });
+  if (result.error) return { ok: false, out: '' }; // sqlite3 CLI not installed
+  return { ok: true, out: result.stdout.trim() };
+}
+
 // ── Token collection helper ───────────────────────────────────────────────────
 async function collectToken(existing) {
   const tokenMode = await askChoice(
@@ -300,6 +310,31 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   saveUsers(users);
   ok(`User "${found.username}" removed from data/users.json`);
 
+  // ── Handle their column in the database ────────────────────────────────────
+  const safeUser = found.username.replace(/'/g, "''"); // SQL-escape single quotes
+  const colCheck = runSql(`SELECT name FROM "Column" WHERE ownerUsername = '${safeUser}' LIMIT 1`);
+
+  if (!colCheck.ok) {
+    warn('sqlite3 CLI not available — column data was not touched.');
+    warn('  Install it to manage column data automatically:');
+    warn('    macOS: sqlite3 is pre-installed  |  Ubuntu: sudo apt-get install sqlite3');
+  } else if (colCheck.out) {
+    const colName = colCheck.out;
+    console.log(`\n  They own a column: ${C.bold}"${colName}"${C.reset}`);
+    console.log(`  ${C.dim}(d) delete it + all lists and tasks — gone forever${C.reset}`);
+    console.log(`  ${C.dim}(s) convert to a shared team column — stays on the board, no owner${C.reset}\n`);
+    const choice = await ask('Choice (d/s)', 's');
+
+    if (choice.toLowerCase() === 'd') {
+      runSql(`DELETE FROM "Column" WHERE ownerUsername = '${safeUser}'`);
+      ok('Column and all its lists + tasks permanently deleted.');
+    } else {
+      runSql(`UPDATE "Column" SET ownerUsername = NULL WHERE ownerUsername = '${safeUser}'`);
+      ok('Column converted to a shared team column.');
+    }
+  }
+
+  console.log('');
   const restartCmd = getRestartCommand();
   info(`Restart the server to invalidate their session:  ${restartCmd}`);
   console.log('');

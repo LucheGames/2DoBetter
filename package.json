@@ -7,6 +7,8 @@
     "add-user": "node scripts/setup.js add-user",
     "remove-user": "node scripts/setup.js remove-user",
     "admin": "node scripts/admin.js",
+    "status": "node scripts/admin.js status",
+    "list-users": "node scripts/admin.js list-users",
     "export-data": "node scripts/admin.js export-data",
     "import-data": "node scripts/admin.js import-data",
     "restart": "node scripts/admin.js restart",

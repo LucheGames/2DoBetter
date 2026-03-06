@@ -177,6 +177,110 @@ async function importData() {
   console.log('');
 }
 
+// ── SQLite helper (uses sqlite3 CLI) ──────────────────────────────────────────
+const DB_PATH = path.join(ROOT, 'prisma', 'dev.db');
+
+function runSql(sql) {
+  if (!fs.existsSync(DB_PATH)) return '';
+  const result = spawnSync('sqlite3', [DB_PATH, sql], { encoding: 'utf8' });
+  if (result.error || result.status !== 0) return '';
+  return result.stdout.trim();
+}
+
+// ── list-users ────────────────────────────────────────────────────────────────
+function listUsers() {
+  const usersFile = path.join(ROOT, 'data', 'users.json');
+  if (!fs.existsSync(usersFile)) {
+    warn('No users file found — run npm run setup first.');
+    return;
+  }
+  const users = JSON.parse(fs.readFileSync(usersFile, 'utf8'));
+  console.log('');
+  if (!users.length) {
+    warn('No users configured.');
+    return;
+  }
+  console.log(`  ${C.bold}Users (${users.length}):${C.reset}`);
+  users.forEach((u, i) => {
+    const tag = i === 0 ? ` ${C.dim}(admin)${C.reset}` : '';
+    console.log(`    ${i + 1}. ${C.bold}${u.username}${C.reset}${tag}`);
+  });
+  console.log('');
+}
+
+// ── status ────────────────────────────────────────────────────────────────────
+function showStatus() {
+  console.log('');
+
+  // ── Service state ──────────────────────────────────────────────────────────
+  let serviceState = 'unknown';
+  if (process.platform === 'darwin') {
+    const plist = path.join(os.homedir(), 'Library/LaunchAgents/com.luchegames.2dobetter.plist');
+    if (fs.existsSync(plist)) {
+      const r = spawnSync('launchctl', ['list', 'com.luchegames.2dobetter'], { stdio: 'pipe' });
+      serviceState = (r.status === 0) ? `${C.green}running${C.reset}` : `${C.yellow}stopped${C.reset}`;
+    } else {
+      serviceState = `${C.dim}no service installed${C.reset}`;
+    }
+  } else if (process.platform === 'linux') {
+    const r = spawnSync('systemctl', ['--user', 'is-active', '2dobetter.service'], { stdio: 'pipe', encoding: 'utf8' });
+    if (r.error) {
+      serviceState = `${C.dim}unknown${C.reset}`;
+    } else {
+      serviceState = (r.stdout.trim() === 'active') ? `${C.green}running${C.reset}` : `${C.yellow}stopped${C.reset}`;
+    }
+  }
+  console.log(`  Service   : ${serviceState}`);
+
+  // ── Users ──────────────────────────────────────────────────────────────────
+  const usersFile = path.join(ROOT, 'data', 'users.json');
+  if (fs.existsSync(usersFile)) {
+    try {
+      const users = JSON.parse(fs.readFileSync(usersFile, 'utf8'));
+      console.log(`  Users     : ${users.length}`);
+    } catch (_) { console.log(`  Users     : (error reading users.json)`); }
+  } else {
+    console.log(`  Users     : ${C.yellow}none — run npm run setup${C.reset}`);
+  }
+
+  // ── Board stats from DB ────────────────────────────────────────────────────
+  if (fs.existsSync(DB_PATH)) {
+    const cols  = runSql('SELECT COUNT(*) FROM "Column"') || '?';
+    const lists = runSql('SELECT COUNT(*) FROM "List" WHERE archivedAt IS NULL') || '?';
+    const tasks = runSql('SELECT COUNT(*) FROM "Task" WHERE completed = 0') || '?';
+    const done  = runSql('SELECT COUNT(*) FROM "Task" WHERE completed = 1') || '?';
+    const stat  = fs.statSync(DB_PATH);
+    const kb    = (stat.size / 1024).toFixed(1);
+    console.log(`  Columns   : ${cols}`);
+    console.log(`  Lists     : ${lists}  (active)`);
+    console.log(`  Tasks     : ${tasks}  open  |  ${done}  completed`);
+    console.log(`  DB size   : ${kb} KB  (${DB_PATH})`);
+  } else {
+    console.log(`  ${C.yellow}Database not found — run npm run setup${C.reset}`);
+  }
+
+  // ── Last backup ────────────────────────────────────────────────────────────
+  const backupDir = path.join(ROOT, 'backups');
+  if (fs.existsSync(backupDir)) {
+    const files = fs.readdirSync(backupDir)
+      .filter(f => f.endsWith('.db') || f.endsWith('.db.enc'))
+      .map(f => ({ name: f, mtime: fs.statSync(path.join(backupDir, f)).mtimeMs }))
+      .sort((a, b) => b.mtime - a.mtime);
+    if (files.length) {
+      const latest = files[0];
+      const age = Math.round((Date.now() - latest.mtime) / 3600000);
+      const ageStr = age < 24 ? age + 'h ago' : Math.round(age / 24) + 'd ago';
+      console.log(`  Last backup: ${latest.name}  (${ageStr})`);
+    } else {
+      console.log(`  Last backup: ${C.dim}none yet${C.reset}`);
+    }
+  } else {
+    console.log(`  Last backup: ${C.dim}no backups directory${C.reset}`);
+  }
+
+  console.log('');
+}
+
 // ── restart ───────────────────────────────────────────────────────────────────
 function getRestartCommand() {
   if (process.platform === 'darwin') {
@@ -227,10 +331,14 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   ║    2Do Better — Admin Commands    ║
   ╚════════════════════════════════════╝${C.reset}
 
+  ${C.bold}Info:${C.reset}
+    npm run status                  Service state, users, board stats, last backup
+    npm run list-users              List all users
+
   ${C.bold}User management:${C.reset}
     npm run setup                   Full setup wizard (first install)
     npm run add-user                Add a new user interactively
-    npm run remove-user [username]  Remove a user + invalidate their session
+    npm run remove-user [username]  Remove a user (prompts to delete or share their column)
 
   ${C.bold}Data backup / restore:${C.reset}
     npm run export-data             Export board → 2dobetter-YYYY-MM-DD.json
@@ -247,6 +355,8 @@ ${C.bold}${C.cyan}  ╔═══════════════════
 // ── Dispatch ──────────────────────────────────────────────────────────────────
 const cmd = process.argv[2];
 const dispatch = {
+  'status':      () => { showStatus();   return Promise.resolve(); },
+  'list-users':  () => { listUsers();    return Promise.resolve(); },
   'export-data': exportData,
   'import-data': importData,
   'restart':     () => { restartService(); return Promise.resolve(); },
