@@ -5,6 +5,10 @@
   "scripts": {
     "setup": "node scripts/setup.js",
     "add-user": "node scripts/setup.js add-user",
+    "remove-user": "node scripts/setup.js remove-user",
+    "admin": "node scripts/admin.js",
+    "export-data": "node scripts/admin.js export-data",
+    "import-data": "node scripts/admin.js import-data",
     "dev": "next dev --webpack",
     "build": "bash scripts/build.sh",
     "start": "node server.js",

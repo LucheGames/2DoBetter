@@ -258,13 +258,59 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   rl.close();
 }
 
+// ── remove-user subcommand ────────────────────────────────────────────────────
+async function removeUser() {
+  console.log(`
+${C.bold}${C.cyan}  ╔════════════════════════════════════╗
+  ║    2Do Better — Remove User       ║
+  ╚════════════════════════════════════╝${C.reset}
+`);
+
+  const users = loadUsers();
+  if (users.length === 0) {
+    warn('No users configured.');
+    rl.close(); return;
+  }
+
+  console.log('  Current users:');
+  users.forEach(u => console.log(`    • ${u.username}`));
+  console.log('');
+
+  // Accept username from command line or prompt
+  let target = (process.argv[3] || '').trim();
+  if (!target) {
+    target = await ask('Username to remove');
+  }
+  if (!target) { warn('No username specified.'); rl.close(); return; }
+
+  const idx = users.findIndex(u => u.username.toLowerCase() === target.toLowerCase());
+  if (idx === -1) {
+    warn(`User "${target}" not found.`);
+    rl.close(); return;
+  }
+
+  const found = users[idx];
+  const confirm = await ask(`Remove "${found.username}"? This cannot be undone. (y/N)`, 'N');
+  if (confirm.toLowerCase() !== 'y') {
+    console.log('\n  Cancelled — nothing changed.\n');
+    rl.close(); return;
+  }
+
+  users.splice(idx, 1);
+  saveUsers(users);
+  ok(`User "${found.username}" removed from data/users.json`);
+
+  const restartCmd = getRestartCommand();
+  info(`Restart the server to invalidate their session:  ${restartCmd}`);
+  console.log('');
+  rl.close();
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
-  // Subcommand: npm run setup add-user
-  if (process.argv[2] === 'add-user') {
-    await addUser();
-    return;
-  }
+  // Subcommand routing
+  if (process.argv[2] === 'add-user')    { await addUser();    return; }
+  if (process.argv[2] === 'remove-user') { await removeUser(); return; }
 
   console.log(`
 ${C.bold}${C.cyan}  ╔════════════════════════════════════╗
