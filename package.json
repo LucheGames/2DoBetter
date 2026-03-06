@@ -6,7 +6,7 @@
     "setup": "node scripts/setup.js",
     "add-user": "node scripts/setup.js add-user",
     "dev": "next dev --webpack",
-    "build": "prisma generate && next build",
+    "build": "bash scripts/build.sh",
     "start": "node server.js",
     "seed": "npx tsx prisma/seed.ts",
     "service:install": "cp com.luchegames.2dobetter.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.luchegames.2dobetter.plist",
