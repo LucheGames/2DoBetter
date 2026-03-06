@@ -17,25 +17,38 @@ function setAuthCookies(response: NextResponse, token: string, username: string)
   response.cookies.set('auth_user', username, { ...cookieOpts, httpOnly: false });
 }
 
-/** Ensure the user has a column. Claim an unclaimed column (order=0) or create a new one. */
+/** Ensure the user has a column. Claim by name-match first, then create a new one.
+ *
+ *  Strategy (safest for migrations):
+ *  1. Already have a column → done.
+ *  2. Find an unclaimed column whose name matches the username (case-insensitive)
+ *     → claim it.  This handles the migration from single-user where the column
+ *     was named after the owner (e.g. "Dave").
+ *  3. No name match → create a brand-new column.
+ *
+ *  We deliberately do NOT claim "first unclaimed by order" — that caused columns
+ *  belonging to one person to be hijacked by a different user on their first login.
+ */
 async function ensureUserColumn(username: string) {
   const existing = await prisma.column.findFirst({ where: { ownerUsername: username } });
   if (existing) return;
 
-  // Claim the first unclaimed column (migration path from single-user setup)
-  const unclaimed = await prisma.column.findFirst({
-    where: { ownerUsername: null },
-    orderBy: { order: 'asc' },
+  // Claim an unclaimed column whose name matches this username
+  const namedMatch = await prisma.column.findFirst({
+    where: {
+      ownerUsername: null,
+      name: { equals: username, mode: 'insensitive' },
+    },
   });
-  if (unclaimed) {
+  if (namedMatch) {
     await prisma.column.update({
-      where: { id: unclaimed.id },
+      where: { id: namedMatch.id },
       data: { ownerUsername: username },
     });
     return;
   }
 
-  // New user — create a fresh column
+  // New user with no matching column — create a fresh one
   const agg = await prisma.column.aggregate({ _max: { order: true } });
   const nextOrder = (agg._max.order ?? -1) + 1;
   const slug = `${username.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`;
