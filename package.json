@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "setup": "node scripts/setup.js",
+    "add-user": "node scripts/setup.js add-user",
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "node server.js",

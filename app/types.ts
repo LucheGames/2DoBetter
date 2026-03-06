@@ -27,9 +27,11 @@ export type ColumnData = {
   slug: string;
   order: number;
   createdAt: string;
+  ownerUsername: string | null;
   lists: ListData[];
 };
 
 export type BoardData = {
   columns: ColumnData[];
+  currentUser: string | null;
 };

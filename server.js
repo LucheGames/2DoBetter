@@ -11,6 +11,34 @@ const os = require('os');
 try { require('dotenv').config(); } catch {}
 try { require('dotenv').config({ path: '.env.local', override: true }); } catch {}
 
+// ── Multi-user store ──────────────────────────────────────────────────────────
+// If data/users.json exists, load it into AUTH_USERS_JSON so middleware +
+// API routes can validate tokens without hitting the DB on every request.
+// If it doesn't exist but AUTH_TOKEN is set, auto-create users.json from the
+// legacy single-user env vars (migration path).
+const usersFile = path.join(__dirname, 'data', 'users.json');
+if (!process.env.AUTH_USERS_JSON) {
+  if (fs.existsSync(usersFile)) {
+    try {
+      process.env.AUTH_USERS_JSON = fs.readFileSync(usersFile, 'utf8');
+    } catch (e) {
+      console.warn('  ⚠  Could not read data/users.json:', e.message);
+    }
+  } else if (process.env.AUTH_TOKEN) {
+    // Auto-migrate: create users.json from legacy single-user env vars
+    const username = process.env.AUTH_USERNAME || 'admin';
+    const users = [{ username, token: process.env.AUTH_TOKEN }];
+    try {
+      fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
+      fs.writeFileSync(usersFile, JSON.stringify(users, null, 2), { mode: 0o600 });
+      process.env.AUTH_USERS_JSON = JSON.stringify(users);
+      console.log(`  ✓  Auto-migrated to multi-user: data/users.json created (user: "${username}")`);
+    } catch (e) {
+      console.warn('  ⚠  Could not create data/users.json:', e.message);
+    }
+  }
+}
+
 const next = require('next');
 
 const dev = process.env.NODE_ENV !== 'production';
@@ -23,16 +51,40 @@ const handle = app.getRequestHandler();
 // ── SSE (Server-Sent Events) for real-time sync ──────────────────────────────
 const sseClients = new Set();
 
+function parseCookies(header) {
+  return (header || '').split(';').reduce((acc, c) => {
+    const eq = c.indexOf('=');
+    if (eq > 0) {
+      const k = c.slice(0, eq).trim();
+      const v = c.slice(eq + 1).trim();
+      if (k) acc[k] = v;
+    }
+    return acc;
+  }, {});
+}
+
 function sseHandler(req, res) {
-  // Auth check: validate cookie
-  const authToken = process.env.AUTH_TOKEN;
-  if (authToken) {
-    const cookies = (req.headers.cookie || '').split(';').reduce((acc, c) => {
-      const [k, v] = c.trim().split('=');
-      if (k && v) acc[k] = v;
-      return acc;
-    }, {});
-    if (cookies['auth_token'] !== authToken) {
+  // Auth check — supports multi-user (AUTH_USERS_JSON) and legacy (AUTH_TOKEN)
+  const cookies = parseCookies(req.headers.cookie);
+  const tokenCookie = cookies['auth_token'];
+
+  const usersJson = process.env.AUTH_USERS_JSON;
+  if (usersJson) {
+    try {
+      const users = JSON.parse(usersJson);
+      if (!users.some(u => u.token === tokenCookie)) {
+        res.writeHead(401);
+        res.end('Unauthorized');
+        return;
+      }
+    } catch {
+      res.writeHead(500);
+      res.end('Server configuration error');
+      return;
+    }
+  } else {
+    const authToken = process.env.AUTH_TOKEN;
+    if (authToken && tokenCookie !== authToken) {
       res.writeHead(401);
       res.end('Unauthorized');
       return;

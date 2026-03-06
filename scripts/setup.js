@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // 2Do Better — First-run setup wizard
-// Usage: npm run setup
+// Usage: npm run setup           (full setup)
+//        npm run setup add-user  (add a user to an existing install)
 'use strict';
 
 const readline = require('readline');
@@ -14,6 +15,8 @@ const { spawnSync } = require('child_process');
 const ROOT          = path.join(__dirname, '..');
 const ENV_FILE      = path.join(ROOT, '.env');
 const ENV_LOCAL     = path.join(ROOT, '.env.local');
+const DATA_DIR      = path.join(ROOT, 'data');
+const USERS_FILE    = path.join(DATA_DIR, 'users.json');
 const SCRIPTS_DIR   = path.join(ROOT, 'scripts');
 const BACKUP_SCRIPT = path.join(SCRIPTS_DIR, 'backup-db.sh');
 const KEY_FILE      = path.join(os.homedir(), '.2dobetter_backup_key');
@@ -94,6 +97,45 @@ function writeEnv(file, obj) {
   fs.writeFileSync(file, lines, { mode: 0o600 });
 }
 
+// ── users.json helpers ───────────────────────────────────────────────────────
+function loadUsers() {
+  if (!fs.existsSync(USERS_FILE)) return [];
+  try { return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')); } catch { return []; }
+}
+
+function saveUsers(users) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), { mode: 0o600 });
+}
+
+// ── Token collection helper ───────────────────────────────────────────────────
+async function collectToken(existing) {
+  const tokenMode = await askChoice(
+    'Access token (this user\'s login password):',
+    ['I\'ll set my own passphrase', 'Generate a random secure token']
+  );
+
+  let token;
+  if (tokenMode === 0) {
+    let t1, t2;
+    do {
+      t1 = await askSecret('Passphrase');
+      t2 = await askSecret('Confirm passphrase');
+      if (t1 !== t2)        warn('Passphrases do not match — try again.');
+      else if (t1.length < 8) warn('Use at least 8 characters.');
+    } while (t1 !== t2 || t1.length < 8);
+    token = t1;
+    ok(`Passphrase accepted (${t1.length} characters)`);
+  } else {
+    token = crypto.randomBytes(24).toString('hex');
+    console.log(`\n  ${C.bold}${C.yellow}Generated token — save this in your password manager:${C.reset}`);
+    console.log(`\n  ${C.bold}  ${token}  ${C.reset}\n`);
+    info('They\'ll paste this into the "Access token" field on the login screen.');
+    await ask('Press Enter once you\'ve saved it');
+  }
+  return token;
+}
+
 // ── Backup script generator ───────────────────────────────────────────────────
 function writeBackupScript(dest, encrypt) {
   const dbPath    = path.join(ROOT, 'prisma', 'dev.db');
@@ -155,55 +197,104 @@ function installCron() {
   return result.status === 0;
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
-async function main() {
+// ── add-user subcommand ───────────────────────────────────────────────────────
+async function addUser() {
   console.log(`
 ${C.bold}${C.cyan}  ╔════════════════════════════════════╗
-  ║    2Do Better — Setup Wizard  v1   ║
+  ║    2Do Better — Add User          ║
+  ╚════════════════════════════════════╝${C.reset}
+`);
+
+  const users = loadUsers();
+  if (users.length > 0) {
+    console.log('  Current users:');
+    users.forEach(u => console.log(`    • ${u.username}`));
+    console.log('');
+  }
+
+  const username = await ask('New username');
+  if (!username) { warn('Username cannot be empty.'); rl.close(); return; }
+
+  if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+    warn(`User "${username}" already exists.`);
+    rl.close(); return;
+  }
+
+  const token = await collectToken();
+
+  users.push({ username, token });
+  saveUsers(users);
+  ok(`User "${username}" added to data/users.json`);
+  info('They\'ll get their own column automatically on first login.');
+  info('Restart the server to pick up the new user: npm start');
+
+  console.log('');
+  rl.close();
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
+async function main() {
+  // Subcommand: npm run setup add-user
+  if (process.argv[2] === 'add-user') {
+    await addUser();
+    return;
+  }
+
+  console.log(`
+${C.bold}${C.cyan}  ╔════════════════════════════════════╗
+  ║    2Do Better — Setup Wizard  v2   ║
   ╚════════════════════════════════════╝${C.reset}
 `);
 
   // Load existing config so we can preserve / show current values
   const existing = { ...parseEnv(ENV_FILE), ...parseEnv(ENV_LOCAL) };
+  const existingUsers = loadUsers();
 
-  if (existing.AUTH_TOKEN) {
+  if (existing.AUTH_TOKEN || existingUsers.length > 0) {
     warn('Existing configuration detected.');
     const redo = await ask('Reconfigure from scratch? (y/N)', 'N');
     if (redo.toLowerCase() !== 'y') {
       console.log('\n  Nothing changed. Existing config preserved.\n');
+      info(`  To add more users: ${C.bold}npm run setup add-user${C.reset}`);
+      console.log('');
       rl.close(); return;
     }
   }
 
   const cfg = {};   // will be merged into .env.local at the end
+  const users = []; // will be written to data/users.json
 
   // ── [1/4] Identity & Access ──────────────────────────────────────
   step(1, 4, 'Identity & Access');
-  info('This is the username + token you\'ll use to log in.\n');
+  info('Set up the first user — this will be your admin account.\n');
 
-  cfg.AUTH_USERNAME = await ask('Username', existing.AUTH_USERNAME || os.userInfo().username);
+  const firstUsername = await ask('Username', existing.AUTH_USERNAME || os.userInfo().username);
+  cfg.AUTH_USERNAME = firstUsername;
 
-  const tokenMode = await askChoice(
-    'Access token (your login password):',
-    ['I\'ll set my own passphrase', 'Generate a random secure token']
-  );
+  const firstToken = await collectToken(existing);
+  cfg.AUTH_TOKEN = firstToken;
 
-  if (tokenMode === 0) {
-    let t1, t2;
-    do {
-      t1 = await askSecret('Passphrase');
-      t2 = await askSecret('Confirm passphrase');
-      if (t1 !== t2)        warn('Passphrases do not match — try again.');
-      else if (t1.length < 8) warn('Use at least 8 characters.');
-    } while (t1 !== t2 || t1.length < 8);
-    cfg.AUTH_TOKEN = t1;
-    ok(`Passphrase accepted (${t1.length} characters)`);
-  } else {
-    cfg.AUTH_TOKEN = crypto.randomBytes(24).toString('hex');
-    console.log(`\n  ${C.bold}${C.yellow}Generated token — save this in your password manager:${C.reset}`);
-    console.log(`\n  ${C.bold}  ${cfg.AUTH_TOKEN}  ${C.reset}\n`);
-    info('You\'ll paste this into the "Access token" field on the login screen.');
-    await ask('Press Enter once you\'ve saved it');
+  users.push({ username: firstUsername, token: firstToken });
+
+  // Ask about additional users
+  console.log('');
+  let addMore = await ask('Add more users now? (y/N)', 'N');
+  while (addMore.toLowerCase() === 'y') {
+    console.log('');
+    const uname = await ask('New username');
+    if (!uname) { warn('Skipping — username cannot be empty.'); break; }
+    if (users.some(u => u.username.toLowerCase() === uname.toLowerCase())) {
+      warn(`User "${uname}" already exists — skipping.`);
+    } else {
+      const tok = await collectToken();
+      users.push({ username: uname, token: tok });
+      ok(`User "${uname}" added.`);
+    }
+    addMore = await ask('Add another user? (y/N)', 'N');
+  }
+
+  if (users.length > 1) {
+    info(`${users.length} users configured. Each gets their own column on first login.`);
   }
 
   // ── [2/4] Backups ────────────────────────────────────────────────
@@ -298,21 +389,31 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     info('  Then set APP_DOMAIN=<tailscale-ip> in .env.local and restart.');
   }
 
-  // ── Write .env.local ──────────────────────────────────────────────
+  // ── Write config ──────────────────────────────────────────────────
   console.log('\n' + '─'.repeat(44));
+
+  // Write data/users.json
+  saveUsers(users);
+  ok(`data/users.json written (${users.length} user${users.length !== 1 ? 's' : ''})`);
+
+  // Write .env.local (preserves legacy AUTH_TOKEN for backward compat)
   const final = { ...existing, ...cfg };
   writeEnv(ENV_LOCAL, final);
   ok('.env.local written (chmod 600)');
 
   // ── Done ──────────────────────────────────────────────────────────
   const port = final.PORT || '3000';
+  const userList = users.map(u => `    • ${u.username}`).join('\n');
   console.log(`
 ${C.bold}${C.green}  ✓ Setup complete!${C.reset}
 
-  Username  : ${C.bold}${cfg.AUTH_USERNAME}${C.reset}
-  Token     : ${C.bold}${cfg.AUTH_TOKEN.length > 12 ? cfg.AUTH_TOKEN.slice(0, 6) + '••••••' : '(set)'}${C.reset}
+  Users     :
+${userList}
   Backups   : ${C.bold}${effectiveDest}${encrypt ? ' + AES-256 encryption' : ''}${C.reset}
   Tailscale : ${C.bold}${tsInstalled ? 'installed' : 'not installed'}${C.reset}
+
+  ${C.bold}Add more users any time:${C.reset}
+    npm run setup add-user
 
   ${C.bold}Start the server:${C.reset}
     npm start

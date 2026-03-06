@@ -26,6 +26,7 @@ import GraveyardPanel from "./GraveyardPanel";
 
 type ColumnPanelProps = {
   column: ColumnData;
+  currentUser: string | null;
   onRefresh: () => void;
 };
 
@@ -66,7 +67,7 @@ function SortableListCard({
   );
 }
 
-export default function ColumnPanel({ column, onRefresh }: ColumnPanelProps) {
+export default function ColumnPanel({ column, currentUser, onRefresh }: ColumnPanelProps) {
   const [newListName, setNewListName] = useState("");
   const [showNewListInput, setShowNewListInput] = useState(false);
   const listInputRef = useRef<HTMLInputElement>(null);
@@ -98,6 +99,21 @@ export default function ColumnPanel({ column, onRefresh }: ColumnPanelProps) {
   }
 
   const isPrincipal = column.order === 0;
+
+  // Multi-user badge: "YOU" on your column, owner username on others.
+  // Falls back to Principal/Agent labels for legacy installs with no ownerUsername.
+  const isMultiUser = currentUser !== null;
+  const isOwnColumn = isMultiUser && column.ownerUsername === currentUser;
+  const badgeLabel = isOwnColumn
+    ? 'YOU'
+    : column.ownerUsername
+    ? column.ownerUsername
+    : isPrincipal
+    ? 'Principal'
+    : 'Agent';
+  const badgeClass = isOwnColumn
+    ? 'text-xs text-blue-500 uppercase tracking-wider font-semibold'
+    : 'text-xs text-gray-600 uppercase tracking-wider';
 
   // Local list order state — synced from props, updated optimistically on drag
   const listIdsStr = column.lists.map((l) => l.id).join(",");
@@ -214,8 +230,8 @@ export default function ColumnPanel({ column, onRefresh }: ColumnPanelProps) {
             </h2>
           )}
           <div className="flex items-center gap-2 flex-shrink-0 min-h-[36px]">
-            <span className="text-xs text-gray-600 uppercase tracking-wider">
-              {isPrincipal ? "Principal" : "Agent"}
+            <span className={badgeClass}>
+              {badgeLabel}
             </span>
             {!isPrincipal && (
               <HoldToDelete
@@ -294,14 +310,15 @@ export default function ColumnPanel({ column, onRefresh }: ColumnPanelProps) {
           </button>
         )}
 
-        {/* New agent column — only shown on the principal column */}
-        {isPrincipal && (
+        {/* New column — only shown on the principal column, hidden in multi-user mode
+            (in multi-user mode, columns are created automatically on first login) */}
+        {isPrincipal && !isMultiUser && (
           showNewAgentInput ? (
             <form onSubmit={createColumn}>
               <input
                 ref={agentInputRef}
                 className="w-full rounded-lg px-3 py-2 bg-gray-900/50 border border-gray-700 text-sm text-gray-200 placeholder-gray-600 outline-none focus:border-blue-500 transition-all"
-                placeholder="Agent name..."
+                placeholder="Column name..."
                 value={newAgentName}
                 onChange={(e) => setNewAgentName(e.target.value)}
                 onBlur={cancelNewAgent}
@@ -319,7 +336,7 @@ export default function ColumnPanel({ column, onRefresh }: ColumnPanelProps) {
               className="w-full rounded-lg px-3 py-2 text-sm text-gray-600 hover:text-gray-400 hover:bg-gray-900/30 border border-transparent hover:border-gray-800/50 transition-all text-left"
               style={{ cursor: "pointer" }}
             >
-              + New agent
+              + New column
             </button>
           )
         )}

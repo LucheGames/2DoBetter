@@ -17,26 +17,55 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // If no AUTH_TOKEN configured, auth is disabled (dev mode)
+  const tokenCookie = request.cookies.get('auth_token')?.value;
+
+  // ── Multi-user mode (AUTH_USERS_JSON) ────────────────────────────────────
+  const usersJson = process.env.AUTH_USERS_JSON;
+  if (usersJson) {
+    try {
+      const users: Array<{ username: string; token: string }> = JSON.parse(usersJson);
+      const user = users.find(u => u.token === tokenCookie);
+      if (user) {
+        // Inject authenticated username for API routes to consume
+        const headers = new Headers(request.headers);
+        headers.set('x-auth-user', user.username);
+        return NextResponse.next({ request: { headers } });
+      }
+    } catch {
+      // Malformed users JSON — fall through to 401
+    }
+
+    // Token not found in users list
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    return NextResponse.rewrite(new URL('/login', request.url));
+  }
+
+  // ── Legacy single-user mode (AUTH_TOKEN env var) ─────────────────────────
   const validToken = process.env.AUTH_TOKEN;
   if (!validToken) {
+    // No auth configured — dev mode, allow everything
     return NextResponse.next();
   }
 
-  // Check auth cookie
-  const token = request.cookies.get('auth_token')?.value;
-  if (token === validToken) {
+  if (tokenCookie === validToken) {
+    // Inject username (may be empty string in legacy installs)
+    const username = process.env.AUTH_USERNAME || '';
+    if (username) {
+      const headers = new Headers(request.headers);
+      headers.set('x-auth-user', username);
+      return NextResponse.next({ request: { headers } });
+    }
     return NextResponse.next();
   }
 
-  // API routes return 401 instead of redirect
+  // Invalid token
   if (pathname.startsWith('/api/')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-
   // Rewrite to login page (not redirect — redirects break PWA standalone launch)
-  const loginUrl = new URL('/login', request.url);
-  return NextResponse.rewrite(loginUrl);
+  return NextResponse.rewrite(new URL('/login', request.url));
 }
 
 export const config = {

@@ -1,7 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // x-auth-user is injected by middleware after successful token validation
+  const currentUser = req.headers.get("x-auth-user") || null;
+
   const columns = await prisma.column.findMany({
     orderBy: { order: "asc" },
     include: {
@@ -24,5 +27,6 @@ export async function GET() {
       },
     },
   });
-  return NextResponse.json({ columns });
+
+  return NextResponse.json({ columns, currentUser });
 }

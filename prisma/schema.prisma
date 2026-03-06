@@ -8,12 +8,13 @@ datasource db {
 }
 
 model Column {
-  id        Int      @id @default(autoincrement())
-  name      String
-  slug      String   @unique
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
-  lists     List[]
+  id            Int      @id @default(autoincrement())
+  name          String
+  slug          String   @unique
+  order         Int      @default(0)
+  createdAt     DateTime @default(now())
+  ownerUsername String?
+  lists         List[]
 }
 
 model List {

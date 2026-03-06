@@ -1,6 +1,6 @@
 # 2Do Better
 
-**Self-hosted, privacy-first todo app. Real-time sync across all your devices. No subscriptions. No tracking. Your data, your server.**
+**Self-hosted, privacy-first todo app. Multi-user. Real-time sync. No subscriptions. No tracking. Your data, your server.**
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Support-Buy%20me%20a%20coffee-yellow?logo=buy-me-a-coffee)](https://www.buymeacoffee.com/luchegames)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -26,19 +26,20 @@ Most todo apps ask you to trust a company with your tasks forever — and charge
 ## Use cases
 
 - Personal productivity for people who want control over their data
-- Families or small teams on a home network or Tailscale mesh
+- Small teams and code shops on a Tailscale mesh — each person gets their own column, everyone sees the full board
 - A companion board for AI agent workflows — the built-in MCP server lets Claude read and update tasks directly
 - Anyone tired of paying per month for a list app
 
 ## Features
 
+- **Multi-user** — each team member gets their own column; everyone sees the whole board in real time
 - **Real-time sync** across all clients via Server-Sent Events — changes appear instantly on every device
 - **PWA** — installable on iOS, Android, and desktop; usable offline
 - **Nested lists** — projects with sub-lists, not just flat task lists
 - **Encrypted backups** — daily cron job, AES-256 encrypted, uploads to Google Drive or local storage
 - **MCP server** — lets Claude Code read and write your board programmatically
 - **Tailscale-ready** — access securely from anywhere without opening firewall ports
-- **Single-user auth** — simple token-based login, no user database required
+- **Token-based auth** — no user database required; credentials stored in a local JSON file
 
 ## Stack
 
@@ -65,7 +66,7 @@ npm start
 ```
 
 The setup wizard will guide you through:
-1. Setting your access passphrase
+1. Setting your username and access passphrase (add multiple users during setup or later)
 2. Choosing a backup destination (local / Google Drive / skip)
 3. Enabling backup encryption (recommended)
 4. Optionally configuring Tailscale for external access
@@ -73,6 +74,26 @@ The setup wizard will guide you through:
 Open the URL shown in your terminal (default `https://localhost:3000`).
 
 > **Note:** 2Do Better generates a self-signed TLS certificate. Your browser will warn you on first visit — this is expected. Install the CA cert once (`https://your-server:3000/download-ca-cert`) and the warning disappears permanently.
+
+## Multi-user setup
+
+Every user gets their own column on the shared board. All columns are visible to everyone — 100% visibility, 100% trust.
+
+**Add users during initial setup:**
+```bash
+npm run setup
+# The wizard asks "Add more users now?" after the first user
+```
+
+**Add users at any time:**
+```bash
+npm run setup add-user
+# Prompts for username + passphrase, updates data/users.json
+```
+
+Restart the server after adding users. Each new user's column is created automatically on their first login.
+
+**data/users.json** holds all user credentials. It is gitignored — never committed to source control.
 
 ## Backup & recovery
 
@@ -118,9 +139,9 @@ Add to `~/.claude.json`:
 
 ## Roadmap
 
-- [ ] First-run interactive setup wizard (`npm run setup`)
-- [ ] JSON export / import for data portability
-- [ ] Multi-user support (separate boards per user)
+- [x] First-run interactive setup wizard (`npm run setup`)
+- [x] JSON export / import for data portability
+- [x] Multi-user support — each user gets their own column, shared board visibility
 - [ ] App Store listing via PWABuilder
 
 ## Support
