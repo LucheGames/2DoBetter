@@ -71,7 +71,7 @@ export default function TaskRow({
       <div className="flex-1 min-w-0">
         {isEditing ? (
           <textarea
-            className="w-full bg-transparent outline-none text-sm text-gray-100 border-b border-blue-500 resize-none overflow-hidden"
+            className="w-full bg-transparent outline-none app-task-text text-gray-100 border-b border-blue-500 resize-none overflow-hidden"
             value={editValue}
             rows={1}
             autoFocus
@@ -97,14 +97,14 @@ export default function TaskRow({
                 setIsEditing(true);
                 setEditValue(task.title);
               }}
-              className={`text-sm select-none cursor-pointer transition-all duration-200 whitespace-pre-wrap break-words ${
+              className={`app-task-text select-none cursor-pointer transition-all duration-200 whitespace-pre-wrap break-words ${
                 task.completed ? "line-through text-gray-400" : "text-gray-200"
               }`}
             >
               {task.title}
             </span>
             {showBreadcrumb && task.completedBreadcrumb && (
-              <span className="text-xs text-gray-600 ml-2">
+              <span className="app-meta text-gray-600 ml-2">
                 {task.completedBreadcrumb}
               </span>
             )}

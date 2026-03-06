@@ -6,6 +6,7 @@
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "node server.js",
+    "seed": "npx tsx prisma/seed.ts",
     "service:install": "cp com.luchegames.2dobetter.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.luchegames.2dobetter.plist",
     "service:uninstall": "launchctl unload ~/Library/LaunchAgents/com.luchegames.2dobetter.plist && rm ~/Library/LaunchAgents/com.luchegames.2dobetter.plist",
     "service:restart": "launchctl kickstart -k gui/$(id -u)/com.luchegames.2dobetter"
@@ -20,9 +21,6 @@
     "prisma": "^6.19.2",
     "react": "19.2.3",
     "react-dom": "19.2.3"
-  },
-  "prisma": {
-    "seed": "npx tsx prisma/seed.ts"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

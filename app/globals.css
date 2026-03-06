@@ -1,9 +1,36 @@
 @import "tailwindcss";
 
+/* ════════════════════════════════════════════════════════════════
+   THEME TWEAKS — Dave's one-stop shop for visual changes.
+   Edit the values below to restyle the whole app at once.
+   ════════════════════════════════════════════════════════════════
+
+   FONT SIZES
+   text-sm  = 0.875rem = 14px  (Tailwind default)
+   text-base= 1rem     = 16px
+   ──────────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* ── Sizes ── */
+  --task-font-size:       0.9375rem;  /* task titles      ~15px  → try 1rem for 16px  */
+  --list-font-size:       0.9375rem;  /* project names    ~15px                        */
+  --sublist-font-size:    0.875rem;   /* sub-list names    14px  (was 12px)             */
+  --input-font-size:      0.9375rem;  /* task input boxes ~15px                        */
+  --meta-font-size:       0.75rem;    /* badges/breadcrumbs 12px                       */
+  --header-font-size:     1rem;       /* column headers    16px                        */
+
+  /* ── Accent colour ── */
+  --accent:               #3b82f6;   /* blue-500 — checkboxes, focus rings, borders   */
+  --accent-hover:         #60a5fa;   /* blue-400 — hover state                        */
+
+  /* ── Surfaces ── */
+  --app-bg:               #030712;   /* gray-950  page background                     */
+  --surface:              #111827;   /* gray-900  card backgrounds                    */
+  --border-color:         #1f2937;   /* gray-800  card borders                        */
+  --text-primary:         #e5e7eb;   /* gray-200  main text                           */
+  --text-muted:           #6b7280;   /* gray-500  secondary text                      */
+  --text-faint:           #374151;   /* gray-700  very subtle text (badges)           */
 }
+/* ════════════════════════════════════════════════════════════════ */
 
 @theme inline {
   --color-background: var(--background);
@@ -12,18 +39,24 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 body {
-  background: var(--background);
+  background: var(--app-bg);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ── Typography helpers (used throughout components) ── */
+.app-task-text    { font-size: var(--task-font-size);    }
+.app-list-name    { font-size: var(--list-font-size);    }
+.app-sublist-name { font-size: var(--sublist-font-size); }
+.app-input        { font-size: var(--input-font-size);   }
+.app-meta         { font-size: var(--meta-font-size);    }
+.app-header       { font-size: var(--header-font-size);  }
 
 /* Dark scrollbars — match gray-950 theme */
 * {

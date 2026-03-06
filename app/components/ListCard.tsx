@@ -308,7 +308,7 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
 
         {editingName ? (
           <input
-            className="flex-1 bg-transparent outline-none text-sm font-medium text-gray-100 border-b border-blue-500"
+            className="flex-1 bg-transparent outline-none app-list-name font-medium text-gray-100 border-b border-blue-500"
             value={nameValue}
             autoFocus
             onChange={(e) => setNameValue(e.target.value)}
@@ -324,7 +324,7 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
               setEditingName(true);
               setNameValue(list.name);
             }}
-            className="flex-1 text-sm font-medium text-gray-300 select-none cursor-default"
+            className="flex-1 app-list-name font-medium text-gray-300 select-none cursor-default"
           >
             {list.name}
           </span>
@@ -395,7 +395,7 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
               <textarea
                 ref={taskInputRef}
                 rows={1}
-                className="w-full rounded px-2 py-1 bg-gray-800/50 text-sm text-gray-200 placeholder-gray-600 outline-none focus:ring-1 focus:ring-blue-500/50 transition-colors resize-none overflow-hidden"
+                className="w-full rounded px-2 py-1 bg-gray-800/50 app-input text-gray-200 placeholder-gray-600 outline-none focus:ring-1 focus:ring-blue-500/50 transition-colors resize-none overflow-hidden"
                 placeholder="Task name..."
                 value={newTaskTitle}
                 onChange={(e) => {
@@ -419,7 +419,7 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
           ) : (
             <button
               onClick={openTaskInput}
-              className="w-full text-left px-4 py-1 mt-1 text-sm text-gray-600 hover:text-gray-400 transition-colors cursor-pointer"
+              className="w-full text-left px-4 py-1 mt-1 app-meta text-gray-600 hover:text-gray-400 transition-colors cursor-pointer"
             >
               + Add task
             </button>
@@ -590,7 +590,7 @@ function SubList({ list, onRefresh }: { list: ListData; onRefresh: () => void })
 
         {editingName ? (
           <input
-            className="flex-1 bg-transparent outline-none text-xs font-medium text-gray-100 border-b border-blue-500"
+            className="flex-1 bg-transparent outline-none app-sublist-name font-medium text-gray-100 border-b border-blue-500"
             value={nameValue}
             autoFocus
             onChange={(e) => setNameValue(e.target.value)}
@@ -606,7 +606,7 @@ function SubList({ list, onRefresh }: { list: ListData; onRefresh: () => void })
               setEditingName(true);
               setNameValue(list.name);
             }}
-            className="flex-1 text-xs font-medium text-gray-400 select-none cursor-default"
+            className="flex-1 app-sublist-name font-medium text-gray-400 select-none cursor-default"
           >
             {list.name}
           </span>
@@ -660,7 +660,7 @@ function SubList({ list, onRefresh }: { list: ListData; onRefresh: () => void })
               <textarea
                 ref={taskInputRef}
                 rows={1}
-                className="w-full rounded px-2 py-0.5 bg-gray-800/50 text-xs text-gray-200 placeholder-gray-600 outline-none focus:ring-1 focus:ring-blue-500/50 transition-colors resize-none overflow-hidden"
+                className="w-full rounded px-2 py-0.5 bg-gray-800/50 app-sublist-name text-gray-200 placeholder-gray-600 outline-none focus:ring-1 focus:ring-blue-500/50 transition-colors resize-none overflow-hidden"
                 placeholder="Task name..."
                 value={newTaskTitle}
                 onChange={(e) => {
@@ -684,7 +684,7 @@ function SubList({ list, onRefresh }: { list: ListData; onRefresh: () => void })
           ) : (
             <button
               onClick={openTaskInput}
-              className="w-full text-left px-4 py-0.5 mt-0.5 text-xs text-gray-600 hover:text-gray-400 transition-colors cursor-pointer"
+              className="w-full text-left px-4 py-0.5 mt-0.5 app-meta text-gray-600 hover:text-gray-400 transition-colors cursor-pointer"
             >
               + Add task
             </button>
