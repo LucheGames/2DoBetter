@@ -87,6 +87,15 @@ export default function Home() {
         <h1 className="text-xs font-semibold uppercase tracking-widest text-gray-500">
           2 Do Better
         </h1>
+        <a
+          href="https://www.buymeacoffee.com/luchegames"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="2Do Better is free — support development ☕"
+          className="text-base leading-none text-gray-700 hover:text-yellow-400 transition-colors duration-200 select-none"
+        >
+          ☕
+        </a>
       </header>
 
       {/* Columns — side by side on desktop, stacked on mobile.
