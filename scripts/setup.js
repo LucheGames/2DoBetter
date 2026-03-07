@@ -118,6 +118,23 @@ function runSql(sql) {
   return { ok: true, out: result.stdout.trim() };
 }
 
+// ── Shared column naming helper ───────────────────────────────────────────────
+// Returns "Shared", then "Shared 02", "Shared 03", … whichever is unused.
+function nextSharedName() {
+  var result = runSql("SELECT name FROM \"Column\" WHERE name = 'Shared' OR name LIKE 'Shared %'");
+  var existing = [];
+  if (result.ok && result.out) {
+    existing = result.out.split('\n').filter(function(n) { return n.trim(); });
+  }
+  if (existing.indexOf('Shared') === -1) return 'Shared';
+  var n = 2;
+  while (true) {
+    var candidate = 'Shared ' + (n < 10 ? '0' + n : '' + n);
+    if (existing.indexOf(candidate) === -1) return candidate;
+    n++;
+  }
+}
+
 // ── Token collection helper ───────────────────────────────────────────────────
 async function collectToken(existing) {
   const tokenMode = await askChoice(
@@ -306,10 +323,13 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   const colCheck = runSql(`SELECT name FROM "Column" WHERE ownerUsername = '${safeUser}' LIMIT 1`);
   const hasColumn = colCheck.ok && colCheck.out;
 
+  // Pre-compute the target shared name so we can show it in the confirm prompt
+  const sharedName = (!deleteData && hasColumn) ? nextSharedName() : null;
+
   // Single confirm — tell them exactly what will happen before they say y
-  const colNote = !hasColumn         ? ''
-    : deleteData                     ? ` Their column + all tasks will be deleted.`
-    :                                  ` Their column will become a shared team column.`;
+  const colNote = !hasColumn ? ''
+    : deleteData  ? ` Their column + all tasks will be deleted.`
+    :               ` Their column will be renamed "${sharedName}" (shared team column).`;
   const confirm = await ask(`Remove "${found.username}"?${colNote} (y/N)`, 'N');
   if (confirm.toLowerCase() !== 'y') {
     console.log('\n  Cancelled — nothing changed.\n');
@@ -328,8 +348,9 @@ ${C.bold}${C.cyan}  ╔═══════════════════
       runSql(`DELETE FROM "Column" WHERE ownerUsername = '${safeUser}'`);
       ok(`Column "${colCheck.out}" and all its tasks deleted.`);
     } else {
-      runSql(`UPDATE "Column" SET ownerUsername = NULL WHERE ownerUsername = '${safeUser}'`);
-      ok(`Column "${colCheck.out}" converted to a shared team column.`);
+      const safeName = sharedName.replace(/'/g, "''");
+      runSql(`UPDATE "Column" SET ownerUsername = NULL, name = '${safeName}' WHERE ownerUsername = '${safeUser}'`);
+      ok(`Column renamed to "${sharedName}" (shared team column).`);
     }
   }
 
