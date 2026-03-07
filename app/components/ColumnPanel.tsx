@@ -28,6 +28,8 @@ type ColumnPanelProps = {
   column: ColumnData;
   currentUser: string | null;
   onRefresh: () => void;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
 };
 
 /** Sortable wrapper for a ListCard — provides the drag handle props */
@@ -67,7 +69,7 @@ function SortableListCard({
   );
 }
 
-export default function ColumnPanel({ column, currentUser, onRefresh }: ColumnPanelProps) {
+export default function ColumnPanel({ column, currentUser, onRefresh, collapsed, onToggleCollapse }: ColumnPanelProps) {
   const [newListName, setNewListName] = useState("");
   const [showNewListInput, setShowNewListInput] = useState(false);
   const listInputRef = useRef<HTMLInputElement>(null);
@@ -195,6 +197,53 @@ export default function ColumnPanel({ column, currentUser, onRefresh }: ColumnPa
     }
   }
 
+  // Non-own columns (teammates + agents) can be collapsed
+  const canCollapse = !isOwnColumn;
+
+  // ── Collapsed view ──────────────────────────────────────────────────────────
+  if (collapsed) {
+    return (
+      <div className="flex flex-col min-w-0 h-full">
+        {/* Mobile: horizontal collapsed header (full width accordion) */}
+        <div className="flex md:hidden items-center justify-between px-4 py-3 border-b border-gray-800">
+          <div className="flex items-center gap-2 min-w-0">
+            <h2 className="text-base font-semibold text-gray-200 truncate">{column.name}</h2>
+            <span className={badgeClass}>{badgeLabel}</span>
+          </div>
+          <button
+            onClick={onToggleCollapse}
+            title="Expand"
+            className="text-gray-500 hover:text-gray-300 flex-shrink-0 ml-2"
+            style={{ cursor: "pointer" }}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
+        {/* Desktop: narrow vertical strip */}
+        <div className="hidden md:flex flex-col items-center pt-3 pb-2 gap-3 h-full">
+          <button
+            onClick={onToggleCollapse}
+            title="Expand column"
+            className="text-gray-600 hover:text-gray-300 flex-shrink-0"
+            style={{ cursor: "pointer" }}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+          <span
+            className="text-xs text-gray-600 font-medium select-none"
+            style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+          >
+            {column.name}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-w-0 md:flex-1 md:min-h-0">
       {/* Column header */}
@@ -233,7 +282,21 @@ export default function ColumnPanel({ column, currentUser, onRefresh }: ColumnPa
             <span className={badgeClass}>
               {badgeLabel}
             </span>
-            {!isPrincipal && (
+            {/* Collapse toggle — only on non-own columns (teammates + agents) */}
+            {canCollapse && (
+              <button
+                onClick={onToggleCollapse}
+                title="Collapse column"
+                className="text-gray-700 hover:text-gray-400 transition-colors"
+                style={{ cursor: "pointer" }}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
+            {/* Delete — hidden on teammate columns (human-owned by someone else) */}
+            {!isPrincipal && (!isMultiUser || isOwnColumn || !column.ownerUsername) && (
               <HoldToDelete
                 onConfirm={async () => {
                   await fetch(`/api/columns/${column.id}`, { method: "DELETE" });

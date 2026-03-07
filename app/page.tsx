@@ -23,6 +23,16 @@ export default function Home() {
   const [board, setBoard] = useState<BoardData | null>(null);
   const [offline, setOffline] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [collapsedCols, setCollapsedCols] = useState<Set<number>>(new Set());
+
+  function toggleCollapse(colId: number) {
+    setCollapsedCols(prev => {
+      const next = new Set(prev);
+      if (next.has(colId)) next.delete(colId);
+      else next.add(colId);
+      return next;
+    });
+  }
 
   const fetchBoard = useCallback(async () => {
     try {
@@ -151,18 +161,29 @@ export default function Home() {
           min-w-[33vw]: 1-2 columns fill the screen evenly, 3 columns sit at
           exactly 1/3 each, 4+ overflow and scroll horizontally. */}
       <div className="flex-1 flex flex-col md:flex-row md:min-h-0 overflow-y-auto md:overflow-x-auto md:overflow-y-hidden">
-        {board.columns.map((col, i) => (
-          <div
-            key={col.id}
-            className={`flex flex-col md:min-h-0 md:flex-1 md:min-w-[33vw] ${
-              i < board.columns.length - 1
-                ? "border-b md:border-b-0 md:border-r border-gray-800"
-                : ""
-            }`}
-          >
-            <ColumnPanel column={col} currentUser={board.currentUser} onRefresh={fetchBoard} />
-          </div>
-        ))}
+        {board.columns.map((col, i) => {
+          const isCollapsed = collapsedCols.has(col.id);
+          return (
+            <div
+              key={col.id}
+              className={`flex flex-col md:min-h-0 transition-[width,flex] duration-200 ${
+                isCollapsed ? "md:flex-none md:w-12" : "md:flex-1 md:min-w-[33vw]"
+              } ${
+                i < board.columns.length - 1
+                  ? "border-b md:border-b-0 md:border-r border-gray-800"
+                  : ""
+              }`}
+            >
+              <ColumnPanel
+                column={col}
+                currentUser={board.currentUser}
+                onRefresh={fetchBoard}
+                collapsed={isCollapsed}
+                onToggleCollapse={() => toggleCollapse(col.id)}
+              />
+            </div>
+          );
+        })}
       </div>
     </div>
   );
