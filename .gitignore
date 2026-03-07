@@ -56,3 +56,5 @@ ubuntu-ca.crt
 
 # User store — contains auth tokens, never commit
 data/users.json
+# Pending invite codes — time-limited, never commit
+data/invites.json

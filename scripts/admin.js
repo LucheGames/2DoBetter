@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 // 2Do Better — Admin CLI
 // Usage:
-//   npm run admin              Print all admin commands
-//   npm run export-data        Export board to JSON (default filename)
-//   npm run export-data out.json
-//   npm run import-data backup.json
-//   npm run restart            Restart the 2Do Better service
+//   npm run admin                   Print all admin commands
+//   npm run status                  Server health + board stats
+//   npm run list-users              List users
+//   npm run gen-invite [minutes]    Generate a time-limited invite code (default 10 min)
+//   npm run export-data [file]      Export board to JSON
+//   npm run import-data <file>      Import board from JSON
+//   npm run purge-completed         Delete completed tasks
+//   npm run restart                 Restart the 2Do Better service
+//   npm run context                 Full session context dump (for AI session start)
 'use strict';
 
 const fs         = require('fs');
@@ -14,6 +18,7 @@ const https      = require('https');
 const http       = require('http');
 const readline   = require('readline');
 const os         = require('os');
+const crypto     = require('crypto');
 const { spawnSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
@@ -26,6 +31,18 @@ const C = {
 const ok   = msg => console.log(`  ${C.green}✓${C.reset}  ${msg}`);
 const warn = msg => console.log(`  ${C.yellow}⚠${C.reset}  ${msg}`);
 const info = msg => console.log(`  ${C.dim}${msg}${C.reset}`);
+
+// Shared prompt helper (creates + closes its own readline interface)
+function prompt(question, defaultVal) {
+  var hint = defaultVal ? ' [' + defaultVal + ']' : '';
+  return new Promise(function(resolve) {
+    var rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    rl.question('  ' + question + hint + ': ', function(a) {
+      rl.close();
+      resolve((a.trim()) || (defaultVal || ''));
+    });
+  });
+}
 
 // ── .env helpers ──────────────────────────────────────────────────────────────
 function parseEnv(file) {
@@ -324,6 +341,120 @@ function restartService() {
   console.log('');
 }
 
+// ── gen-invite ────────────────────────────────────────────────────────────────
+async function genInvite() {
+  var minutesArg = parseInt(process.argv[3] || '10', 10);
+  var minutes = (isNaN(minutesArg) || minutesArg < 1) ? 10 : minutesArg;
+
+  var code = crypto.randomBytes(12).toString('hex'); // 24 hex chars
+  var now = new Date();
+  var expiresAt = new Date(now.getTime() + minutes * 60 * 1000);
+
+  var invitesFile = path.join(ROOT, 'data', 'invites.json');
+  var invites = [];
+  if (fs.existsSync(invitesFile)) {
+    try { invites = JSON.parse(fs.readFileSync(invitesFile, 'utf8')); } catch (_) {}
+  }
+
+  // Prune expired codes
+  var nowMs = Date.now();
+  invites = invites.filter(function(i) { return new Date(i.expiresAt).getTime() > nowMs; });
+
+  invites.push({ code: code, createdAt: now.toISOString(), expiresAt: expiresAt.toISOString() });
+
+  fs.mkdirSync(path.join(ROOT, 'data'), { recursive: true });
+  fs.writeFileSync(invitesFile, JSON.stringify(invites, null, 2), { mode: 0o600 });
+
+  var expireTime = expiresAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  console.log('\n  ' + C.bold + 'Invite code generated:' + C.reset + '\n');
+  console.log('  ' + C.bold + C.cyan + code + C.reset + '\n');
+  console.log('  ' + C.dim + 'Single-use  ·  expires at ' + expireTime + ' (' + minutes + ' min)' + C.reset);
+  console.log('  ' + C.dim + 'Send to the new user — they enter it on the Create Account page.' + C.reset);
+  console.log('');
+}
+
+// ── purge-completed ───────────────────────────────────────────────────────────
+async function purgeCompleted() {
+  var total = runSql('SELECT COUNT(*) FROM "Task" WHERE completed = 1') || '0';
+
+  if (total === '0') {
+    console.log('\n  No completed tasks in the database.\n');
+    return;
+  }
+
+  console.log('\n  Completed tasks in database: ' + C.bold + total + C.reset + '\n');
+  console.log('  ' + C.dim + '(a) Delete ALL ' + total + ' completed tasks' + C.reset);
+  console.log('  ' + C.dim + '(d) Delete only those older than N days' + C.reset + '\n');
+
+  var choice = await prompt('Choice (a/d)', 'd');
+  var sql, count;
+
+  if (choice.toLowerCase() === 'a') {
+    count = total;
+    sql = 'DELETE FROM "Task" WHERE completed = 1';
+  } else {
+    var days = await prompt('Delete completed tasks older than how many days?', '30');
+    var n = parseInt(days, 10);
+    if (isNaN(n) || n < 1) n = 30;
+    // Include tasks with NULL completedAt (completed before timestamp was tracked)
+    count = runSql(
+      'SELECT COUNT(*) FROM "Task" WHERE completed = 1 AND ' +
+      '(completedAt IS NULL OR completedAt <= datetime(\'now\', \'-' + n + ' days\'))'
+    ) || '0';
+    sql =
+      'DELETE FROM "Task" WHERE completed = 1 AND ' +
+      '(completedAt IS NULL OR completedAt <= datetime(\'now\', \'-' + n + ' days\'))';
+  }
+
+  if (count === '0') {
+    console.log('\n  Nothing to delete.\n');
+    return;
+  }
+
+  console.log('\n  ' + C.yellow + C.bold + '⚠  This will permanently delete ' + count + ' completed task(s).' + C.reset + '\n');
+  var answer = await prompt('Type YES to confirm');
+
+  if (answer !== 'YES') {
+    console.log('\n  Cancelled — nothing changed.\n');
+    return;
+  }
+
+  runSql(sql);
+  ok('Deleted ' + count + ' completed task(s).');
+  console.log('');
+}
+
+// ── context (AI session-start dump) ──────────────────────────────────────────
+function showContext() {
+  console.log('\n' + C.bold + C.cyan + '  ══ 2Do Better — Session Context ══' + C.reset + '\n');
+
+  // Git info
+  var branch = spawnSync('git', ['-C', ROOT, 'rev-parse', '--abbrev-ref', 'HEAD'], { encoding: 'utf8' }).stdout.trim();
+  var log    = spawnSync('git', ['-C', ROOT, 'log', '--oneline', '-5'], { encoding: 'utf8' }).stdout.trim();
+  console.log('  ' + C.bold + 'Git branch:' + C.reset + ' ' + branch);
+  console.log('  ' + C.bold + 'Recent commits:' + C.reset);
+  log.split('\n').forEach(function(l) { console.log('    ' + l); });
+  console.log('');
+
+  // Status (reuse existing function)
+  showStatus();
+
+  // Active invites
+  var invitesFile = path.join(ROOT, 'data', 'invites.json');
+  if (fs.existsSync(invitesFile)) {
+    var invites = [];
+    try { invites = JSON.parse(fs.readFileSync(invitesFile, 'utf8')); } catch (_) {}
+    var nowMs = Date.now();
+    var active = invites.filter(function(i) { return new Date(i.expiresAt).getTime() > nowMs; });
+    console.log('  ' + C.bold + 'Active invite codes:' + C.reset + ' ' + active.length);
+    active.forEach(function(i) {
+      var mins = Math.round((new Date(i.expiresAt).getTime() - nowMs) / 60000);
+      console.log('    ' + i.code + '  (' + mins + ' min remaining)');
+    });
+    console.log('');
+  }
+}
+
 // ── help ──────────────────────────────────────────────────────────────────────
 function printHelp() {
   console.log(`
@@ -334,16 +465,19 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   ${C.bold}Info:${C.reset}
     npm run status                  Service state, users, board stats, last backup
     npm run list-users              List all users
+    npm run context                 Full session context (git, status, invites) — great for AI session start
 
   ${C.bold}User management:${C.reset}
     npm run setup                   Full setup wizard (first install)
     npm run add-user                Add a new user interactively
     npm run remove-user [username]  Remove a user (prompts to delete or share their column)
+    npm run gen-invite [minutes]    Generate a time-limited invite code (default 10 min)
 
-  ${C.bold}Data backup / restore:${C.reset}
+  ${C.bold}Database:${C.reset}
     npm run export-data             Export board → 2dobetter-YYYY-MM-DD.json
     npm run export-data <file>      Export board → named file
     npm run import-data <file>      Import board from JSON ${C.yellow}(replaces ALL data)${C.reset}
+    npm run purge-completed         Delete completed tasks (all, or older than N days)
 
   ${C.bold}Service:${C.reset}
     npm run restart                 Restart the server (auto-detects launchctl / systemctl)
@@ -355,11 +489,14 @@ ${C.bold}${C.cyan}  ╔═══════════════════
 // ── Dispatch ──────────────────────────────────────────────────────────────────
 const cmd = process.argv[2];
 const dispatch = {
-  'status':      () => { showStatus();   return Promise.resolve(); },
-  'list-users':  () => { listUsers();    return Promise.resolve(); },
-  'export-data': exportData,
-  'import-data': importData,
-  'restart':     () => { restartService(); return Promise.resolve(); },
+  'status':           () => { showStatus();    return Promise.resolve(); },
+  'list-users':       () => { listUsers();     return Promise.resolve(); },
+  'context':          () => { showContext();   return Promise.resolve(); },
+  'gen-invite':       genInvite,
+  'export-data':      exportData,
+  'import-data':      importData,
+  'purge-completed':  purgeCompleted,
+  'restart':          () => { restartService(); return Promise.resolve(); },
 };
 
 if (dispatch[cmd]) {
