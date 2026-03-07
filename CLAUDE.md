@@ -172,6 +172,19 @@ The `2dobetter` MCP server is registered. Use these tools for all task operation
 
 ---
 
+## Session End — Wins Log
+
+At end of session, update `~/Desktop/claude_and_dave_log.txt`.
+
+**Keep entries SHORT and punchy** — these are talking points, not a feature log. Aim for:
+- 5–8 bullet points in ACHIEVED (one line each, what it does, not how)
+- 2–4 bullets in UNRESOLVED
+- 2–3 bullets in NOTES (gotchas, key paths, things future-you needs to know)
+
+If you're writing more than 3 lines per bullet, you're writing too much.
+
+---
+
 ## Git Rules
 
 - `~/2DoBetter/` on Mac is the working git repo → remote `LucheGames/ToDoBetter`
