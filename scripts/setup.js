@@ -286,8 +286,10 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   users.forEach(u => console.log(`    • ${u.username}`));
   console.log('');
 
-  // Accept username from command line or prompt
+  // argv[3] = username,  argv[4] = optional 'delete' flag
   let target = (process.argv[3] || '').trim();
+  const deleteData = (process.argv[4] || '').toLowerCase() === 'delete';
+
   if (!target) {
     target = await ask('Username to remove');
   }
@@ -300,7 +302,15 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   }
 
   const found = users[idx];
-  const confirm = await ask(`Remove "${found.username}"? This cannot be undone. (y/N)`, 'N');
+  const safeUser = found.username.replace(/'/g, "''");
+  const colCheck = runSql(`SELECT name FROM "Column" WHERE ownerUsername = '${safeUser}' LIMIT 1`);
+  const hasColumn = colCheck.ok && colCheck.out;
+
+  // Single confirm — tell them exactly what will happen before they say y
+  const colNote = !hasColumn         ? ''
+    : deleteData                     ? ` Their column + all tasks will be deleted.`
+    :                                  ` Their column will become a shared team column.`;
+  const confirm = await ask(`Remove "${found.username}"?${colNote} (y/N)`, 'N');
   if (confirm.toLowerCase() !== 'y') {
     console.log('\n  Cancelled — nothing changed.\n');
     rl.close(); return;
@@ -308,29 +318,18 @@ ${C.bold}${C.cyan}  ╔═══════════════════
 
   users.splice(idx, 1);
   saveUsers(users);
-  ok(`User "${found.username}" removed from data/users.json`);
+  ok(`User "${found.username}" removed`);
 
   // ── Handle their column in the database ────────────────────────────────────
-  const safeUser = found.username.replace(/'/g, "''"); // SQL-escape single quotes
-  const colCheck = runSql(`SELECT name FROM "Column" WHERE ownerUsername = '${safeUser}' LIMIT 1`);
-
   if (!colCheck.ok) {
     warn('sqlite3 CLI not available — column data was not touched.');
-    warn('  Install it to manage column data automatically:');
-    warn('    macOS: sqlite3 is pre-installed  |  Ubuntu: sudo apt-get install sqlite3');
-  } else if (colCheck.out) {
-    const colName = colCheck.out;
-    console.log(`\n  They own a column: ${C.bold}"${colName}"${C.reset}`);
-    console.log(`  ${C.dim}(d) delete it + all lists and tasks — gone forever${C.reset}`);
-    console.log(`  ${C.dim}(s) convert to a shared team column — stays on the board, no owner${C.reset}\n`);
-    const choice = await ask('Choice (d/s)', 's');
-
-    if (choice.toLowerCase() === 'd') {
+  } else if (hasColumn) {
+    if (deleteData) {
       runSql(`DELETE FROM "Column" WHERE ownerUsername = '${safeUser}'`);
-      ok('Column and all its lists + tasks permanently deleted.');
+      ok(`Column "${colCheck.out}" and all its tasks deleted.`);
     } else {
       runSql(`UPDATE "Column" SET ownerUsername = NULL WHERE ownerUsername = '${safeUser}'`);
-      ok('Column converted to a shared team column.');
+      ok(`Column "${colCheck.out}" converted to a shared team column.`);
     }
   }
 

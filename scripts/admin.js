@@ -470,7 +470,8 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   ${C.bold}User management:${C.reset}
     npm run setup                   Full setup wizard (first install)
     npm run add-user                Add a new user interactively
-    npm run remove-user [username]  Remove a user (prompts to delete or share their column)
+    npm run remove-user [username]          Remove user, share their column (safe default)
+    npm run remove-user [username] delete   Remove user + delete their column and all tasks
     npm run gen-invite [minutes]    Generate a time-limited invite code (default 10 min)
 
   ${C.bold}Database:${C.reset}
