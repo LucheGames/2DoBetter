@@ -119,7 +119,10 @@ Run `npm run admin` for help. All commands work on whichever machine you run the
 |---------|-------------|
 | `npm run setup` | Full first-run wizard |
 | `npm run add-user` | Add a user interactively |
-| `npm run remove-user [name]` | Remove user — prompts to **delete** or **share** their column |
+| `npm run remove-user [name]` | Remove user — column renamed to "Shared" (safe default) |
+| `npm run remove-user [name] delete` | Remove user + delete column and all tasks |
+| `npm run reset-password [name]` | Reset a user's password without removing them |
+| `npm run rename-user [old] [new]` | Rename a user and their column |
 | `npm run gen-invite [minutes]` | Generate a time-limited, single-use invite code (default 10 min) |
 
 ### Database

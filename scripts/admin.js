@@ -204,23 +204,134 @@ function runSql(sql) {
   return result.stdout.trim();
 }
 
+// ── reset-password ────────────────────────────────────────────────────────────
+async function resetPassword() {
+  var usersFile = path.join(ROOT, 'data', 'users.json');
+  if (!fs.existsSync(usersFile)) {
+    console.log('\n  No users file found — run npm run setup first.\n');
+    return;
+  }
+  var users;
+  try { users = JSON.parse(fs.readFileSync(usersFile, 'utf8')); } catch (_) { users = []; }
+  if (!users.length) { console.log('\n  No users configured.\n'); return; }
+
+  var target = (process.argv[3] || '').trim();
+  if (!target) {
+    console.log('');
+    users.forEach(function(u, i) { console.log('  ' + (i + 1) + '. ' + u.username); });
+    console.log('');
+    target = await prompt('Username to reset');
+  }
+  if (!target) { console.log('\n  Cancelled.\n'); return; }
+
+  var idx = users.findIndex(function(u) { return u.username.toLowerCase() === target.toLowerCase(); });
+  if (idx === -1) { warn('User "' + target + '" not found.'); console.log(''); return; }
+
+  var username = users[idx].username;
+  console.log('\n  Resetting password for: ' + C.bold + username + C.reset);
+  console.log('  ' + C.dim + '(blank = generate a random token)' + C.reset + '\n');
+
+  var newToken = await prompt('New password');
+  if (!newToken) {
+    newToken = crypto.randomBytes(16).toString('hex');
+    console.log('\n  Generated: ' + C.bold + C.cyan + newToken + C.reset);
+  } else if (newToken.length < 8) {
+    warn('Password must be at least 8 characters.');
+    return;
+  }
+
+  users[idx].token = newToken;
+  fs.writeFileSync(usersFile, JSON.stringify(users, null, 2), { mode: 0o600 });
+  ok('Password updated for "' + username + '".');
+  info('Restart the server to invalidate old sessions:  npm run restart');
+  console.log('');
+}
+
+// ── rename-user ───────────────────────────────────────────────────────────────
+async function renameUser() {
+  var usersFile = path.join(ROOT, 'data', 'users.json');
+  if (!fs.existsSync(usersFile)) { console.log('\n  No users file found.\n'); return; }
+  var users;
+  try { users = JSON.parse(fs.readFileSync(usersFile, 'utf8')); } catch (_) { users = []; }
+  if (!users.length) { console.log('\n  No users configured.\n'); return; }
+
+  var oldName = (process.argv[3] || '').trim();
+  var newName = (process.argv[4] || '').trim();
+
+  if (!oldName) {
+    console.log('');
+    users.forEach(function(u, i) { console.log('  ' + (i + 1) + '. ' + u.username); });
+    console.log('');
+    oldName = await prompt('Username to rename');
+  }
+  if (!oldName) { console.log('\n  Cancelled.\n'); return; }
+
+  var idx = users.findIndex(function(u) { return u.username.toLowerCase() === oldName.toLowerCase(); });
+  if (idx === -1) { warn('User "' + oldName + '" not found.'); console.log(''); return; }
+
+  if (!newName) { newName = await prompt('New username'); }
+  if (!newName) { console.log('\n  Cancelled.\n'); return; }
+  if (newName.length < 2) { warn('Username must be at least 2 characters.'); return; }
+
+  var clash = users.find(function(u, i) { return i !== idx && u.username.toLowerCase() === newName.toLowerCase(); });
+  if (clash) { warn('"' + newName + '" is already taken.'); return; }
+
+  var confirm = await prompt('Rename "' + users[idx].username + '" → "' + newName + '"? (y/N)', 'N');
+  if (confirm.toLowerCase() !== 'y') { console.log('\n  Cancelled.\n'); return; }
+
+  var oldUsername = users[idx].username;
+  users[idx].username = newName;
+  fs.writeFileSync(usersFile, JSON.stringify(users, null, 2), { mode: 0o600 });
+  ok('User renamed: "' + oldUsername + '" → "' + newName + '"');
+
+  // Update DB: ownerUsername + rename the column if it was named after the old user
+  var safeOld = oldUsername.replace(/'/g, "''");
+  var safeNew = newName.replace(/'/g, "''");
+  var colName = runSql("SELECT name FROM \"Column\" WHERE ownerUsername = '" + safeOld + "' LIMIT 1");
+  if (colName) {
+    if (colName.toLowerCase() === oldUsername.toLowerCase()) {
+      runSql("UPDATE \"Column\" SET ownerUsername = '" + safeNew + "', name = '" + safeNew + "' WHERE ownerUsername = '" + safeOld + "'");
+      ok('Column renamed to "' + newName + '".');
+    } else {
+      runSql("UPDATE \"Column\" SET ownerUsername = '" + safeNew + "' WHERE ownerUsername = '" + safeOld + "'");
+      ok('Column "' + colName + '" ownership transferred.');
+    }
+  }
+
+  info('Restart the server to apply the session change:  npm run restart');
+  console.log('');
+}
+
 // ── list-users ────────────────────────────────────────────────────────────────
 function listUsers() {
-  const usersFile = path.join(ROOT, 'data', 'users.json');
+  var usersFile = path.join(ROOT, 'data', 'users.json');
   if (!fs.existsSync(usersFile)) {
     warn('No users file found — run npm run setup first.');
     return;
   }
-  const users = JSON.parse(fs.readFileSync(usersFile, 'utf8'));
+  var users;
+  try { users = JSON.parse(fs.readFileSync(usersFile, 'utf8')); } catch (_) { users = []; }
   console.log('');
-  if (!users.length) {
-    warn('No users configured.');
-    return;
+  if (!users.length) { warn('No users configured.'); return; }
+
+  // Build username → column name map from DB
+  var colMap = {};
+  if (fs.existsSync(DB_PATH)) {
+    var colRows = runSql('SELECT ownerUsername, name FROM "Column" WHERE ownerUsername IS NOT NULL');
+    if (colRows) {
+      colRows.split('\n').forEach(function(row) {
+        var bar = row.indexOf('|');
+        if (bar !== -1) { colMap[row.slice(0, bar)] = row.slice(bar + 1); }
+      });
+    }
   }
-  console.log(`  ${C.bold}Users (${users.length}):${C.reset}`);
-  users.forEach((u, i) => {
-    const tag = i === 0 ? ` ${C.dim}(admin)${C.reset}` : '';
-    console.log(`    ${i + 1}. ${C.bold}${u.username}${C.reset}${tag}`);
+
+  console.log('  ' + C.bold + 'Users (' + users.length + '):' + C.reset);
+  users.forEach(function(u, i) {
+    var tag    = i === 0 ? ' ' + C.dim + '(admin)' + C.reset : '';
+    var col    = colMap[u.username];
+    var colStr = col ? '  ' + C.dim + '→ ' + col + C.reset : '';
+    console.log('    ' + (i + 1) + '. ' + C.bold + u.username + C.reset + tag + colStr);
   });
   console.log('');
 }
@@ -262,13 +373,21 @@ function showStatus() {
 
   // ── Board stats from DB ────────────────────────────────────────────────────
   if (fs.existsSync(DB_PATH)) {
-    const cols  = runSql('SELECT COUNT(*) FROM "Column"') || '?';
+    const colRows = runSql('SELECT name, ownerUsername FROM "Column" ORDER BY "order"');
+    if (colRows) {
+      var colNames = colRows.split('\n').map(function(row) {
+        var bar = row.indexOf('|');
+        return bar !== -1 ? row.slice(0, bar) : row;
+      });
+      console.log('  Columns   : ' + colNames.join('  ·  ') + '  (' + colNames.length + ')');
+    } else {
+      console.log('  Columns   : ?');
+    }
     const lists = runSql('SELECT COUNT(*) FROM "List" WHERE archivedAt IS NULL') || '?';
     const tasks = runSql('SELECT COUNT(*) FROM "Task" WHERE completed = 0') || '?';
     const done  = runSql('SELECT COUNT(*) FROM "Task" WHERE completed = 1') || '?';
     const stat  = fs.statSync(DB_PATH);
     const kb    = (stat.size / 1024).toFixed(1);
-    console.log(`  Columns   : ${cols}`);
     console.log(`  Lists     : ${lists}  (active)`);
     console.log(`  Tasks     : ${tasks}  open  |  ${done}  completed`);
     console.log(`  DB size   : ${kb} KB  (${DB_PATH})`);
@@ -468,11 +587,13 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     npm run context                 Full session context (git, status, invites) — great for AI session start
 
   ${C.bold}User management:${C.reset}
-    npm run setup                   Full setup wizard (first install)
-    npm run add-user                Add a new user interactively
-    npm run remove-user [username]          Remove user, share their column (safe default)
-    npm run remove-user [username] delete   Remove user + delete their column and all tasks
-    npm run gen-invite [minutes]    Generate a time-limited invite code (default 10 min)
+    npm run setup                              Full setup wizard (first install)
+    npm run add-user                           Add a new user interactively
+    npm run remove-user [username]             Remove user, rename column → "Shared" (safe default)
+    npm run remove-user [username] delete      Remove user + delete their column and all tasks
+    npm run reset-password [username]          Reset a user's password / access token
+    npm run rename-user [old] [new]            Rename a user (updates their column name too)
+    npm run gen-invite [minutes]               Generate a time-limited invite code (default 10 min)
 
   ${C.bold}Database:${C.reset}
     npm run export-data             Export board → 2dobetter-YYYY-MM-DD.json
@@ -494,6 +615,8 @@ const dispatch = {
   'list-users':       () => { listUsers();     return Promise.resolve(); },
   'context':          () => { showContext();   return Promise.resolve(); },
   'gen-invite':       genInvite,
+  'reset-password':   resetPassword,
+  'rename-user':      renameUser,
   'export-data':      exportData,
   'import-data':      importData,
   'purge-completed':  purgeCompleted,

@@ -39,7 +39,8 @@ Most todo apps ask you to trust a company with your tasks forever — and charge
 - **Encrypted backups** — daily cron job, AES-256 encrypted, uploads to Google Drive or local storage
 - **MCP server** — lets Claude Code read and write your board programmatically
 - **Tailscale-ready** — access securely from anywhere without opening firewall ports
-- **Token-based auth** — no user database required; credentials stored in a local JSON file
+- **Invite-code registration** — share a time-limited code; new users self-register without admin involvement
+- **Full admin CLI** — manage users, reset passwords, export/import data, all from the terminal
 
 ## Stack
 
@@ -49,13 +50,15 @@ Most todo apps ask you to trust a company with your tasks forever — and charge
 | UI | React 19 + Tailwind CSS v4 |
 | Database | SQLite via Prisma 6 |
 | Real-time | Server-Sent Events |
-| Auth | Cookie-based token auth |
+| Auth | Cookie-based token auth (users stored in `data/users.json`) |
 | Server | Custom Node.js HTTPS server |
 | Backup | rclone + AES-256-CBC encryption |
 
-## Quick start
+---
 
-> **Requirements:** Node.js 20+, a Linux or macOS machine (Raspberry Pi works great)
+## Quick start (local / development)
+
+> **Requirements:** Node.js 20+, macOS or Linux
 
 ```bash
 git clone https://github.com/LucheGames/2DoBetter.git
@@ -65,52 +68,222 @@ npm run setup        # interactive first-run wizard
 npm start
 ```
 
-The setup wizard will guide you through:
-1. Setting your username and access passphrase (add multiple users during setup or later)
+The setup wizard guides you through:
+1. Setting your username and access passphrase
 2. Choosing a backup destination (local / Google Drive / skip)
 3. Enabling backup encryption (recommended)
-4. Optionally configuring Tailscale for external access
 
 Open the URL shown in your terminal (default `https://localhost:3000`).
 
-> **Note:** 2Do Better generates a self-signed TLS certificate. Your browser will warn you on first visit — this is expected. Install the CA cert once (`https://your-server:3000/download-ca-cert`) and the warning disappears permanently.
+> **Self-signed TLS:** Your browser will warn you on first visit. Install the CA cert once (`ca.crt` is served at `https://your-server:3000/ca.crt`) and the warning disappears permanently.
+
+---
+
+## Production server setup
+
+The recommended setup is a always-on Linux machine (a Raspberry Pi, old PC, or VPS all work fine) running as a systemd user service.
+
+### 1. Install prerequisites
+
+```bash
+# Ubuntu / Debian
+sudo apt update
+sudo apt install -y git nodejs npm sqlite3
+
+# Verify Node version (needs 20+)
+node --version   # if < 20, use nvm (see below)
+```
+
+**Using nvm (recommended):**
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash
+source ~/.bashrc
+nvm install 20
+nvm use 20
+nvm alias default 20
+```
+
+### 2. Clone and set up the app
+
+```bash
+git clone https://github.com/LucheGames/2DoBetter.git
+cd 2DoBetter
+npm install
+npm run build        # compiles the Next.js app
+npm run setup        # interactive wizard: users, certs, backups
+```
+
+The wizard creates:
+- `data/users.json` — user credentials (gitignored, chmod 600)
+- `.env.local` — local config (port, cert paths, etc.)
+- `certs/` — self-signed TLS certificate
+- `scripts/backup-db.sh` — backup script (if you configured backups)
+
+### 3. Install as a systemd user service (auto-start)
+
+```bash
+# The setup wizard installs the service automatically, but you can also run:
+npm run service:install
+
+# Verify it's running
+systemctl --user status 2dobetter
+
+# View live logs
+journalctl --user -u 2dobetter -f
+```
+
+The service auto-starts on login (enable lingering so it starts on boot even without login):
+```bash
+loginctl enable-linger $USER
+```
+
+### 4. Access from other devices
+
+**Same network:** Use the server's local IP, e.g. `https://192.168.1.100:3000`
+
+**Anywhere via Tailscale (recommended):**
+```bash
+# Install Tailscale on the server
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
+
+# Then access from any Tailscale device at:
+# https://<tailscale-ip>:3000
+```
+
+**Optional — DuckDNS for a memorable hostname:**
+```bash
+# Add to crontab: update DuckDNS every 5 minutes
+*/5 * * * * curl -s "https://www.duckdns.org/update?domains=yourname&token=yourtoken&ip=$(tailscale ip -4)" > /dev/null
+```
+
+### 5. Install the CA cert on clients
+
+To avoid browser warnings on every device:
+
+1. Visit `https://your-server:3000/ca.crt` on each client device
+2. Install the downloaded certificate as a trusted CA
+
+On iOS: tap the file → Settings → Profile Downloaded → Install
+On Android: Settings → Security → Install certificate → CA certificate
+On Mac: open Keychain Access → drag the file in → set to "Always Trust"
+
+---
 
 ## Multi-user setup
 
-Every user gets their own column on the shared board. All columns are visible to everyone — 100% visibility, 100% trust.
+Every user gets their own column on the shared board. All columns are visible to everyone.
 
-**Add users during initial setup:**
+**Add users interactively:**
 ```bash
-npm run setup
-# The wizard asks "Add more users now?" after the first user
+npm run add-user             # prompts for username + password
 ```
 
-**Add users at any time:**
+**Invite-code self-registration** (users create their own account):
 ```bash
-npm run setup add-user
-# Prompts for username + passphrase, updates data/users.json
+# On the server — generate a time-limited code (default: 10 minutes)
+npm run gen-invite
+npm run gen-invite 60        # 60-minute code
+
+# Share the code with the new user.
+# They visit your server URL, click "Create account", and enter the code.
+# Their column is created automatically on first login.
 ```
 
-Restart the server after adding users. Each new user's column is created automatically on their first login.
+**Manage users:**
+```bash
+npm run list-users                        # list all users with their column names
+npm run remove-user [username]            # remove user, rename column → "Shared"
+npm run remove-user [username] delete     # remove user + delete column and all tasks
+npm run reset-password [username]         # reset a user's password without removing them
+npm run rename-user [old] [new]           # rename a user and their column
+```
 
-**data/users.json** holds all user credentials. It is gitignored — never committed to source control.
+> `data/users.json` stores all credentials. It is gitignored and never committed.
+
+---
+
+## Admin CLI — full reference
+
+Run `npm run admin` for a summary. All commands must be run on the machine where the app is installed.
+
+### Info
+
+| Command | What it does |
+|---------|-------------|
+| `npm run status` | Service state, users, column names, task counts, DB size, last backup |
+| `npm run list-users` | All users with admin tag and their column name |
+| `npm run context` | Full session dump: git branch, last commits, status, active invites |
+
+### User management
+
+| Command | What it does |
+|---------|-------------|
+| `npm run setup` | Full first-run wizard |
+| `npm run add-user` | Add a user interactively (username + password) |
+| `npm run remove-user [name]` | Remove user — column renamed to "Shared" (safe default) |
+| `npm run remove-user [name] delete` | Remove user + permanently delete their column and all tasks |
+| `npm run reset-password [name]` | Reset a user's password; blank input generates a random token |
+| `npm run rename-user [old] [new]` | Rename a user and automatically rename their column to match |
+| `npm run gen-invite [minutes]` | Generate a single-use invite code (default 10 min). Expired codes are auto-pruned. |
+
+### Database
+
+| Command | What it does |
+|---------|-------------|
+| `npm run export-data [file]` | Export board to JSON (default: `2dobetter-YYYY-MM-DD.json`) |
+| `npm run import-data <file>` | Import board from JSON — **replaces all current data** |
+| `npm run purge-completed` | Delete completed tasks — all, or older than N days |
+
+### Service
+
+| Command | What it does |
+|---------|-------------|
+| `npm run restart` | Restart the server (auto-detects launchctl on macOS / systemctl on Linux) |
+| `npm run service:install` | Install as auto-start launchd service (macOS) |
+| `npm run service:uninstall` | Remove auto-start service (macOS) |
+
+---
 
 ## Backup & recovery
 
-Daily encrypted backups run automatically at 3am. To restore:
+Daily encrypted backups run automatically (configured during setup). To restore:
 
 ```bash
-# 1. Decrypt
+# 1. Decrypt the backup
 openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 \
   -in dev_2026-03-06_03-00-00.db.enc \
   -out restored.db \
   -pass file:~/.2dobetter_backup_key
 
-# 2. Replace live DB (stop server first)
+# 2. Stop the server, replace the DB, restart
 systemctl --user stop 2dobetter
 cp restored.db ~/2DoBetter/prisma/dev.db
 systemctl --user start 2dobetter
 ```
+
+Or use the built-in import/export for portable JSON backups:
+```bash
+npm run export-data backup.json          # on the old server
+npm run import-data backup.json          # on the new server
+```
+
+---
+
+## Deploying updates
+
+```bash
+# On the server
+cd ~/2DoBetter
+git pull
+npm run build        # required for UI/API changes
+npm run restart      # restarts the service
+
+# CLI-only changes (scripts/, CLAUDE.md) — skip the build:
+git pull && npm run restart
+```
+
+---
 
 ## MCP server (Claude integration)
 
@@ -130,19 +303,30 @@ Add to `~/.claude.json`:
       "args": ["/path/to/2DoBetter/mcp/dist/server.js"],
       "env": {
         "API_BASE_URL": "https://your-server:3000",
-        "AUTH_TOKEN": "your-token-here"
+        "AUTH_TOKEN": "your-token-here",
+        "AUTH_USER": "your-username"
       }
     }
   }
 }
 ```
 
+Available MCP tools: `get_board`, `get_column`, `create_task`, `complete_task`, `uncomplete_task`, `update_task`, `delete_task`, `move_task`, `create_list`, `delete_list`, `search_tasks`.
+
+---
+
 ## Roadmap
 
-- [x] First-run interactive setup wizard (`npm run setup`)
+- [x] First-run interactive setup wizard
+- [x] Multi-user support with shared board visibility
+- [x] Invite-code self-registration (time-limited, single-use)
 - [x] JSON export / import for data portability
-- [x] Multi-user support — each user gets their own column, shared board visibility
+- [x] Full admin CLI (add/remove/rename/reset users, purge tasks, export/import)
+- [x] MCP server for Claude Code integration
+- [x] Collapsible teammate columns
 - [ ] App Store listing via PWABuilder
+
+---
 
 ## Support
 
