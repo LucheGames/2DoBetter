@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
 const USERS_FILE = path.join(process.cwd(), 'data', 'users.json');
+const BCRYPT_ROUNDS = 12;
 
 // ── Cookie helpers ────────────────────────────────────────────────────────────
 
@@ -23,7 +26,22 @@ export function setAuthCookies(response: NextResponse, token: string, username: 
 
 // ── User store helpers ────────────────────────────────────────────────────────
 
-export type UserRecord = { username: string; token: string };
+export type UserRecord = {
+  username: string;
+  hash?: string;    // bcrypt hash (new users)
+  token?: string;   // legacy plaintext password (migrated to hash on next login)
+  session?: string; // current session token (set on login, cleared on logout)
+};
+
+/** Read users fresh from disk so auth operations see the latest data.
+ *  Falls back to AUTH_USERS_JSON env var if the file doesn't exist. */
+export function getUsersFresh(): UserRecord[] {
+  try {
+    return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+  } catch {
+    try { return JSON.parse(process.env.AUTH_USERS_JSON || '[]'); } catch { return []; }
+  }
+}
 
 /** Read users from AUTH_USERS_JSON env (set by server.js at startup). */
 export function getUsers(): UserRecord[] {
@@ -37,6 +55,21 @@ export function saveUsers(users: UserRecord[]) {
   fs.mkdirSync(path.dirname(USERS_FILE), { recursive: true });
   fs.writeFileSync(USERS_FILE, json, { mode: 0o600 });
   process.env.AUTH_USERS_JSON = JSON.stringify(users); // live update — no restart needed
+}
+
+// ── Password / session helpers ────────────────────────────────────────────────
+
+export function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, BCRYPT_ROUNDS);
+}
+
+export function verifyPassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
+}
+
+/** Generate a cryptographically random session token. */
+export function generateSession(): string {
+  return randomBytes(32).toString('hex');
 }
 
 // ── Column provisioning ───────────────────────────────────────────────────────

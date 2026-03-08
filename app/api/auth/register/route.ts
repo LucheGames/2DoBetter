@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { setAuthCookies, ensureUserColumn, getUsers, saveUsers } from '@/lib/auth-helpers';
+import {
+  setAuthCookies, ensureUserColumn, getUsersFresh, saveUsers,
+  hashPassword, generateSession,
+} from '@/lib/auth-helpers';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -62,13 +65,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Password must be at least 8 characters.' }, { status: 400 });
   }
 
-  const users = getUsers();
+  const users = getUsersFresh();
   if (users.some(u => u.username.toLowerCase() === cleanUsername.toLowerCase())) {
     return NextResponse.json({ error: 'That username is already taken.' }, { status: 409 });
   }
 
-  // Add user, persist to disk, update live process (no restart needed)
-  users.push({ username: cleanUsername, token: String(token) });
+  // Hash password and generate session before persisting
+  const hash = await hashPassword(String(token));
+  const session = generateSession();
+
+  users.push({ username: cleanUsername, hash, session });
   try {
     saveUsers(users);
   } catch {
@@ -78,6 +84,6 @@ export async function POST(req: NextRequest) {
   await ensureUserColumn(cleanUsername);
 
   const response = NextResponse.json({ ok: true });
-  setAuthCookies(response, String(token), cleanUsername);
+  setAuthCookies(response, session, cleanUsername);
   return response;
 }

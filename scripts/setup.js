@@ -6,6 +6,7 @@
 
 const readline = require('readline');
 const crypto   = require('crypto');
+const bcrypt   = require('bcrypt');
 const fs       = require('fs');
 const path     = require('path');
 const os       = require('os');
@@ -269,7 +270,8 @@ ${C.bold}${C.cyan}  ╔═══════════════════
 
   const token = await collectToken();
 
-  users.push({ username, token });
+  const hash = await bcrypt.hash(token, 12);
+  users.push({ username: username, hash: hash });
   saveUsers(users);
   ok(`User "${username}" added to data/users.json`);
   info('They\'ll get their own column automatically on first login.');
@@ -399,9 +401,9 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   cfg.AUTH_USERNAME = firstUsername;
 
   const firstToken = await collectToken(existing);
-  cfg.AUTH_TOKEN = firstToken;
+  cfg.AUTH_TOKEN = firstToken; // kept for legacy single-user mode fallback
 
-  users.push({ username: firstUsername, token: firstToken });
+  users.push({ username: firstUsername, hash: await bcrypt.hash(firstToken, 12) });
 
   // Ask about additional users
   console.log('');
@@ -414,7 +416,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
       warn(`User "${uname}" already exists — skipping.`);
     } else {
       const tok = await collectToken();
-      users.push({ username: uname, token: tok });
+      users.push({ username: uname, hash: await bcrypt.hash(tok, 12) });
       ok(`User "${uname}" added.`);
     }
     addMore = await ask('Add another user? (y/N)', 'N');

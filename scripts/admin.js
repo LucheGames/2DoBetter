@@ -19,6 +19,7 @@ const http       = require('http');
 const readline   = require('readline');
 const os         = require('os');
 const crypto     = require('crypto');
+const bcrypt     = require('bcrypt');
 const { spawnSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
@@ -104,7 +105,8 @@ function apiRequest(method, urlPath, cookie, body) {
 }
 
 function makeCookie(user) {
-  return `auth_token=${user.token}; auth_user=${user.username}`;
+  // Use session token if available (new bcrypt system), fall back to legacy plaintext token
+  return `auth_token=${user.session || user.token || ''}; auth_user=${user.username}`;
 }
 
 // ── export-data ───────────────────────────────────────────────────────────────
@@ -120,6 +122,9 @@ async function exportData() {
   console.log(`\n  Exporting board data (authenticated as ${C.bold}${user.username}${C.reset})...`);
 
   const res = await apiRequest('GET', '/api/export', cookie);
+  if (res.status === 401) {
+    throw new Error('Export failed: no active session. Log in through the browser first, then retry.');
+  }
   if (res.status !== 200) {
     throw new Error(`Export failed: HTTP ${res.status}\n${res.body}`);
   }
@@ -185,6 +190,9 @@ async function importData() {
 
   console.log('\n  Importing...');
   const res = await apiRequest('POST', '/api/import', cookie, raw);
+  if (res.status === 401) {
+    throw new Error('Import failed: no active session. Log in through the browser first, then retry.');
+  }
   if (res.status !== 200) {
     throw new Error(`Import failed: HTTP ${res.status}\n${res.body}`);
   }
@@ -240,10 +248,13 @@ async function resetPassword() {
     return;
   }
 
-  users[idx].token = newToken;
+  var hash = await bcrypt.hash(newToken, 12);
+  users[idx].hash = hash;
+  delete users[idx].token;   // remove legacy plaintext if present
+  delete users[idx].session; // invalidate any active sessions
   fs.writeFileSync(usersFile, JSON.stringify(users, null, 2), { mode: 0o600 });
   ok('Password updated for "' + username + '".');
-  info('Restart the server to invalidate old sessions:  npm run restart');
+  info('The user will be signed out automatically — they can log in with the new password.');
   console.log('');
 }
 
