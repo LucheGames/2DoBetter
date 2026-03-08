@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // ── Sign-in form ──────────────────────────────────────────────────────────────
 function SignInForm({
@@ -10,21 +10,31 @@ function SignInForm({
   registrationEnabled: boolean;
   onSwitch: () => void;
 }) {
-  const [username, setUsername] = useState("");
-  const [token, setToken] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showToken, setShowToken] = useState(false);
 
+  // Refs let us read the actual DOM value at submit time, which works even
+  // when a password manager fills the fields without triggering onChange.
+  const usernameRef = useRef<HTMLInputElement>(null);
+  const tokenRef    = useRef<HTMLInputElement>(null);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    // Read from DOM — handles password-manager autofill where React state may be stale
+    const username = usernameRef.current?.value?.trim() ?? "";
+    const token    = tokenRef.current?.value?.trim()    ?? "";
+    if (!username || !token) {
+      setError("Please enter your username and password.");
+      return;
+    }
     setError("");
     setLoading(true);
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: username.trim(), token: token.trim() }),
+        body: JSON.stringify({ username, token }),
       });
       if (res.ok) { window.location.href = "/"; return; }
       setError("Invalid credentials");
@@ -38,10 +48,11 @@ function SignInForm({
   return (
     <form onSubmit={handleSubmit}>
       <input
+        ref={usernameRef}
         type="text"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
+        name="username"
         placeholder="Username"
+        required
         autoFocus
         autoComplete="username"
         className="w-full px-3 py-2.5 mb-3 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -49,10 +60,11 @@ function SignInForm({
 
       <div className="relative mb-4">
         <input
+          ref={tokenRef}
           type={showToken ? "text" : "password"}
-          value={token}
-          onChange={(e) => setToken(e.target.value)}
-          placeholder="Access token"
+          name="token"
+          placeholder="Password"
+          required
           autoComplete="current-password"
           className="w-full px-3 py-2.5 pr-16 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
         />
@@ -96,27 +108,28 @@ function SignInForm({
 
 // ── Create account form ───────────────────────────────────────────────────────
 function CreateAccountForm({ onSwitch }: { onSwitch: () => void }) {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [inviteCode, setInviteCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const usernameRef   = useRef<HTMLInputElement>(null);
+  const passwordRef   = useRef<HTMLInputElement>(null);
+  const inviteCodeRef = useRef<HTMLInputElement>(null);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
+    const username   = usernameRef.current?.value?.trim()   ?? "";
+    const password   = passwordRef.current?.value           ?? "";
+    const inviteCode = inviteCodeRef.current?.value?.trim() ?? "";
+
     if (password.length < 8) { setError("Password must be at least 8 characters."); return; }
+    setError("");
     setLoading(true);
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: username.trim(),
-          token: password,
-          inviteCode: inviteCode.trim(),
-        }),
+        body: JSON.stringify({ username, token: password, inviteCode }),
       });
       if (res.ok) { window.location.href = "/"; return; }
       const data = await res.json();
@@ -128,15 +141,15 @@ function CreateAccountForm({ onSwitch }: { onSwitch: () => void }) {
     }
   }
 
-  const canSubmit = username.trim().length >= 2 && password.length >= 8 && inviteCode.trim().length > 0;
-
   return (
     <form onSubmit={handleSubmit}>
       <input
+        ref={usernameRef}
         type="text"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
+        name="username"
         placeholder="Choose a username"
+        required
+        minLength={2}
         autoFocus
         autoComplete="username"
         className="w-full px-3 py-2.5 mb-3 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -144,10 +157,12 @@ function CreateAccountForm({ onSwitch }: { onSwitch: () => void }) {
 
       <div className="relative mb-3">
         <input
+          ref={passwordRef}
           type={showPassword ? "text" : "password"}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          name="password"
           placeholder="Choose a password  (8+ chars)"
+          required
+          minLength={8}
           autoComplete="new-password"
           className="w-full px-3 py-2.5 pr-16 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
         />
@@ -162,10 +177,11 @@ function CreateAccountForm({ onSwitch }: { onSwitch: () => void }) {
       </div>
 
       <input
+        ref={inviteCodeRef}
         type="text"
-        value={inviteCode}
-        onChange={(e) => setInviteCode(e.target.value)}
+        name="inviteCode"
         placeholder="Invite code  (ask your admin)"
+        required
         autoComplete="off"
         className="w-full px-3 py-2.5 mb-4 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
       />
