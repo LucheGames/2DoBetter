@@ -70,9 +70,9 @@ function SignInForm({
 
       <button
         type="submit"
-        disabled={loading || !username.trim() || !token.trim()}
+        disabled={loading}
         className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
-        style={{ cursor: loading || !username.trim() || !token.trim() ? "default" : "pointer" }}
+        style={{ cursor: loading ? "default" : "pointer" }}
       >
         {loading ? "Signing in…" : "Sign in"}
       </button>
@@ -174,9 +174,9 @@ function CreateAccountForm({ onSwitch }: { onSwitch: () => void }) {
 
       <button
         type="submit"
-        disabled={loading || !canSubmit}
+        disabled={loading}
         className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
-        style={{ cursor: loading || !canSubmit ? "default" : "pointer" }}
+        style={{ cursor: loading ? "default" : "pointer" }}
       >
         {loading ? "Creating account…" : "Create account"}
       </button>
