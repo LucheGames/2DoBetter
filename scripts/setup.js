@@ -6,11 +6,18 @@
 
 const readline = require('readline');
 const crypto   = require('crypto');
-const bcrypt   = require('bcrypt');
 const fs       = require('fs');
 const path     = require('path');
 const os       = require('os');
 const { spawnSync } = require('child_process');
+
+let bcrypt;
+try {
+  bcrypt = require('bcrypt');
+} catch {
+  console.error('\n  ✗  bcrypt is not installed. Run:  npm install\n');
+  process.exit(1);
+}
 
 // ── Paths ────────────────────────────────────────────────────────────────────
 const ROOT          = path.join(__dirname, '..');
@@ -155,11 +162,19 @@ async function collectToken(existing) {
     token = t1;
     ok(`Passphrase accepted (${t1.length} characters)`);
   } else {
-    token = crypto.randomBytes(24).toString('hex');
-    console.log(`\n  ${C.bold}${C.yellow}Generated token — save this in your password manager:${C.reset}`);
-    console.log(`\n  ${C.bold}  ${token}  ${C.reset}\n`);
-    info('They\'ll paste this into the "Access token" field on the login screen.');
-    await ask('Press Enter once you\'ve saved it');
+    // 3 groups of 4 hex chars = 12 chars total, e.g. "a3f2-7b91-4e28"
+    // Easy to read aloud, share over chat, or type on mobile.
+    const parts = [
+      crypto.randomBytes(2).toString('hex'),
+      crypto.randomBytes(2).toString('hex'),
+      crypto.randomBytes(2).toString('hex'),
+    ];
+    token = parts.join('-');
+    console.log(`\n  ${C.bold}${C.yellow}Generated password — share this with the new user:${C.reset}`);
+    console.log(`\n  ${C.bold}${C.cyan}  ${token}  ${C.reset}\n`);
+    info('They type this into the Password field on the login screen.');
+    info('They can change it later (currently: ask admin to run npm run reset-password).');
+    await ask('Press Enter once you\'ve shared it');
   }
   return token;
 }
@@ -273,14 +288,24 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   const hash = await bcrypt.hash(token, 12);
   users.push({ username: username, hash: hash });
   saveUsers(users);
-  ok(`User "${username}" added to data/users.json`);
+  ok(`User "${username}" added.`);
   info('They\'ll get their own column automatically on first login.');
+  console.log('');
 
+  // Auto-restart so the live server picks up the new user immediately
   const restartCmd = getRestartCommand();
   if (restartCmd === 'npm start') {
-    info('Start the server when ready:  npm start');
+    info('Server not running as a service. Start it with:  npm start');
   } else {
-    info(`Restart the server to pick up the new user:  ${restartCmd}`);
+    process.stdout.write(`  Restarting server…`);
+    const r = spawnSync('bash', ['-c', restartCmd], { stdio: 'pipe', encoding: 'utf8' });
+    if (r.status === 0) {
+      process.stdout.write(`  ${C.green}✓${C.reset}  Server restarted — new user is live.\n`);
+    } else {
+      process.stdout.write(`\n`);
+      warn(`Restart failed (${r.stderr || r.error || 'unknown error'}).`);
+      info(`Run manually:  ${restartCmd}`);
+    }
   }
 
   console.log('');

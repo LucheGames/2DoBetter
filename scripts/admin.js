@@ -476,7 +476,7 @@ async function genInvite() {
   var minutesArg = parseInt(process.argv[3] || '10', 10);
   var minutes = (isNaN(minutesArg) || minutesArg < 1) ? 10 : minutesArg;
 
-  var code = crypto.randomBytes(12).toString('hex'); // 24 hex chars
+  var code = crypto.randomBytes(4).toString('hex'); // 8 hex chars — short enough to read aloud
   var now = new Date();
   var expiresAt = new Date(now.getTime() + minutes * 60 * 1000);
 
