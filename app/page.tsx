@@ -22,7 +22,6 @@ function sortColumns(columns: ColumnData[], currentUser: string | null): ColumnD
 export default function Home() {
   const [board, setBoard] = useState<BoardData | null>(null);
   const [offline, setOffline] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
   const [collapsedCols, setCollapsedCols] = useState<Set<number>>(() => {
     if (typeof window === "undefined") return new Set();
     try {
@@ -82,13 +81,10 @@ export default function Home() {
   }, [fetchBoard]);
 
   // ── Sign out ───────────────────────────────────────────────────────────────
-  const handleSignOut = useCallback(async () => {
-    setSigningOut(true);
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-    } finally {
-      window.location.href = "/login";
-    }
+  const handleSignOut = useCallback(() => {
+    // Navigate directly — the GET handler clears cookies and redirects server-side.
+    // No JS await = instant UX regardless of network latency.
+    window.location.href = "/api/auth/logout";
   }, []);
 
   // Real-time sync: listen for server-sent events from other clients
@@ -155,12 +151,10 @@ export default function Home() {
               <span className="text-xs text-gray-500 select-none">{board.currentUser}</span>
               <button
                 onClick={handleSignOut}
-                disabled={signingOut}
                 title="Sign out"
-                className="text-xs text-gray-600 hover:text-gray-400 transition-colors select-none disabled:opacity-50"
-                style={{ cursor: signingOut ? "wait" : "pointer" }}
+                className="text-xs text-gray-600 hover:text-gray-400 transition-colors select-none"
               >
-                {signingOut ? "…" : "sign out"}
+                sign out
               </button>
             </div>
           )}
