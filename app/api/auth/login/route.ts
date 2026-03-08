@@ -9,7 +9,35 @@ import {
 
 const USERS_FILE = path.join(process.cwd(), 'data', 'users.json');
 
+// ── Simple in-memory rate limiter ─────────────────────────────────────────────
+// 10 attempts per IP per 15 minutes. Resets on server restart (acceptable for
+// a self-hosted app — persistent storage would be overkill here).
+const RATE_WINDOW_MS = 15 * 60 * 1000;
+const RATE_MAX       = 10;
+const loginAttempts  = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(ip: string): boolean {
+  const now   = Date.now();
+  const entry = loginAttempts.get(ip);
+  if (!entry || now > entry.resetAt) {
+    loginAttempts.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= RATE_MAX) return false;
+  entry.count++;
+  return true;
+}
+
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+          ?? req.headers.get('x-real-ip')
+          ?? 'unknown';
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json(
+      { error: 'Too many login attempts — try again in 15 minutes.' },
+      { status: 429 }
+    );
+  }
   const { username, token } = await req.json();
 
   // ── Multi-user mode ────────────────────────────────────────────────────────

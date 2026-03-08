@@ -1,11 +1,12 @@
 // 2 Do Better — Custom HTTPS/HTTP server
 // Wraps Next.js with Node built-in TLS. No external dependencies.
 
-const fs = require('fs');
+const fs   = require('fs');
 const path = require('path');
 const http = require('http');
 const https = require('https');
-const os = require('os');
+const os   = require('os');
+let bcrypt; try { bcrypt = require('bcrypt'); } catch { /* installed post-setup */ }
 
 // Load .env then .env.local (local overrides base — written by npm run setup)
 try { require('dotenv').config(); } catch {}
@@ -27,7 +28,11 @@ if (!process.env.AUTH_USERS_JSON) {
   } else if (process.env.AUTH_TOKEN) {
     // Auto-migrate: create users.json from legacy single-user env vars
     const username = process.env.AUTH_USERNAME || 'admin';
-    const users = [{ username, token: process.env.AUTH_TOKEN }];
+    // Hash the plaintext token immediately — never write it to disk in plaintext
+    const hash = bcrypt ? bcrypt.hashSync(process.env.AUTH_TOKEN, 12) : undefined;
+    const users = hash
+      ? [{ username, hash }]
+      : [{ username, token: process.env.AUTH_TOKEN }]; // fallback if bcrypt unavailable
     try {
       fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
       fs.writeFileSync(usersFile, JSON.stringify(users, null, 2), { mode: 0o600 });
@@ -36,6 +41,29 @@ if (!process.env.AUTH_USERS_JSON) {
     } catch (e) {
       console.warn('  ⚠  Could not create data/users.json:', e.message);
     }
+  }
+}
+
+// ── Startup migration: hash any remaining plaintext tokens ────────────────────
+// Covers installs upgraded from pre-bcrypt builds.
+if (bcrypt && process.env.AUTH_USERS_JSON && fs.existsSync(usersFile)) {
+  try {
+    const users = JSON.parse(process.env.AUTH_USERS_JSON);
+    let migrated = false;
+    for (const user of users) {
+      if (user.token && !user.hash) {
+        user.hash = bcrypt.hashSync(user.token, 12);
+        delete user.token;
+        migrated = true;
+      }
+    }
+    if (migrated) {
+      fs.writeFileSync(usersFile, JSON.stringify(users, null, 2), { mode: 0o600 });
+      process.env.AUTH_USERS_JSON = JSON.stringify(users);
+      console.log('  ✓  Migrated legacy plaintext password(s) to bcrypt hashes');
+    }
+  } catch (e) {
+    console.warn('  ⚠  Could not migrate legacy tokens:', e.message);
   }
 }
 
@@ -72,7 +100,8 @@ function sseHandler(req, res) {
   if (usersJson) {
     try {
       const users = JSON.parse(usersJson);
-      if (!users.some(u => u.token === tokenCookie)) {
+      // Accept session token (new) or legacy plaintext token (migration window)
+      if (!users.some(u => u.session === tokenCookie || u.token === tokenCookie)) {
         res.writeHead(401);
         res.end('Unauthorized');
         return;
