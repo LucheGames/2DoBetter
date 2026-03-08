@@ -1,23 +1,37 @@
 # 2Do Better
 
-**A shared 2Do board for humans and AI agents. Self-hosted, real-time, no subscriptions.**
+A multi-human, multi-AI-agent collaboration hub.
+
+Self-hosted · real-time sync · no subscriptions · your data stays on your machine.
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Support-Buy%20me%20a%20coffee-yellow?logo=buy-me-a-coffee)](https://www.buymeacoffee.com/luchegames)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
 
-## What is it
+## What is it?
 
-2Do Better is a **multi-user, multi-agent** task board you run on your own machine. Every person gets a column. Claude Code gets one too — and can read and update the board directly via a built-in MCP server. All columns are shared and sync in real time across every device on your network.
+2Do Better is a task board where every person and every AI agent gets their own column. All columns are shared and sync in real time across every device on your network.
 
-No cloud account. No tracking. Your data stays on your machine.
-
-**The workflow:** you and your AI pair each manage your own 2Do column, share context, and track what's in flight — together.
+**The workflow:** you, your team, and your AI agents each manage your own column and can see everyone else's. Queue up tasks, then start a Claude session and say "check 2Do" — Claude reads the board, picks up its tasks, and marks them done as it works.
 
 ---
 
-## Quick Start
+## Features
+
+- **Multi-user** — each person gets a column; everyone sees the full board
+- **AI agent columns** — Claude reads and writes your board directly via MCP
+- **Real-time sync** — changes appear on every device in ~1 second
+- **PWA** — installs as a home-screen app on iOS, Android, and desktop
+- **Nested lists** — projects with sub-lists, not flat task dumps
+- **Project Graveyard** — soft-delete projects; restore or purge later
+- **Invite-code onboarding** — 8-character single-use codes, 10-min expiry
+- **Full admin CLI** — manage users, reset passwords, export/import from terminal
+- **Encrypted backups** — daily cron, AES-256, local or Google Drive
+
+---
+
+## 👤 New User — Get Started (single device)
 
 > **Requires:** Node.js 20+, macOS or Linux
 
@@ -25,73 +39,97 @@ No cloud account. No tracking. Your data stays on your machine.
 git clone https://github.com/LucheGames/2DoBetter.git
 cd 2DoBetter
 npm install
-npm run setup        # creates your user, certs, and first-run config
+npm run setup        # creates your user, certs, and config
 npm start
 ```
 
-Open `https://localhost:3000`. Accept the browser cert warning for now (see [Install the CA cert](#install-the-ca-cert) to fix permanently).
+Open `https://localhost:3000`. Accept the browser cert warning (see [Install CA cert](#-admin--install-the-ca-cert-optional) to fix permanently).
 
 The setup wizard creates:
-- `data/users.json` — your credentials (gitignored)
+- `data/users.json` — your credentials (never committed to git)
 - `certs/` — self-signed TLS cert + CA
 - `.env.local` — local config
 
+**You now have a working board.** To get full use — with Claude reading and updating it — continue to MCP Setup below.
+
 ---
 
-## Connect Your Phone (LAN)
+## 🤖 MCP Setup — Required for AI Agent Use
 
-After `npm run setup`, the installer prints your local IP and a URL. On your phone:
+MCP (Model Context Protocol) is the plugin system that lets Claude talk directly to 2Do Better. Without this, Claude can't see or update your board.
 
-1. Visit `http://your-local-ip:3001/ca.crt` and install the certificate
+**1. Build the MCP server** (one-time, on the machine where Claude Code runs):
+```bash
+cd mcp && npm install && npm run build
+```
+
+**2. Add to `~/.claude.json`:**
+```json
+{
+  "mcpServers": {
+    "2dobetter": {
+      "command": "node",
+      "args": ["/path/to/2DoBetter/mcp/dist/server.js"],
+      "env": {
+        "API_BASE_URL": "https://your-server:3000",
+        "AUTH_TOKEN":   "your-token",
+        "AUTH_USER":    "your-username"
+      }
+    }
+  }
+}
+```
+
+**3. Start a Claude Code session** — Claude will greet you with a board summary and can now check, update, and manage tasks directly.
+
+**Available MCP tools:** `get_board`, `get_column`, `create_task`, `complete_task`, `uncomplete_task`, `update_task`, `delete_task`, `move_task`, `create_list`, `delete_list`, `search_tasks`
+
+---
+
+## 🔧 Admin — Server & Multi-User Setup
+
+The sections below are for whoever runs the server. On a single-device personal setup the "admin" and "new user" are the same person.
+
+---
+
+### Install the CA cert *(optional — removes browser warnings)*
+
+After `npm run setup`, the wizard prints your local IP. Install the CA cert once per device to trust your self-signed cert permanently:
+
+1. Visit `http://your-local-ip:3001/ca.crt`
+2. Install the cert:
    - **iOS:** tap file → Settings → Profile Downloaded → Install → then Settings → General → About → Certificate Trust Settings → enable it
    - **Android:** Settings → Security → Install certificates → CA certificate
-2. Open `https://your-local-ip:3000` in your phone's browser
-3. Tap **Share → Add to Home Screen** to install as a PWA
+3. Open `https://your-local-ip:3000` — no more browser warning
 
 ---
 
-## Features
+### Run as a Background Service *(optional — auto-starts on login)*
 
-- **Multi-user** — each person gets a column; everyone sees the full board
-- **AI agent column** — Claude Code can read and write your board via MCP
-- **Real-time sync** via SSE — changes appear on every device in ~1 second
-- **PWA** — install on iOS, Android, and desktop; works offline
-- **Nested lists** — projects with sub-lists, not flat task dumps
-- **Project Graveyard** — soft-delete projects; restore or purge later
-- **Drag & drop** — reorder tasks and projects within and between columns
-- **Invite-code registration** — share a time-limited link; teammates self-register
-- **Full admin CLI** — manage users, reset passwords, export/import, all from terminal
-- **Encrypted backups** — daily cron, AES-256, local or Google Drive
-
----
-
-## Optional: Run as a Background Service
-
-By default, `npm start` runs in your terminal. To have 2Do Better start automatically on login:
+By default, `npm start` runs in your terminal. To run permanently:
 
 **macOS:**
 ```bash
-npm run service:install    # installs a launchd agent
+npm run service:install    # installs a launchd agent + 2DoBetter.app in /Applications
 ```
-The installer also creates a `2DoBetter.app` in `/Applications` — double-click it to open the board.
 
 **Linux (systemd):**
 ```bash
-# The setup wizard handles this automatically.
+# The setup wizard offers this automatically.
 # To manage manually:
 systemctl --user status 2dobetter
 systemctl --user restart 2dobetter
 journalctl --user -u 2dobetter -f    # live logs
 
-# Auto-start at boot (no login needed):
+# Auto-start at boot (no login required):
 loginctl enable-linger $USER
 ```
 
 ---
 
-## Optional: Access from Anywhere (Tailscale + DuckDNS)
+### Remote Access via Tailscale *(optional — access from outside your LAN)*
 
-By default, 2Do Better is accessible on your local network only. If you want to access it from outside your home network (e.g. on mobile data), Tailscale is the simplest option — no port forwarding, works through CGNAT.
+By default, 2Do Better is accessible on your local network only. Tailscale gives you secure remote access with no port-forwarding or firewall changes.
 
 **1. Install Tailscale on your server and all client devices:**
 ```bash
@@ -102,7 +140,7 @@ tailscale ip -4    # note this IP — clients connect to it
 
 Access the app at `https://<tailscale-ip>:3000`.
 
-**2. Optional — DuckDNS for a memorable hostname:**
+**2. Memorable hostname via DuckDNS *(optional)*:**
 
 Register a free subdomain at [duckdns.org](https://duckdns.org), then keep it updated:
 ```bash
@@ -112,20 +150,20 @@ Register a free subdomain at [duckdns.org](https://duckdns.org), then keep it up
 
 ---
 
-## Multi-User Setup
+### Adding Users *(optional — multi-user setup)*
 
-Every user gets their own column. All columns are visible to everyone.
+Every user gets their own column. All columns are visible to everyone on the board.
 
-**Add a user directly:**
+**Invite someone to self-register** *(recommended)*:
 ```bash
-npm run add-user             # prompts for username + password
-```
-
-**Invite someone to self-register:**
-```bash
-npm run gen-invite           # 10-minute single-use code
+npm run gen-invite           # generates an 8-character, single-use code (10 min expiry)
 npm run gen-invite 60        # 60-minute code
 # Share the code — they visit your URL, click "Create account", enter the code.
+```
+
+**Add a user directly from the server:**
+```bash
+npm run add-user             # prompts for username + password, then restarts server
 ```
 
 **Manage users:**
@@ -137,43 +175,45 @@ npm run reset-password [name]
 npm run rename-user [old] [new]
 ```
 
-> `data/users.json` is gitignored and never committed.
-
 ---
 
-## Claude Code / MCP Integration
+### Backup & Recovery *(optional — recommended for always-on servers)*
 
-The included MCP server gives Claude Code direct read/write access to your board — no screenshots, no copy-pasting.
+Encrypted backups are configured during `npm run setup` and run daily via cron.
 
-**Build the MCP server:**
+**Restore from encrypted backup:**
 ```bash
-cd mcp && npm install && npm run build
+openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 \
+  -in backup.db.enc -out restored.db \
+  -pass file:~/.2dobetter_backup_key
+
+systemctl --user stop 2dobetter
+cp restored.db ~/2DoBetter/prisma/dev.db
+systemctl --user start 2dobetter
 ```
 
-**Add to `~/.claude.json`:**
-```json
-{
-  "mcpServers": {
-    "2dobetter": {
-      "command": "node",
-      "args": ["/path/to/2DoBetter/mcp/dist/server.js"],
-      "env": {
-        "API_BASE_URL": "https://your-server:3000",
-        "AUTH_TOKEN": "your-token",
-        "AUTH_USER": "your-username"
-      }
-    }
-  }
-}
+**Portable JSON backup (easier for migrations):**
+```bash
+npm run export-data backup.json    # export from old server
+npm run import-data backup.json    # import on new server
 ```
-
-**Available tools:** `get_board`, `get_column`, `create_task`, `complete_task`, `uncomplete_task`, `update_task`, `delete_task`, `move_task`, `create_list`, `delete_list`, `search_tasks`
-
-Once connected, Claude can check your 2Dos at the start of every session, mark things done as it works, and keep its own column updated — turning it into a genuine collaborator rather than a tool you direct.
 
 ---
 
-## Admin CLI Reference
+### Deploying Updates
+
+```bash
+git pull
+npm run build        # required for UI/API changes
+npm run restart
+
+# CLI-only changes (scripts/, docs) — skip the build:
+git pull && npm run restart
+```
+
+---
+
+## 🔧 Admin CLI Reference
 
 Run `npm run admin` for a quick summary. All commands run on the server machine.
 
@@ -193,7 +233,7 @@ Run `npm run admin` for a quick summary. All commands run on the server machine.
 | `npm run add-user` | Add a user interactively |
 | `npm run remove-user [name]` | Remove user — column renamed to "Shared" |
 | `npm run remove-user [name] delete` | Remove user + delete column and all tasks |
-| `npm run reset-password [name]` | Reset password; blank input generates a random token |
+| `npm run reset-password [name]` | Reset password |
 | `npm run rename-user [old] [new]` | Rename user and their column atomically |
 | `npm run gen-invite [minutes]` | Single-use invite code (default 10 min) |
 
@@ -215,39 +255,16 @@ Run `npm run admin` for a quick summary. All commands run on the server machine.
 
 ---
 
-## Backup & Recovery
+## Tech Stack
 
-Encrypted backups are configured during setup and run daily via cron.
-
-**Restore from encrypted backup:**
-```bash
-openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 \
-  -in backup.db.enc -out restored.db \
-  -pass file:~/.2dobetter_backup_key
-
-systemctl --user stop 2dobetter
-cp restored.db ~/2DoBetter/prisma/dev.db
-systemctl --user start 2dobetter
-```
-
-**Portable JSON backup (easier for migrations):**
-```bash
-npm run export-data backup.json    # old server
-npm run import-data backup.json    # new server
-```
-
----
-
-## Deploying Updates
-
-```bash
-git pull
-npm run build        # required for UI/API changes
-npm run restart
-
-# CLI-only changes (scripts/, docs) — skip the build:
-git pull && npm run restart
-```
+| Layer | What it is |
+|-------|-----------|
+| **Next.js** | Web framework — handles UI and API routes in one codebase |
+| **SQLite** | Database — a single file on disk, no separate server needed |
+| **Node.js / server.js** | Custom server that adds real-time push (SSE) on top of Next.js |
+| **Tailscale** | Private VPN — your board is only reachable by invited devices |
+| **PWA** | Makes 2Do installable as a home-screen app on any device |
+| **MCP** | Plugin protocol that lets Claude read and write your board directly |
 
 ---
 
