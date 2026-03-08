@@ -114,8 +114,18 @@ function broadcast() {
   }
 }
 
-// Expose broadcast globally so Next.js API routes can call it
+// Hard-reload broadcast — forces all clients to window.location.reload()
+// Used when a column is deleted so stale PWA caches can't show ghost columns
+function broadcastReload() {
+  const data = JSON.stringify({ event: 'reload', timestamp: Date.now() });
+  for (const client of sseClients) {
+    client.write(`data: ${data}\n\n`);
+  }
+}
+
+// Expose both globally so Next.js API routes can call them
 global.__sseBroadcast = broadcast;
+global.__sseBroadcastReload = broadcastReload;
 
 function getLanAddresses() {
   const interfaces = os.networkInterfaces();

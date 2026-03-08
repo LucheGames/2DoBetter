@@ -23,13 +23,20 @@ export default function Home() {
   const [board, setBoard] = useState<BoardData | null>(null);
   const [offline, setOffline] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
-  const [collapsedCols, setCollapsedCols] = useState<Set<number>>(new Set());
+  const [collapsedCols, setCollapsedCols] = useState<Set<number>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const saved = localStorage.getItem("2db-collapsed");
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch { return new Set(); }
+  });
 
   function toggleCollapse(colId: number) {
     setCollapsedCols(prev => {
       const next = new Set(prev);
       if (next.has(colId)) next.delete(colId);
       else next.add(colId);
+      localStorage.setItem("2db-collapsed", JSON.stringify([...next]));
       return next;
     });
   }
@@ -87,7 +94,11 @@ export default function Home() {
   // Real-time sync: listen for server-sent events from other clients
   useEffect(() => {
     const es = new EventSource("/api/events");
-    es.onmessage = () => {
+    es.onmessage = (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.event === "reload") { window.location.reload(); return; }
+      } catch { /* non-JSON keepalive comments — ignore */ }
       fetchBoard();
     };
     es.onerror = () => {

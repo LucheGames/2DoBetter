@@ -331,7 +331,7 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
         )}
 
         {!editingName && (
-          <div className="hidden group-hover:flex items-center">
+          <div className="flex md:hidden md:group-hover:flex items-center">
             {/* Add sub-list — 36px tap target */}
             <button
               onClick={() => setShowAddSubList(!showAddSubList)}
@@ -615,7 +615,7 @@ function SubList({ list, onRefresh }: { list: ListData; onRefresh: () => void })
         {!editingName && (
           <HoldToDelete
             onConfirm={deleteSubList}
-            className="hidden group-hover:flex"
+            className="flex md:hidden md:group-hover:flex"
             label="Delete sub-list?"
           />
         )}

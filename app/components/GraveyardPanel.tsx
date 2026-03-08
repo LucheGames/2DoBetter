@@ -171,7 +171,7 @@ export default function GraveyardPanel({ columnId, onResurrect }: GraveyardPanel
                     <HoldToDelete
                       onConfirm={() => deleteTask(task.id)}
                       label="Delete task?"
-                      className="hidden group-hover:flex flex-shrink-0"
+                      className="flex md:hidden md:group-hover:flex flex-shrink-0"
                     />
                   </div>
                 ))}

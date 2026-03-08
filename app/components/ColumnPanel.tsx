@@ -312,7 +312,10 @@ export default function ColumnPanel({ column, currentUser, onRefresh, collapsed,
       {/* Column content — scrollable on desktop, natural height on mobile */}
       <div className="md:flex-1 md:overflow-y-auto p-3 space-y-3">
         {column.lists.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12 text-gray-600">
+          <button
+            onClick={openNewListInput}
+            className="flex flex-col items-center justify-center py-12 w-full text-gray-600 hover:text-gray-400 transition-colors"
+          >
             <svg
               className="w-10 h-10 mb-2 opacity-20"
               fill="none"
@@ -326,8 +329,8 @@ export default function ColumnPanel({ column, currentUser, onRefresh, collapsed,
                 d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
               />
             </svg>
-            <p className="text-xs">No lists yet</p>
-          </div>
+            <p className="text-xs">Add your first project</p>
+          </button>
         )}
 
         {/* Sortable lists */}
