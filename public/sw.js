@@ -1,4 +1,4 @@
-const CACHE_NAME = '2dobetter-v1';
+const CACHE_NAME = '2dobetter-v2';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
@@ -16,17 +16,14 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // API calls: network only (never cache stale data)
+  // API calls: always network-only (never cache auth or data responses)
   if (url.pathname.startsWith('/api/')) {
     return;
   }
 
-  // Auth routes: network only
-  if (url.pathname === '/login') {
-    return;
-  }
-
-  // App shell: network first, fall back to cache
+  // All other requests (including /login): network first, fall back to cache.
+  // Letting the service worker handle /login (rather than falling through to
+  // the browser's own HTTP cache) ensures the freshest HTML is always served.
   event.respondWith(
     fetch(event.request)
       .then((response) => {
