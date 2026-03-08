@@ -1,5 +1,26 @@
 # 2 Do Better — Claude Instructions
 
+---
+## ⚠️  ABSOLUTE RULE — NEVER COMMIT SECRETS ⚠️
+
+**STOP. Before every `git add` or `git commit`, ask yourself:**
+- Does any staged file contain a password, token, API key, connection string, or credential?
+- Is `.env` or `.env.local` staged? (They must ALWAYS be in `.gitignore`)
+
+**Files that MUST NEVER be committed:**
+- `.env`, `.env.local`, `.env.*` (any environment files with real values)
+- `data/users.json` (contains bcrypt hashes and session tokens)
+- `certs/` (TLS private keys)
+- Any file with a real `DATABASE_URL`, `AUTH_TOKEN`, API key, password, or secret
+
+**Why this matters:** This repo is public. Credentials committed to git are permanently exposed — even after deletion, they live in history and are indexed by secret scanners within minutes.
+
+**History note:** The initial commit accidentally committed `.env` with a Railway MySQL password. The history was scrubbed with `git filter-repo` on 2026-03-08. Don't make us do that again.
+
+**If you accidentally commit a secret:** Immediately rotate/revoke the credential — assume it is compromised. Then scrub with `git filter-repo --replace-text`.
+
+---
+
 ## Session Start (do this automatically, no need to ask)
 
 1. **Run `npm run context`** from `~/2DoBetter/` on this Mac — dumps git branch, last 5 commits, server health, user count, board stats, active invite codes, and last backup in one shot.
