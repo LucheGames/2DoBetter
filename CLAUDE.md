@@ -195,7 +195,8 @@ The `2dobetter` MCP server is registered. Use these tools for all task operation
 
 ## Session End — Wins Log
 
-At end of session, update `~/Desktop/claude_and_dave_log.txt`.
+At end of session, append the new entry to the gist:
+**https://gist.github.com/LucheGames/541caf8b28a471141162fed44ecf4c38**
 
 **Keep entries SHORT and punchy** — these are talking points, not a feature log. Aim for:
 - 5–8 bullet points in ACHIEVED (one line each, what it does, not how)

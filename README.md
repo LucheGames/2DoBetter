@@ -11,16 +11,14 @@ Self-hosted · real-time sync · no subscriptions · your data stays on your mac
 
 ## What is it?
 
-2Do Better is a task board where every person and every AI agent gets their own column. All columns are shared and sync in real time across every device on your network.
-
-**The workflow:** you, your team, and your AI agents each manage your own column and can see everyone else's. Queue up tasks, then start a Claude session and say "check 2Do" — Claude reads the board, picks up its tasks, and marks them done as it works.
+2Do Better is a task board where every person and every AI agent gets their own column. All columns are shared, and information syncs in real time across every device on your network. Ask agent to "check 2Do" — it reads the board, picks up tasks, asks for clarifications, and marks them done as it works.
 
 ---
 
 ## Features
 
 - **Multi-user** — each person gets a column; everyone sees the full board
-- **AI agent columns** — Claude reads and writes your board directly via MCP
+- **AI agent** — AI agent reads and writes to your board directly via MCP
 - **Real-time sync** — changes appear on every device in ~1 second
 - **PWA** — installs as a home-screen app on iOS, Android, and desktop
 - **Nested lists** — projects with sub-lists, not flat task dumps
@@ -50,15 +48,15 @@ The setup wizard creates:
 - `certs/` — self-signed TLS cert + CA
 - `.env.local` — local config
 
-**You now have a working board.** To get full use — with Claude reading and updating it — continue to MCP Setup below.
+**You now have a working board.** To get full use — with AI Agent reading and updating it — continue to MCP Setup below.
 
 ---
 
 ## 🤖 MCP Setup — Required for AI Agent Use
 
-MCP (Model Context Protocol) is the plugin system that lets Claude talk directly to 2Do Better. Without this, Claude can't see or update your board.
+MCP (Model Context Protocol) is the plugin system that lets an AI Agent talk directly to 2Do Better. Without this, Agent can't see or update your board.
 
-**1. Build the MCP server** (one-time, on the machine where Claude Code runs):
+**1. Build the MCP server** (one-time, on the machine where AI Agent runs):
 ```bash
 cd mcp && npm install && npm run build
 ```
@@ -80,7 +78,7 @@ cd mcp && npm install && npm run build
 }
 ```
 
-**3. Start a Claude Code session** — Claude will greet you with a board summary and can now check, update, and manage tasks directly.
+**3. Start a Agent session** — AI Agent will greet you with a board summary and can now check, update, and manage tasks directly.
 
 **Available MCP tools:** `get_board`, `get_column`, `create_task`, `complete_task`, `uncomplete_task`, `update_task`, `delete_task`, `move_task`, `create_list`, `delete_list`, `search_tasks`
 
@@ -152,7 +150,7 @@ Register a free subdomain at [duckdns.org](https://duckdns.org), then keep it up
 
 ### Adding Users *(optional — multi-user setup)*
 
-Every user gets their own column. All columns are visible to everyone on the board.
+Every user gets their own column. All columns are visible to everyone on the board. The design philosophy here is high trust + total visiblity = high speed of development. 
 
 **Invite someone to self-register** *(recommended)*:
 ```bash
@@ -265,19 +263,6 @@ Run `npm run admin` for a quick summary. All commands run on the server machine.
 | **Tailscale** | Private VPN — your board is only reachable by invited devices |
 | **PWA** | Makes 2Do installable as a home-screen app on any device |
 | **MCP** | Plugin protocol that lets Claude read and write your board directly |
-
----
-
-## Roadmap
-
-- [x] First-run setup wizard
-- [x] Multi-user with shared board visibility
-- [x] Invite-code self-registration
-- [x] JSON export / import
-- [x] Full admin CLI
-- [x] MCP server for Claude Code
-- [x] Collapsible teammate columns
-- [ ] App Store listing via PWABuilder
 
 ---
 
