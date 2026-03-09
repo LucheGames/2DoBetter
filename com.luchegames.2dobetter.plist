@@ -9,11 +9,11 @@
     <key>ProgramArguments</key>
     <array>
         <string>/bin/bash</string>
-        <string>/Users/macbeast/_Repos/github/ToDoBetter/todo-app/start-service.sh</string>
+        <string>/Users/macbeast/_Repos/ToDoBetter/scripts/start-service.sh</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/macbeast/_Repos/github/ToDoBetter/todo-app</string>
+    <string>/Users/macbeast/_Repos/ToDoBetter</string>
 
     <key>RunAtLoad</key>
     <true/>

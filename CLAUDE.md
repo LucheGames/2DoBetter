@@ -222,7 +222,7 @@ If you're writing more than 3 lines per bullet, you're writing too much.
 
 ## Git Rules
 
-- `~/2DoBetter/` on Mac is the working git repo → remote `LucheGames/ToDoBetter`
+- `/Users/macbeast/_Repos/ToDoBetter/` on Mac is the working git repo → remote `LucheGames/ToDoBetter`
 - Commit and push freely as part of the normal workflow
 - Never force-push to master
 - Build output (`.next/`), DB (`prisma/dev.db`), secrets (`data/`, `.env*`, `certs/`) are gitignored
