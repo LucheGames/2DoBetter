@@ -23,26 +23,30 @@
 
 ## Session Start (do this automatically, no need to ask)
 
-1. **Run `npm run context`** from `~/2DoBetter/` on this Mac — dumps git branch, last 5 commits, server health, user count, board stats, active invite codes, and last backup in one shot.
+1. **SSH to Ubuntu and run `npm run context`** — dumps git branch, last 5 commits, server health, user count, board stats, active invite codes, and last backup in one shot:
+   ```bash
+   ssh davistator@100.105.251.44 "bash -i -c 'cd ~/2DoBetter && npm run context'"
+   ```
 2. **Check the board** with the `get_board` MCP tool.
-3. **Greet Dave with a 1-line board status** — e.g. "Board: 3 open in Dave's queue, 1 in mine (admin CLI, done). Server running, last backup 9h ago."
+3. **Greet Dave with a 1-line board status** — e.g. "Board: 3 open in Dave's queue, 1 in mine. Server running, last backup 9h ago."
 
 ---
 
-## Architecture — Three Machines
+## Architecture
 
 | Machine | Role | Address |
 |---------|------|---------|
-| **Mac** (this one) | Dev + git origin | `100.106.235.14` (Tailscale) |
-| **Ubuntu HP Z2** | Production server | `davistator@100.105.251.44` (Tailscale) · `192.168.10.165` (LAN) |
-| **Android phone** | Client (PWA) | connects to Ubuntu via Tailscale |
+| **Mac** (this one) | Dev + git only | `100.106.235.14` (Tailscale) |
+| **Ubuntu HP Z2** | ⚠️ THE ONLY SERVER | `davistator@100.105.251.44` (Tailscale) · `192.168.10.165` (LAN) |
+| **Android / other devices** | Clients (PWA) | connect to Ubuntu via Tailscale |
 
-- **App URL:** `https://2dobetter.duckdns.org:3000` — works anywhere Tailscale is running
+- **App URL:** `https://2dobetter.duckdns.org:3000` — the one and only instance
 - DuckDNS `2dobetter.duckdns.org` → Tailscale IP `100.105.251.44` (Ubuntu), refreshed every 5 min via cron
 - Ubuntu `/etc/hosts`: `127.0.0.1 2dobetter.duckdns.org` (avoids Tailscale hairpin for local access)
 - Ubuntu static LAN IP via netplan: `192.168.10.165`
-- **Mac is client-only** — no local service; `.app` launcher opens `https://2dobetter.duckdns.org:3000`
-- **DB lives on Ubuntu** — `~/2DoBetter/prisma/dev.db` (SQLite, gitignored). The Mac has no live database.
+- **Mac runs NO server** — the local launchd service is disabled. Do not `npm run restart` or `npm run build` on the Mac. It is a code editor, not a server.
+- **DB lives on Ubuntu only** — `~/2DoBetter/prisma/dev.db` (SQLite, gitignored). The Mac has no database.
+- **Always deploy to Ubuntu** — push to git, then SSH to Ubuntu to pull + build + restart.
 
 ---
 
@@ -135,7 +139,16 @@ Run `npm run admin` for help. All commands work on whichever machine you run the
 | `npm run list-users` | Print all users (first = admin) |
 | `npm run context` | Full session dump: git + status + active invites — **use at session start** |
 
-### User management
+### In-app Admin Panel (preferred for user management)
+
+Dave's ⚙ gear icon (top-right, admin only) opens the admin panel. Use it for:
+- View users, toggle Human/Agent, set Full/Own column/Read only access
+- Generate invite links (with access flags + expiry baked in)
+- Reset a user's password (2s hold)
+- Generate/rotate agent tokens (1.5s hold)
+- Purge completed tasks or graveyard entries (2s hold, with time filter)
+
+### User management CLI (fallback / scripting)
 | Command | What it does |
 |---------|-------------|
 | `npm run setup` | Full first-run wizard |
