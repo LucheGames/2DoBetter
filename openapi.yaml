@@ -1,0 +1,1187 @@
+openapi: 3.0.3
+
+info:
+  title: 2Do Better API
+  description: |
+    REST API for 2Do Better — a self-hosted, multi-user, multi-agent task board.
+
+    ## Authentication
+
+    All endpoints (except `/api/auth/*`) require authentication. Two methods are supported:
+
+    **Bearer token (recommended for agents/API clients):**
+    ```
+    Authorization: Bearer <agentToken>
+    ```
+
+    **Cookie (browser sessions):**
+    The `auth_token` cookie is set automatically on login and read on every request.
+
+    Both methods accept the same token value. Generate a permanent agent token with:
+    ```bash
+    npm run gen-agent-token
+    ```
+
+    ## Real-time updates
+
+    Subscribe to `GET /api/events` (Server-Sent Events) to receive live push
+    notifications whenever the board changes. Your client should reload affected
+    data on each `update` event, or do a full reload on a `reload` event.
+
+    ## Base URL
+
+    Replace `https://your-server:3000` with your actual server address.
+    On a LAN install this is typically `https://192.168.x.x:3000`.
+    With Tailscale it's your Tailscale node IP or hostname.
+
+  version: '1.0.0'
+  contact:
+    url: https://github.com/LucheGames/2DoBetter
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://your-server:3000
+    description: Your 2Do Better instance (replace with actual address)
+
+security:
+  - bearerAuth: []
+  - cookieAuth: []
+
+tags:
+  - name: Columns
+    description: Board columns — one per person or agent
+  - name: Lists
+    description: Project lists within a column, optionally nested one level deep
+  - name: Tasks
+    description: Individual tasks within a list
+  - name: Graveyard
+    description: Soft-deleted (archived) lists that can be restored
+  - name: Board
+    description: Full board overview
+  - name: Import / Export
+    description: Portable JSON backup and restore
+  - name: Auth
+    description: Login, logout, and registration
+  - name: Events
+    description: Server-Sent Events for real-time sync
+
+# ─────────────────────────────────────────────────────────────────────────────
+paths:
+
+  # ── COLUMNS ────────────────────────────────────────────────────────────────
+
+  /api/columns:
+    get:
+      tags: [Columns]
+      summary: List all columns
+      description: Returns all columns with their top-level lists (no tasks).
+      responses:
+        '200':
+          description: Array of columns
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ColumnWithLists'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Columns]
+      summary: Create a column
+      description: Creates a new column and auto-creates an initial "Tasks" list inside it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  example: Alice
+      responses:
+        '201':
+          description: Column created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ColumnWithLists'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/columns/{columnId}:
+    parameters:
+      - $ref: '#/components/parameters/ColumnId'
+
+    patch:
+      tags: [Columns]
+      summary: Rename a column
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  example: Alice (renamed)
+      responses:
+        '200':
+          description: Updated column
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Column'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Columns]
+      summary: Delete a column
+      description: |
+        Permanently deletes a column and all its lists and tasks.
+        The principal column (order 0) cannot be deleted.
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ok'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Cannot delete the principal column
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/columns/{columnId}/lists:
+    parameters:
+      - $ref: '#/components/parameters/ColumnId'
+
+    get:
+      tags: [Columns, Lists]
+      summary: Get lists in a column
+      description: Returns active (non-archived) top-level lists with their sub-lists and task counts.
+      responses:
+        '200':
+          description: Lists with children and task counts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ListWithChildren'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Columns, Lists]
+      summary: Create a list in a column
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  example: Sprint 4
+      responses:
+        '201':
+          description: List created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/List'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ── LISTS ──────────────────────────────────────────────────────────────────
+
+  /api/lists:
+    get:
+      tags: [Lists]
+      summary: List all lists
+      description: Returns all active (non-archived) lists across all columns with task counts.
+      responses:
+        '200':
+          description: All lists
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/List'
+                    - type: object
+                      properties:
+                        column:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                            slug:
+                              type: string
+                        _count:
+                          type: object
+                          properties:
+                            tasks:
+                              type: integer
+                              description: Count of non-completed tasks
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Lists]
+      summary: Create a list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, columnId]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  example: Q2 Planning
+                columnId:
+                  type: integer
+                  example: 1
+      responses:
+        '201':
+          description: List created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/List'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/lists/reorder:
+    post:
+      tags: [Lists]
+      summary: Reorder lists
+      description: Sets the display order for a set of lists by their IDs.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids]
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: integer
+                  example: [3, 1, 2]
+      responses:
+        '200':
+          description: Reordered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ok'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/lists/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ListId'
+
+    patch:
+      tags: [Lists]
+      summary: Update a list
+      description: Rename a list or move it to a different column.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  example: Sprint 5
+                columnId:
+                  type: integer
+                  example: 2
+      responses:
+        '200':
+          description: Updated list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/List'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Lists]
+      summary: Delete or archive a list
+      description: |
+        Top-level lists (parentId = null) are **soft-archived** (moved to Graveyard).
+        Sub-lists are **permanently deleted** along with their tasks.
+      responses:
+        '204':
+          description: Deleted / archived
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/lists/{id}/tasks:
+    parameters:
+      - $ref: '#/components/parameters/ListId'
+
+    get:
+      tags: [Lists, Tasks]
+      summary: Get tasks in a list
+      responses:
+        '200':
+          description: Tasks ordered by position
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Lists, Tasks]
+      summary: Create a task
+      description: |
+        Creates a task in the specified list.
+        If an identical title already exists in the list, returns the existing task (idempotent).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                  example: Write unit tests for auth module
+      responses:
+        '201':
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/lists/{id}/children:
+    parameters:
+      - $ref: '#/components/parameters/ListId'
+
+    get:
+      tags: [Lists]
+      summary: Get sub-lists of a list
+      responses:
+        '200':
+          description: Sub-lists with task counts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/List'
+                    - type: object
+                      properties:
+                        _count:
+                          type: object
+                          properties:
+                            tasks:
+                              type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Lists]
+      summary: Create a sub-list
+      description: |
+        Creates a child list nested under the specified parent.
+        Maximum nesting depth is 2 levels (list → sub-list only; sub-lists cannot have children).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  minLength: 1
+                  example: Backend work
+      responses:
+        '201':
+          description: Sub-list created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/List'
+        '400':
+          description: Invalid name or nesting depth exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ── TASKS ──────────────────────────────────────────────────────────────────
+
+  /api/tasks/reorder:
+    post:
+      tags: [Tasks]
+      summary: Reorder tasks
+      description: Sets the display order for a set of tasks by their IDs.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids]
+              properties:
+                ids:
+                  type: array
+                  items:
+                    type: integer
+                  example: [5, 3, 7]
+      responses:
+        '200':
+          description: Reordered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ok'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/tasks/{id}:
+    parameters:
+      - $ref: '#/components/parameters/TaskId'
+
+    patch:
+      tags: [Tasks]
+      summary: Update a task
+      description: |
+        Update any combination of a task's fields.
+
+        - Set `completed: true` to mark done (records `completedAt` and `completedBreadcrumb`)
+        - Set `completed: false` to reopen a task
+        - Set `listId` to move the task to a different list
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                  minLength: 1
+                  example: Updated task title
+                completed:
+                  type: boolean
+                  example: true
+                listId:
+                  type: integer
+                  description: Move task to this list
+                  example: 4
+                order:
+                  type: integer
+                  example: 2
+      responses:
+        '200':
+          description: Updated task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Tasks]
+      summary: Delete a task
+      description: Permanently deletes a task. This cannot be undone.
+      responses:
+        '204':
+          description: Deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── GRAVEYARD ──────────────────────────────────────────────────────────────
+
+  /api/graveyard:
+    get:
+      tags: [Graveyard]
+      summary: List archived projects
+      description: Returns soft-deleted (archived) top-level lists with their tasks and sub-lists.
+      parameters:
+        - name: columnId
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Filter by column ID
+      responses:
+        '200':
+          description: Archived lists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  archived:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ArchivedList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/graveyard/{id}/resurrect:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+        description: Archived list ID
+
+    post:
+      tags: [Graveyard]
+      summary: Restore an archived list
+      description: Moves a list out of the Graveyard and back to the active board.
+      responses:
+        '200':
+          description: Restored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ok'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── BOARD OVERVIEW ─────────────────────────────────────────────────────────
+
+  /api/overview:
+    get:
+      tags: [Board]
+      summary: Full board state
+      description: |
+        Returns all columns with their active lists, sub-lists, and all tasks.
+        This is the primary endpoint used by AI agents to read the board.
+        Also returns `currentUser` — the authenticated username from the session.
+      responses:
+        '200':
+          description: Complete board state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  columns:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ColumnFull'
+                  currentUser:
+                    type: string
+                    nullable: true
+                    example: dave
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ── IMPORT / EXPORT ────────────────────────────────────────────────────────
+
+  /api/export:
+    get:
+      tags: [Import / Export]
+      summary: Export board as JSON
+      description: |
+        Downloads a complete snapshot of the board as a JSON file.
+        Includes all columns, lists (including archived), and tasks (including completed).
+        Use this for backups or migrating to a new server.
+      responses:
+        '200':
+          description: JSON export file
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+              example: 'attachment; filename="2dobetter-2026-03-09.json"'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportData'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/import:
+    post:
+      tags: [Import / Export]
+      summary: Import board from JSON
+      description: |
+        **Destructive.** Replaces ALL existing data with the imported data.
+        This operation runs in a transaction — it either fully succeeds or fully fails.
+        Use the export format from `GET /api/export`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportData'
+      responses:
+        '200':
+          description: Import successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  imported:
+                    type: boolean
+                    example: true
+                  columns:
+                    type: integer
+                    example: 2
+                  lists:
+                    type: integer
+                    example: 12
+                  tasks:
+                    type: integer
+                    example: 47
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ── REAL-TIME EVENTS ───────────────────────────────────────────────────────
+
+  /api/events:
+    get:
+      tags: [Events]
+      summary: Subscribe to real-time updates (SSE)
+      description: |
+        Opens a persistent Server-Sent Events connection. The server pushes a message
+        whenever any board data changes (task created/updated/deleted, list moved, etc.).
+
+        **Event types:**
+
+        - `update` — board data changed; re-fetch whatever you need
+        - `reload` — a structural change occurred (e.g. column deleted); do a full reload
+        - `: keepalive` — SSE comment sent every 30 seconds to keep the connection alive (no action needed)
+
+        **Event format:**
+        ```
+        data: {"event":"update","timestamp":1741500000000}
+        ```
+
+        Agents subscribed to this stream can react to board changes in real time
+        rather than polling.
+      responses:
+        '200':
+          description: SSE stream opened
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                example: |
+                  : connected
+
+                  data: {"event":"update","timestamp":1741500000000}
+
+                  : keepalive
+        '401':
+          description: Unauthorized
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: Unauthorized
+
+  # ── AUTH ───────────────────────────────────────────────────────────────────
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Log in
+      description: |
+        Validates credentials and sets `auth_token` and `auth_user` cookies.
+        Rate-limited to 10 attempts per IP per 15 minutes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, token]
+              properties:
+                username:
+                  type: string
+                  example: dave
+                token:
+                  type: string
+                  description: Password
+                  example: mypassword
+      responses:
+        '200':
+          description: Login successful — auth cookies set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ok'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Too many login attempts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Log out (API)
+      description: Clears session from the server and removes auth cookies.
+      responses:
+        '200':
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ok'
+
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Register a new user
+      description: |
+        Creates a new user account. Requires a valid single-use invite code.
+        Invite codes are generated with `npm run gen-invite`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, token, inviteCode]
+              properties:
+                username:
+                  type: string
+                  minLength: 2
+                  pattern: '^[a-zA-Z0-9 \-_\.]+$'
+                  example: alice
+                token:
+                  type: string
+                  minLength: 8
+                  description: Password (minimum 8 characters)
+                inviteCode:
+                  type: string
+                  minLength: 8
+                  maxLength: 8
+                  example: AB3X9KPQ
+      responses:
+        '200':
+          description: Account created — auth cookies set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ok'
+        '401':
+          description: Invalid or expired invite code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Username already taken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/auth/config:
+    get:
+      tags: [Auth]
+      security: []
+      summary: Registration config
+      description: Returns whether self-registration (via invite code) is enabled on this server.
+      responses:
+        '200':
+          description: Config
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  registrationEnabled:
+                    type: boolean
+                    example: true
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Use a permanent agent token generated with `npm run gen-agent-token`.
+        Set as `Authorization: Bearer <token>` on every request.
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: auth_token
+      description: Session cookie set on login. Used automatically by browsers.
+
+  parameters:
+    ColumnId:
+      name: columnId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Column ID
+
+    ListId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: List ID
+
+    TaskId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Task ID
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Unauthorized
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Not found
+
+    BadRequest:
+      description: Invalid request body or parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: name is required
+
+  schemas:
+
+    Column:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Dave
+        slug:
+          type: string
+          example: dave
+        order:
+          type: integer
+          example: 0
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-01-15T10:30:00.000Z'
+
+    ColumnWithLists:
+      allOf:
+        - $ref: '#/components/schemas/Column'
+        - type: object
+          properties:
+            lists:
+              type: array
+              items:
+                $ref: '#/components/schemas/ListSummary'
+
+    ColumnFull:
+      allOf:
+        - $ref: '#/components/schemas/Column'
+        - type: object
+          properties:
+            lists:
+              type: array
+              items:
+                $ref: '#/components/schemas/ListWithTasksAndChildren'
+
+    List:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 3
+        name:
+          type: string
+          example: Sprint 4
+        order:
+          type: integer
+          example: 1
+        columnId:
+          type: integer
+          example: 1
+        parentId:
+          type: integer
+          nullable: true
+          example: null
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-01-20T09:00:00.000Z'
+        archivedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: null
+
+    ListSummary:
+      allOf:
+        - $ref: '#/components/schemas/List'
+        - type: object
+          properties:
+            _count:
+              type: object
+              properties:
+                tasks:
+                  type: integer
+                  description: Count of non-completed tasks
+                  example: 5
+
+    ListWithChildren:
+      allOf:
+        - $ref: '#/components/schemas/ListSummary'
+        - type: object
+          properties:
+            children:
+              type: array
+              items:
+                $ref: '#/components/schemas/ListSummary'
+
+    ListWithTasksAndChildren:
+      allOf:
+        - $ref: '#/components/schemas/List'
+        - type: object
+          properties:
+            tasks:
+              type: array
+              items:
+                $ref: '#/components/schemas/Task'
+            children:
+              type: array
+              items:
+                allOf:
+                  - $ref: '#/components/schemas/List'
+                  - type: object
+                    properties:
+                      tasks:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Task'
+
+    ArchivedList:
+      allOf:
+        - $ref: '#/components/schemas/List'
+        - type: object
+          properties:
+            tasks:
+              type: array
+              items:
+                $ref: '#/components/schemas/Task'
+            children:
+              type: array
+              items:
+                allOf:
+                  - $ref: '#/components/schemas/List'
+                  - type: object
+                    properties:
+                      tasks:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Task'
+
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 42
+        title:
+          type: string
+          example: Write unit tests for auth module
+        order:
+          type: integer
+          example: 0
+        completed:
+          type: boolean
+          example: false
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: null
+        completedBreadcrumb:
+          type: string
+          nullable: true
+          description: Human-readable path snapshot at completion time (e.g. "Dave / Sprint 4")
+          example: null
+        listId:
+          type: integer
+          example: 3
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-02-01T14:22:00.000Z'
+
+    ExportData:
+      type: object
+      properties:
+        version:
+          type: integer
+          enum: [1]
+          example: 1
+        exportedAt:
+          type: string
+          format: date-time
+          example: '2026-03-09T12:00:00.000Z'
+        app:
+          type: string
+          example: '2Do Better'
+        columns:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              slug:
+                type: string
+              order:
+                type: integer
+              lists:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    order:
+                      type: integer
+                    archivedAt:
+                      type: string
+                      nullable: true
+                    tasks:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Task'
+                    children:
+                      type: array
+                      items:
+                        type: object
+
+    Ok:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          example: true
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Unauthorized

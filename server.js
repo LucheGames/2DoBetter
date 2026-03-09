@@ -92,16 +92,19 @@ function parseCookies(header) {
 }
 
 function sseHandler(req, res) {
-  // Auth check — supports multi-user (AUTH_USERS_JSON) and legacy (AUTH_TOKEN)
+  // Auth check — supports multi-user (AUTH_USERS_JSON) and legacy (AUTH_TOKEN).
+  // Accepts token from cookie OR Authorization: Bearer header (for agent clients).
   const cookies = parseCookies(req.headers.cookie);
-  const tokenCookie = cookies['auth_token'];
+  const authHeader = req.headers['authorization'] || '';
+  const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const token = bearerToken || cookies['auth_token'];
 
   const usersJson = process.env.AUTH_USERS_JSON;
   if (usersJson) {
     try {
       const users = JSON.parse(usersJson);
-      // Accept session token (new) or legacy plaintext token (migration window)
-      if (!users.some(u => u.session === tokenCookie || u.token === tokenCookie)) {
+      // Accept session token, legacy plaintext token, or permanent agentToken.
+      if (!users.some(u => u.session === token || u.token === token || u.agentToken === token)) {
         res.writeHead(401);
         res.end('Unauthorized');
         return;
@@ -113,7 +116,7 @@ function sseHandler(req, res) {
     }
   } else {
     const authToken = process.env.AUTH_TOKEN;
-    if (authToken && tokenCookie !== authToken) {
+    if (authToken && token !== authToken) {
       res.writeHead(401);
       res.end('Unauthorized');
       return;

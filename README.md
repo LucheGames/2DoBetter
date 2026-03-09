@@ -82,6 +82,9 @@ cd mcp && npm install && npm run build
 
 **Available MCP tools:** `get_board`, `get_column`, `create_task`, `complete_task`, `uncomplete_task`, `update_task`, `delete_task`, `move_task`, `create_list`, `delete_list`, `search_tasks`
 
+> **Other agents (Gemini, OpenAI Agents SDK, GitHub Copilot)** also support MCP natively — see [ROADMAP.md](ROADMAP.md) for setup guides.
+> **REST API / Custom GPTs:** see [`openapi.yaml`](openapi.yaml) for the full API spec.
+
 ---
 
 ## 🔧 Admin — Server & Multi-User Setup

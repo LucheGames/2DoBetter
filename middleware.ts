@@ -37,7 +37,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const tokenCookie = request.cookies.get('auth_token')?.value;
+  // Accept token from cookie (browser) or Authorization: Bearer header (API/agent clients)
+  const authHeader = request.headers.get('authorization');
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
+  const tokenCookie = bearerToken ?? request.cookies.get('auth_token')?.value;
   const userCookie = request.cookies.get('auth_user')?.value;
 
   // ── Multi-user mode ───────────────────────────────────────────────────────
