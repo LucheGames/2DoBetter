@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { broadcast, broadcastReload } from "@/lib/events";
-import { isAdminUser } from "@/lib/lane-guard";
+import { isAdminUser, checkReadOnly } from "@/lib/lane-guard";
 import { checkWriteRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function DELETE(
@@ -15,6 +15,9 @@ export async function DELETE(
   }
 
   const authUser = req.headers.get('x-auth-user');
+  const roBlock = checkReadOnly(authUser);
+  if (roBlock) return roBlock;
+
   if (authUser && !checkWriteRateLimit(authUser)) return rateLimitResponse();
 
   const column = await prisma.column.findUnique({ where: { id } });
@@ -52,6 +55,9 @@ export async function PATCH(
   }
 
   const authUser = req.headers.get('x-auth-user');
+  const roBlock = checkReadOnly(authUser);
+  if (roBlock) return roBlock;
+
   if (authUser && !checkWriteRateLimit(authUser)) return rateLimitResponse();
 
   const column = await prisma.column.findUnique({ where: { id } });

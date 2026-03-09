@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { broadcast } from "@/lib/events";
-import { checkLane } from "@/lib/lane-guard";
+import { checkLane, checkReadOnly } from "@/lib/lane-guard";
 import { checkWriteRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function PATCH(
@@ -10,6 +10,9 @@ export async function PATCH(
 ) {
   const { id } = await params;
   const authUser = req.headers.get('x-auth-user');
+
+  const roBlock = checkReadOnly(authUser);
+  if (roBlock) return roBlock;
 
   if (authUser && !checkWriteRateLimit(authUser)) return rateLimitResponse();
 
@@ -46,6 +49,9 @@ export async function DELETE(
 ) {
   const { id } = await params;
   const authUser = req.headers.get('x-auth-user');
+
+  const roBlock = checkReadOnly(authUser);
+  if (roBlock) return roBlock;
 
   if (authUser && !checkWriteRateLimit(authUser)) return rateLimitResponse();
 

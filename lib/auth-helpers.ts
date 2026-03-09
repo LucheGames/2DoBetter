@@ -32,7 +32,9 @@ export type UserRecord = {
   token?: string;       // legacy plaintext password (migrated to hash on next login)
   session?: string;     // current session token (set on login, cleared on logout)
   agentToken?: string;  // permanent MCP/agent token — survives logout, rotate with gen-agent-token
-  isAdmin?: boolean;    // first user from setup wizard; can lock/unlock columns + run import
+  isAdmin?: boolean;       // first user from setup wizard; can lock/unlock columns + run import
+  readOnly?: boolean;      // token can read anything but cannot write (observer / monitor agents)
+  ownColumnOnly?: boolean; // token can only write to its own column — cross-column push blocked
 };
 
 /** Read users fresh from disk so auth operations see the latest data.
