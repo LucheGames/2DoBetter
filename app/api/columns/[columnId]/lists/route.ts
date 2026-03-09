@@ -12,12 +12,6 @@ export async function GET(
     orderBy: { order: "asc" },
     include: {
       _count: { select: { tasks: { where: { completed: false } } } },
-      children: {
-        orderBy: { order: "asc" },
-        include: {
-          _count: { select: { tasks: { where: { completed: false } } } },
-        },
-      },
     },
   });
   return NextResponse.json(lists);

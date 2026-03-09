@@ -7,19 +7,11 @@ export async function GET() {
     orderBy: { order: "asc" },
     include: {
       lists: {
-        where:   { parentId: null },           // top-level lists only; children fetched below
+        where:   { parentId: null },
         orderBy: { order: "asc" },
         include: {
           tasks: {
             orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-          },
-          children: {
-            orderBy: { order: "asc" },
-            include: {
-              tasks: {
-                orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-              },
-            },
           },
         },
       },
@@ -45,19 +37,6 @@ export async function GET() {
           completedBreadcrumb: t.completedBreadcrumb,
           order:               t.order,
           createdAt:           t.createdAt,
-        })),
-        children: list.children.map(sub => ({
-          name:       sub.name,
-          order:      sub.order,
-          archivedAt: sub.archivedAt,
-          tasks: sub.tasks.map(t => ({
-            title:               t.title,
-            completed:           t.completed,
-            completedAt:         t.completedAt,
-            completedBreadcrumb: t.completedBreadcrumb,
-            order:               t.order,
-            createdAt:           t.createdAt,
-          })),
         })),
       })),
     })),

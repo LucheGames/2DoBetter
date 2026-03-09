@@ -105,10 +105,7 @@ export default function GraveyardPanel({ columnId, onResurrect }: GraveyardPanel
           )}
 
           {archived.map((project) => {
-            const allTasks: Task[] = [
-              ...project.tasks,
-              ...project.children.flatMap((c) => c.tasks),
-            ];
+            const allTasks: Task[] = [...project.tasks];
             const activeTasks = allTasks.filter((t) => !t.completed);
             const completedTasks = allTasks.filter((t) => t.completed);
             const archivedDate = project.archivedAt

@@ -21,14 +21,6 @@ export async function GET(req: NextRequest) {
           tasks: {
             orderBy: [{ completed: "asc" }, { order: "asc" }, { createdAt: "asc" }],
           },
-          children: {
-            orderBy: { order: "asc" },
-            include: {
-              tasks: {
-                orderBy: [{ completed: "asc" }, { order: "asc" }, { createdAt: "asc" }],
-              },
-            },
-          },
         },
       },
     },

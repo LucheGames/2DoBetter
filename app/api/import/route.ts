@@ -14,19 +14,11 @@ type TaskInput = {
   createdAt?:          string;
 };
 
-type ChildListInput = {
-  name:       string;
-  order?:     number;
-  archivedAt?: string | null;
-  tasks?:     TaskInput[];
-};
-
 type ListInput = {
   name:       string;
   order?:     number;
   archivedAt?: string | null;
   tasks?:     TaskInput[];
-  children?:  ChildListInput[];
 };
 
 type ColumnInput = {
@@ -114,37 +106,6 @@ export async function POST(req: Request) {
             },
           });
           taskCount++;
-        }
-
-        for (const child of list.children ?? []) {
-          if (!child.name) continue;
-
-          const subList = await tx.list.create({
-            data: {
-              name:       child.name,
-              order:      child.order ?? 0,
-              columnId:   column.id,
-              parentId:   topList.id,
-              archivedAt: child.archivedAt ? new Date(child.archivedAt) : null,
-            },
-          });
-          listCount++;
-
-          for (const task of child.tasks ?? []) {
-            if (!task.title) continue;
-            await tx.task.create({
-              data: {
-                title:               task.title,
-                completed:           task.completed ?? false,
-                completedAt:         task.completedAt   ? new Date(task.completedAt)  : null,
-                completedBreadcrumb: task.completedBreadcrumb ?? null,
-                order:               task.order   ?? 0,
-                listId:              subList.id,
-                createdAt:           task.createdAt ? new Date(task.createdAt) : new Date(),
-              },
-            });
-            taskCount++;
-          }
         }
       }
     }

@@ -13,9 +13,6 @@ function getAllCompletedTasks(lists: ListData[]): Task[] {
   const tasks: Task[] = [];
   for (const list of lists) {
     tasks.push(...list.tasks.filter((t) => t.completed));
-    for (const child of list.children) {
-      tasks.push(...child.tasks.filter((t) => t.completed));
-    }
   }
   return tasks.sort((a, b) => {
     const dateA = a.completedAt ?? "";

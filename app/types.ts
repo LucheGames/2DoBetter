@@ -13,13 +13,11 @@ export type Task = {
 export type ListData = {
   id: number;
   columnId: number;
-  parentId: number | null;
   name: string;
   order: number;
   createdAt: string;
   archivedAt: string | null;
   tasks: Task[];
-  children: ListData[];
 };
 
 export type ColumnData = {

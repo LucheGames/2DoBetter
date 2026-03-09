@@ -21,7 +21,6 @@ Self-hosted · real-time sync · no subscriptions · your data stays on your mac
 - **AI agent** — AI agent reads and writes to your board directly via MCP
 - **Real-time sync** — changes appear on every device in ~1 second
 - **PWA** — installs as a home-screen app on iOS, Android, and desktop
-- **Nested lists** — projects with sub-lists, not flat task dumps
 - **Project Graveyard** — soft-delete projects; restore or purge later
 - **Lane mode** — admin can lock columns so only the owner can edit them
 - **Access control** — per-user flags: Full / Own column only / Read only
@@ -297,6 +296,36 @@ Admin can lock any column by clicking its 🔒 icon. When locked:
 | Agent with shell access editing server code | ❌ Not enforceable at app level |
 
 For the last row: **never give an agent a shell session on the machine running 2Do Better.** Agents should only receive an `agentToken` for API/MCP access — they see the board data, not the server code or the filesystem.
+
+---
+
+## 🔐 Security
+
+### What's protected
+
+| Layer | How |
+|-------|-----|
+| **Transport** | HTTPS everywhere — self-signed cert by default, or bring your own (Let's Encrypt via DuckDNS) |
+| **Passwords** | bcrypt-hashed before storage — plaintext is never written anywhere |
+| **Sessions** | Random 64-char hex token; stored in an `httpOnly`, `Secure`, `SameSite=Strict` cookie — not accessible to JavaScript |
+| **Agent tokens** | Separate from session tokens; can be rotated any time from the admin panel without affecting the user's login session |
+| **API auth** | Every request validated in middleware before reaching any route handler |
+| **Admin routes** | `/api/admin/*` return 403 unless the caller has `isAdmin: true` in `users.json` |
+| **Lane mode** | Column locks and `readOnly`/`ownColumnOnly` flags enforced server-side — clients cannot bypass them |
+| **Rate limiting** | 20 writes/minute per user — keeps runaway agents from flooding the DB |
+| **Input validation** | Prisma parameterised queries throughout — no raw SQL, no injection surface |
+
+### Potential pitfalls
+
+- **`users.json` is plaintext at rest.** Passwords are hashed but session tokens and agent tokens are stored as-is. If an attacker gets read access to the file they can impersonate any user. Protect it with filesystem permissions (`chmod 600`) and keep the machine's disk encrypted (FileVault / LUKS).
+- **SQLite is not encrypted.** The database file (`prisma/dev.db`) contains all task data in plaintext. Use the encrypted backup feature and keep the machine's disk encrypted.
+- **Self-signed cert produces browser warnings** on new devices. The warnings are cosmetic — the connection is still encrypted — but they can train users to click through certificate warnings generally. Install the CA cert on each device (see above) to eliminate them.
+- **Task text is not end-to-end encrypted.** Everything written to a task is readable by the server admin and by anyone with DB access. Do not use task descriptions to store passwords, API keys, tokens, or other secrets.
+- **Network scope.** Without Tailscale (or equivalent), the app listens on your local network. Anyone on the same Wi-Fi can reach it. Run behind Tailscale for any non-home network.
+
+### ⚠️ Don't put secrets in tasks
+
+The board is a shared workspace. Treat it like a shared whiteboard — visible to every user and to the server admin. If you need to share a credential with an agent, use environment variables or a secrets manager — not a task description.
 
 ---
 
