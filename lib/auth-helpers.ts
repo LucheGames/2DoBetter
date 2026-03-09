@@ -35,6 +35,7 @@ export type UserRecord = {
   isAdmin?: boolean;       // first user from setup wizard; can lock/unlock columns + run import
   readOnly?: boolean;      // token can read anything but cannot write (observer / monitor agents)
   ownColumnOnly?: boolean; // token can only write to its own column — cross-column push blocked
+  isAgent?: boolean;       // display hint: show AGENT badge in column header instead of TEAMMATE
 };
 
 /** Read users fresh from disk so auth operations see the latest data.

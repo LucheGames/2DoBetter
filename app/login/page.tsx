@@ -107,7 +107,13 @@ function SignInForm({
 }
 
 // ── Create account form ───────────────────────────────────────────────────────
-function CreateAccountForm({ onSwitch }: { onSwitch: () => void }) {
+function CreateAccountForm({
+  onSwitch,
+  prefillInvite,
+}: {
+  onSwitch: () => void;
+  prefillInvite?: string;
+}) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -180,9 +186,10 @@ function CreateAccountForm({ onSwitch }: { onSwitch: () => void }) {
         ref={inviteCodeRef}
         type="text"
         name="inviteCode"
-        placeholder="Invite code  (ask your admin)"
+        placeholder="Invite code"
         required
         autoComplete="off"
+        defaultValue={prefillInvite ?? ""}
         className="w-full px-3 py-2.5 mb-4 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
       />
 
@@ -216,12 +223,21 @@ function CreateAccountForm({ onSwitch }: { onSwitch: () => void }) {
 export default function LoginPage() {
   const [mode, setMode] = useState<"signin" | "register">("signin");
   const [registrationEnabled, setRegistrationEnabled] = useState(false);
+  const [prefillInvite, setPrefillInvite] = useState<string | undefined>();
 
   useEffect(() => {
     fetch("/api/auth/config")
       .then(r => r.json())
       .then(d => setRegistrationEnabled(!!d.registrationEnabled))
       .catch(() => {});
+
+    // Auto-switch to register mode if ?invite= is in the URL
+    const params = new URLSearchParams(window.location.search);
+    const invite = params.get("invite");
+    if (invite) {
+      setPrefillInvite(invite);
+      setMode("register");
+    }
   }, []);
 
   return (
@@ -240,7 +256,10 @@ export default function LoginPage() {
             onSwitch={() => setMode("register")}
           />
         ) : (
-          <CreateAccountForm onSwitch={() => setMode("signin")} />
+          <CreateAccountForm
+            onSwitch={() => setMode("signin")}
+            prefillInvite={prefillInvite}
+          />
         )}
       </div>
     </div>

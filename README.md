@@ -23,7 +23,12 @@ Self-hosted · real-time sync · no subscriptions · your data stays on your mac
 - **PWA** — installs as a home-screen app on iOS, Android, and desktop
 - **Nested lists** — projects with sub-lists, not flat task dumps
 - **Project Graveyard** — soft-delete projects; restore or purge later
-- **Invite-code onboarding** — 8-character single-use codes, 10-min expiry
+- **Lane mode** — admin can lock columns so only the owner can edit them
+- **Access control** — per-user flags: Full / Own column only / Read only
+- **Admin panel** — in-app GUI to manage users, set access levels, generate invite links
+- **Invite-code onboarding** — time-limited single-use codes with access flags baked in
+- **Task attribution** — tasks pushed to another column show who created them (↑ username)
+- **Rate limiting** — 20 writes/minute per user to throttle runaway agents
 - **Full admin CLI** — manage users, reset passwords, export/import from terminal
 - **Encrypted backups** — daily cron, AES-256, local or Google Drive
 
@@ -153,22 +158,31 @@ Register a free subdomain at [duckdns.org](https://duckdns.org), then keep it up
 
 ### Adding Users *(optional — multi-user setup)*
 
-Every user gets their own column. All columns are visible to everyone on the board. The design philosophy here is high trust + total visiblity = high speed of development. 
+Every user gets their own column. All columns are visible to everyone on the board. High trust + total visibility = high velocity.
 
-**Invite someone to self-register** *(recommended)*:
-```bash
-npm run gen-invite           # generates an 8-character, single-use code (10 min expiry)
-npm run gen-invite 60        # 60-minute code
-# Share the code — they visit your URL, click "Create account", enter the code.
-```
+**From the in-app admin panel** *(recommended)*:
 
-**Add a user directly from the server:**
-```bash
-npm run add-user             # prompts for username + password, then restarts server
-```
+Click the ⚙ gear icon in the top-right header (admin only). The panel lets you:
+- See all users with their current access level
+- Toggle access: **Full** / **Own column** / **Read only** per user
+- Toggle Human / Agent display type per user
+- Generate an invite link — choose type, access level, and expiry (1h / 24h / 7d)
+- Copy the link and send it directly; recipient opens it and self-registers
 
-**Manage users:**
+**Access levels:**
+
+| Level | What the user can do |
+|-------|---------------------|
+| **Full** | Read and write everywhere (locked columns still enforced) |
+| **Own column** | Read everywhere, write only to their own column; cross-column push blocked |
+| **Read only** | Read-only — no writes of any kind |
+
+Human users invited via link default to **Own column**. Observer/monitor agents should be **Read only**.
+
+**From the CLI** *(alternative)*:
 ```bash
+npm run gen-invite           # 10-min code (no access flags — use admin panel for flags)
+npm run add-user             # add user interactively
 npm run list-users
 npm run remove-user [name]              # column renamed → "Shared"
 npm run remove-user [name] delete       # remove user + delete all their tasks
@@ -253,6 +267,36 @@ Run `npm run admin` for a quick summary. All commands run on the server machine.
 | `npm run restart` | Restart server (auto-detects launchctl / systemctl) |
 | `npm run service:install` | Install auto-start service (macOS) |
 | `npm run service:uninstall` | Remove auto-start service (macOS) |
+
+---
+
+## 🔒 Lane Mode & Agent Security
+
+### Column locks
+
+Admin can lock any column by clicking its 🔒 icon. When locked:
+- Only the column owner can rename lists, move tasks, or delete items in that column
+- Anyone can still read the column, complete tasks, and push tasks to it
+- Admin can unlock at any time
+
+### Assigning a new agent
+
+1. In the admin panel, generate an invite link — set Type = **Agent**, Access = **Own column** (or **Read only** for a monitor)
+2. The invite encodes those flags into the resulting account
+3. Give the agent only its `agentToken` for MCP/API access — **not** a shell session on the server machine
+4. Lock your column and other sensitive columns so the agent's writes are limited to its own workspace
+
+### What the server enforces vs. what it cannot
+
+| Threat | Enforced? |
+|--------|-----------|
+| API calls to locked columns | ✅ 403 — enforced server-side |
+| readOnly user making any write | ✅ 403 — enforced server-side |
+| ownColumnOnly user pushing to other columns | ✅ 403 — enforced server-side |
+| Rate limiting (20 writes/min) | ✅ 429 — enforced server-side |
+| Agent with shell access editing server code | ❌ Not enforceable at app level |
+
+For the last row: **never give an agent a shell session on the machine running 2Do Better.** Agents should only receive an `agentToken` for API/MCP access — they see the board data, not the server code or the filesystem.
 
 ---
 

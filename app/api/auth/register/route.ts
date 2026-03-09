@@ -7,37 +7,45 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 // ── Invite validation ─────────────────────────────────────────────────────────
-// Invite codes live in data/invites.json — managed by `npm run gen-invite`.
+// Invite codes live in data/invites.json — managed by `npm run gen-invite`
+// or generated from the admin panel.
 // Each code is single-use and time-limited. Expired / used codes are pruned on read.
+// Invites may carry access flags (readOnly, ownColumnOnly, isAgent) that are
+// applied to the new user's account on registration.
 
 interface Invite {
   code: string;
   createdAt: string;
   expiresAt: string;
   label?: string;
+  readOnly?: boolean;
+  ownColumnOnly?: boolean;
+  isAgent?: boolean;
 }
 
-function consumeInvite(code: string): boolean {
+/** Validate, consume, and return the invite. Returns null if invalid/expired. */
+function consumeInvite(code: string): Invite | null {
   const invitesFile = path.join(process.cwd(), 'data', 'invites.json');
-  if (!fs.existsSync(invitesFile)) return false;
+  if (!fs.existsSync(invitesFile)) return null;
 
   let invites: Invite[];
   try {
     invites = JSON.parse(fs.readFileSync(invitesFile, 'utf8'));
   } catch {
-    return false;
+    return null;
   }
 
   const now = Date.now();
   // Purge expired codes while we're here
   const active = invites.filter(i => new Date(i.expiresAt).getTime() > now);
   const idx = active.findIndex(i => i.code === code);
-  if (idx === -1) return false; // not found or expired
+  if (idx === -1) return null; // not found or expired
 
   // Remove the matched code — single use
+  const matched = active[idx];
   active.splice(idx, 1);
   fs.writeFileSync(invitesFile, JSON.stringify(active, null, 2), { mode: 0o600 });
-  return true;
+  return matched;
 }
 
 // ── POST /api/auth/register ───────────────────────────────────────────────────
@@ -50,7 +58,8 @@ export async function POST(req: NextRequest) {
 
   const { username, token, inviteCode } = await req.json();
 
-  if (!inviteCode || !consumeInvite(String(inviteCode).trim())) {
+  const invite = consumeInvite(String(inviteCode ?? '').trim());
+  if (!invite) {
     return NextResponse.json({ error: 'Invalid or expired invite code.' }, { status: 401 });
   }
 
@@ -74,7 +83,13 @@ export async function POST(req: NextRequest) {
   const hash = await hashPassword(String(token));
   const session = generateSession();
 
-  users.push({ username: cleanUsername, hash, session });
+  // Apply any access flags encoded in the invite
+  const newUser: Parameters<typeof users.push>[0] = { username: cleanUsername, hash, session };
+  if (invite.readOnly)      newUser.readOnly      = true;
+  if (invite.ownColumnOnly) newUser.ownColumnOnly = true;
+  if (invite.isAgent)       newUser.isAgent       = true;
+
+  users.push(newUser);
   try {
     saveUsers(users);
   } catch {

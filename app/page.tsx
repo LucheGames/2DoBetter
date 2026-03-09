@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { BoardData, ColumnData } from "./types";
 import ColumnPanel from "./components/ColumnPanel";
+import AdminPanel from "./components/AdminPanel";
 
 /** Sort columns: own column → agent/unowned → teammates (by order). */
 function sortColumns(columns: ColumnData[], currentUser: string | null): ColumnData[] {
@@ -22,6 +23,7 @@ function sortColumns(columns: ColumnData[], currentUser: string | null): ColumnD
 export default function Home() {
   const [board, setBoard] = useState<BoardData | null>(null);
   const [offline, setOffline] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
   const [collapsedCols, setCollapsedCols] = useState<Set<number>>(() => {
     if (typeof window === "undefined") return new Set();
     try {
@@ -145,6 +147,21 @@ export default function Home() {
             ☕
           </a>
 
+          {/* Admin panel button — admin only */}
+          {board.isAdmin && (
+            <button
+              onClick={() => setShowAdmin(true)}
+              title="Admin panel"
+              className="text-gray-600 hover:text-gray-300 transition-colors"
+              style={{ cursor: "pointer" }}
+            >
+              <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="8" cy="8" r="2" />
+                <path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.05 3.05l1.41 1.41M11.54 11.54l1.41 1.41M3.05 12.95l1.41-1.41M11.54 4.46l1.41-1.41" />
+              </svg>
+            </button>
+          )}
+
           {/* Signed-in user + sign out */}
           {board.currentUser && (
             <div className="flex items-center gap-2 border-l border-gray-800 pl-4">
@@ -160,6 +177,9 @@ export default function Home() {
           )}
         </div>
       </header>
+
+      {/* Admin panel modal */}
+      {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
 
       {/* Columns — side by side on desktop, stacked on mobile.
           Each column targets 1/3 viewport width on desktop. With flex-1 +
