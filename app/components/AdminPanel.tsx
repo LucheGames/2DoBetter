@@ -151,6 +151,11 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
   const [purgeDays,     setPurgeDays]     = useState<"all" | number>("all");
   const [purgeMsg,      setPurgeMsg]      = useState<string | null>(null);
 
+  // Purge graveyard
+  const [graveCount,    setGraveCount]    = useState<number | null>(null);
+  const [graveDays,     setGraveDays]     = useState<"all" | number>("all");
+  const [graveMsg,      setGraveMsg]      = useState<string | null>(null);
+
   // Agent token
   const [tokenTarget,   setTokenTarget]   = useState("");
   const [tokenValue,    setTokenValue]    = useState<string | null>(null);
@@ -177,8 +182,9 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
 
   useEffect(() => {
     loadUsers();
-    // Fetch purge count on mount
+    // Fetch purge counts on mount
     fetch("/api/admin/purge-completed").then(r => r.json()).then(d => setPurgeCount(d.count ?? null));
+    fetch("/api/admin/purge-graveyard").then(r => r.json()).then(d => setGraveCount(d.count ?? null));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -262,6 +268,24 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
       setPurgeCount(0);
     } else {
       setPurgeMsg("Error purging tasks.");
+    }
+  }
+
+  // ── Purge graveyard ────────────────────────────────────────────────────────
+  async function doPurgeGrave() {
+    setGraveMsg(null);
+    const body = graveDays === "all" ? {} : { olderThanDays: graveDays };
+    const res = await fetch("/api/admin/purge-graveyard", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      const { deleted } = await res.json();
+      setGraveMsg(`Deleted ${deleted} archived list${deleted !== 1 ? "s" : ""} and their tasks.`);
+      setGraveCount(0);
+    } else {
+      setGraveMsg("Error purging graveyard.");
     }
   }
 
@@ -513,6 +537,40 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
               {purgeMsg && (
                 <p className={`text-xs ${purgeMsg.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>
                   {purgeMsg}
+                </p>
+              )}
+            </div>
+          </Section>
+
+          {/* ── Purge graveyard ────────────────────────────────────────────────── */}
+          <Section title="Purge graveyard">
+            <div className="space-y-3">
+              <p className="text-xs text-gray-500">
+                {graveCount === null
+                  ? "Counting…"
+                  : graveCount === 0
+                  ? "Graveyard is empty."
+                  : <><span className="text-gray-300 font-semibold">{graveCount}</span> archived list{graveCount !== 1 ? "s" : ""} in graveyard. All their tasks will be deleted too.</>
+                }
+              </p>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-gray-500 w-14 flex-shrink-0">Delete</span>
+                <div className="flex gap-1">
+                  <Pill active={graveDays === "all"} onClick={() => setGraveDays("all")}>All</Pill>
+                  <Pill active={graveDays === 30}    onClick={() => setGraveDays(30)}>{'> 30 d'}</Pill>
+                  <Pill active={graveDays === 7}     onClick={() => setGraveDays(7)}>{'> 7 d'}</Pill>
+                </div>
+              </div>
+              <HoldButton
+                label={`Hold to delete ${graveDays === "all" ? "all" : `lists older than ${graveDays}d`}`}
+                onConfirm={doPurgeGrave}
+                holdMs={2000}
+                color="red"
+                disabled={graveCount === 0}
+              />
+              {graveMsg && (
+                <p className={`text-xs ${graveMsg.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>
+                  {graveMsg}
                 </p>
               )}
             </div>
