@@ -28,9 +28,10 @@ export function setAuthCookies(response: NextResponse, token: string, username: 
 
 export type UserRecord = {
   username: string;
-  hash?: string;    // bcrypt hash (new users)
-  token?: string;   // legacy plaintext password (migrated to hash on next login)
-  session?: string; // current session token (set on login, cleared on logout)
+  hash?: string;        // bcrypt hash (new users)
+  token?: string;       // legacy plaintext password (migrated to hash on next login)
+  session?: string;     // current session token (set on login, cleared on logout)
+  agentToken?: string;  // permanent MCP/agent token — survives logout, rotate with gen-agent-token
 };
 
 /** Read users fresh from disk so auth operations see the latest data.

@@ -503,6 +503,32 @@ async function genInvite() {
   console.log('');
 }
 
+// ── gen-agent-token ───────────────────────────────────────────────────────────
+async function genAgentToken() {
+  var usersFile = path.join(ROOT, 'data', 'users.json');
+  var users = [];
+  try { users = JSON.parse(fs.readFileSync(usersFile, 'utf8')); } catch (_) {}
+  if (!users.length) { console.error('  No users found.'); process.exit(1); }
+
+  // Pick user — default to first, or accept username arg
+  var targetName = process.argv[3] || null;
+  var idx = targetName
+    ? users.findIndex(function(u) { return u.username.toLowerCase() === targetName.toLowerCase(); })
+    : 0;
+  if (idx === -1) { console.error('  User "' + targetName + '" not found.'); process.exit(1); }
+
+  var token = crypto.randomBytes(32).toString('hex'); // 64-char hex — same entropy as session token
+  users[idx].agentToken = token;
+  fs.writeFileSync(usersFile, JSON.stringify(users, null, 2), { mode: 0o600 });
+
+  console.log('\n  ' + C.bold + 'Agent token generated for ' + users[idx].username + ':' + C.reset + '\n');
+  console.log('  ' + C.bold + C.cyan + token + C.reset + '\n');
+  console.log('  ' + C.dim + 'Add this to ~/.claude.json on the MCP client machine:' + C.reset);
+  console.log('  ' + C.dim + '  mcpServers.2dobetter.env.AUTH_TOKEN = <token above>' + C.reset);
+  console.log('  ' + C.dim + 'Rotate anytime by re-running this command.' + C.reset);
+  console.log('');
+}
+
 // ── purge-completed ───────────────────────────────────────────────────────────
 async function purgeCompleted() {
   var total = runSql('SELECT COUNT(*) FROM "Task" WHERE completed = 1') || '0';
@@ -605,6 +631,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     npm run reset-password [username]          Reset a user's password / access token
     npm run rename-user [old] [new]            Rename a user (updates their column name too)
     npm run gen-invite [minutes]               Generate a time-limited invite code (default 10 min)
+    npm run gen-agent-token [username]         Generate a permanent MCP/agent token (default: first user)
 
   ${C.bold}Database:${C.reset}
     npm run export-data             Export board → 2dobetter-YYYY-MM-DD.json
@@ -626,6 +653,7 @@ const dispatch = {
   'list-users':       () => { listUsers();     return Promise.resolve(); },
   'context':          () => { showContext();   return Promise.resolve(); },
   'gen-invite':       genInvite,
+  'gen-agent-token':  genAgentToken,
   'reset-password':   resetPassword,
   'rename-user':      renameUser,
   'export-data':      exportData,

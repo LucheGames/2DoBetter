@@ -11,6 +11,7 @@
     "list-users": "node scripts/admin.js list-users",
     "context": "node scripts/admin.js context",
     "gen-invite": "node scripts/admin.js gen-invite",
+    "gen-agent-token": "node scripts/admin.js gen-agent-token",
     "reset-password": "node scripts/admin.js reset-password",
     "rename-user": "node scripts/admin.js rename-user",
     "export-data": "node scripts/admin.js export-data",

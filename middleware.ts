@@ -10,7 +10,7 @@ export const runtime = 'nodejs';
 
 const USERS_FILE = path.join(process.cwd(), 'data', 'users.json');
 
-function readUsers(): Array<{ username: string; hash?: string; token?: string; session?: string }> {
+function readUsers(): Array<{ username: string; hash?: string; token?: string; session?: string; agentToken?: string }> {
   try {
     // Read fresh from disk so newly registered users are visible immediately.
     return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
@@ -46,12 +46,11 @@ export function middleware(request: NextRequest) {
   const usersFileExists = fs.existsSync(USERS_FILE);
   if (usersFileExists || process.env.AUTH_USERS_JSON) {
     const users = readUsers();
-    // Accept session token (new) or legacy plaintext token (migration path).
-    // Once a user logs in under the new system their legacy token is removed.
+    // Accept session token (new), legacy plaintext token (migration), or permanent agent token.
     const user = userCookie
       ? users.find(u => u.username === userCookie &&
-          (u.session === tokenCookie || u.token === tokenCookie))
-      : users.find(u => u.session === tokenCookie || u.token === tokenCookie);
+          (u.session === tokenCookie || u.token === tokenCookie || u.agentToken === tokenCookie))
+      : users.find(u => u.session === tokenCookie || u.token === tokenCookie || u.agentToken === tokenCookie);
     if (user) {
       // Inject authenticated username for API routes to consume
       const headers = new Headers(request.headers);
