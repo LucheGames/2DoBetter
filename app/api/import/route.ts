@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { broadcast } from "@/lib/events";
+import { isAdminUser } from "@/lib/lane-guard";
 
 // ── Types matching the export format ─────────────────────────────────────────
 
@@ -43,6 +44,15 @@ type ImportPayload = {
 // ── Route ────────────────────────────────────────────────────────────────────
 
 export async function POST(req: Request) {
+  // Import wipes ALL data — admin only
+  const authUser = req.headers.get('x-auth-user');
+  if (!authUser || !isAdminUser(authUser)) {
+    return NextResponse.json(
+      { error: "Only admins can import data (this operation replaces all board data)" },
+      { status: 403 }
+    );
+  }
+
   let payload: ImportPayload;
 
   try {

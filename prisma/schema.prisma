@@ -14,6 +14,7 @@ model Column {
   order         Int      @default(0)
   createdAt     DateTime @default(now())
   ownerUsername String?
+  locked        Boolean  @default(false)
   lists         List[]
 }
 
@@ -39,6 +40,7 @@ model Task {
   completed           Boolean   @default(false)
   completedAt         DateTime?
   completedBreadcrumb String?
+  createdBy           String?
   order               Int       @default(0)
   createdAt           DateTime  @default(now())
 

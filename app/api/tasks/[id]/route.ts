@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { broadcast } from "@/lib/events";
+import { checkLane } from "@/lib/lane-guard";
+import { checkWriteRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 async function computeBreadcrumb(listId: number): Promise<string> {
   const parts: string[] = [];
@@ -35,8 +37,29 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const authUser = req.headers.get('x-auth-user');
+
+  // Rate limit per user
+  if (authUser && !checkWriteRateLimit(authUser)) return rateLimitResponse();
+
   const body = await req.json();
   const data: Record<string, unknown> = {};
+
+  // Lane guard — completing/uncompleting a task is always allowed (cross-column ack).
+  // Renaming, moving, or reordering requires column ownership when locked.
+  const isCompletionOnly = Object.keys(body).every(k =>
+    ['completed', 'completedAt'].includes(k)
+  );
+  if (!isCompletionOnly) {
+    const existing = await prisma.task.findUnique({
+      where: { id: Number(id) },
+      include: { list: { include: { column: true } } },
+    });
+    if (existing?.list?.column) {
+      const deny = checkLane(existing.list.column, authUser);
+      if (deny) return deny;
+    }
+  }
 
   if (body.title !== undefined) data.title = body.title.trim();
   if (body.order !== undefined) data.order = body.order;
@@ -93,10 +116,24 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const authUser = req.headers.get('x-auth-user');
+
+  if (authUser && !checkWriteRateLimit(authUser)) return rateLimitResponse();
+
+  // Lane guard
+  const existing = await prisma.task.findUnique({
+    where: { id: Number(id) },
+    include: { list: { include: { column: true } } },
+  });
+  if (existing?.list?.column) {
+    const deny = checkLane(existing.list.column, authUser);
+    if (deny) return deny;
+  }
+
   await prisma.task.delete({ where: { id: Number(id) } });
   broadcast();
   return new NextResponse(null, { status: 204 });

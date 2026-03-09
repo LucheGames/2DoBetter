@@ -108,6 +108,9 @@ export default function TaskRow({
                 {task.completedBreadcrumb}
               </span>
             )}
+            {task.createdBy && (
+              <span className="app-meta text-gray-700 ml-1">↑ {task.createdBy}</span>
+            )}
           </div>
         )}
       </div>

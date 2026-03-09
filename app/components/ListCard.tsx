@@ -169,6 +169,7 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
       completed: false,
       completedAt: null,
       completedBreadcrumb: null,
+      createdBy: null,
       order: 999,
       createdAt: new Date().toISOString(),
     };
@@ -496,6 +497,7 @@ function SubList({ list, onRefresh }: { list: ListData; onRefresh: () => void })
       completed: false,
       completedAt: null,
       completedBreadcrumb: null,
+      createdBy: null,
       order: 999,
       createdAt: new Date().toISOString(),
     };

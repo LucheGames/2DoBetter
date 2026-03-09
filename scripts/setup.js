@@ -428,7 +428,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   const firstToken = await collectToken(existing);
   cfg.AUTH_TOKEN = firstToken; // kept for legacy single-user mode fallback
 
-  users.push({ username: firstUsername, hash: await bcrypt.hash(firstToken, 12) });
+  users.push({ username: firstUsername, hash: await bcrypt.hash(firstToken, 12), isAdmin: true });
 
   // Ask about additional users
   console.log('');

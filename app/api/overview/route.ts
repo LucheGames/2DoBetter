@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getUsersFresh } from "@/lib/auth-helpers";
 
 export async function GET(req: NextRequest) {
   // x-auth-user is injected by middleware after successful token validation
   const currentUser = req.headers.get("x-auth-user") || null;
+
+  // Expose admin flag so UI can show lock toggles and other admin controls
+  const isAdmin = currentUser
+    ? (getUsersFresh().find(u => u.username === currentUser)?.isAdmin === true)
+    : false;
 
   const columns = await prisma.column.findMany({
     orderBy: { order: "asc" },
@@ -28,5 +34,5 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  return NextResponse.json({ columns, currentUser });
+  return NextResponse.json({ columns, currentUser, isAdmin });
 }

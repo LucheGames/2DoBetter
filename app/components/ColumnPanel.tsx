@@ -27,6 +27,7 @@ import GraveyardPanel from "./GraveyardPanel";
 type ColumnPanelProps = {
   column: ColumnData;
   currentUser: string | null;
+  isAdmin: boolean;
   onRefresh: () => void;
   collapsed: boolean;
   onToggleCollapse: () => void;
@@ -69,7 +70,7 @@ function SortableListCard({
   );
 }
 
-export default function ColumnPanel({ column, currentUser, onRefresh, collapsed, onToggleCollapse }: ColumnPanelProps) {
+export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, collapsed, onToggleCollapse }: ColumnPanelProps) {
   const [newListName, setNewListName] = useState("");
   const [showNewListInput, setShowNewListInput] = useState(false);
   const listInputRef = useRef<HTMLInputElement>(null);
@@ -97,6 +98,15 @@ export default function ColumnPanel({ column, currentUser, onRefresh, collapsed,
       body: JSON.stringify({ name: trimmed }),
     });
     setIsEditingName(false);
+    onRefresh();
+  }
+
+  async function toggleLock() {
+    await fetch(`/api/columns/${column.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locked: !column.locked }),
+    });
     onRefresh();
   }
 
@@ -282,6 +292,34 @@ export default function ColumnPanel({ column, currentUser, onRefresh, collapsed,
             <span className={badgeClass}>
               {badgeLabel}
             </span>
+            {/* Lock toggle — admin sees clickable icon; others see static lock when locked */}
+            {isAdmin ? (
+              <button
+                onClick={toggleLock}
+                title={column.locked ? "Unlock column" : "Lock column"}
+                className={`transition-colors ${column.locked ? "text-amber-500 hover:text-amber-400" : "text-gray-700 hover:text-gray-500"}`}
+                style={{ cursor: "pointer" }}
+              >
+                {column.locked ? (
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <rect x="3" y="7" width="10" height="8" rx="1.5" />
+                    <path d="M5 7V5a3 3 0 0 1 6 0v2" />
+                  </svg>
+                ) : (
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                    <rect x="3" y="7" width="10" height="8" rx="1.5" />
+                    <path d="M5 7V5a3 3 0 0 1 6 0" />
+                  </svg>
+                )}
+              </button>
+            ) : column.locked ? (
+              <span title="Column locked" className="text-amber-600">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <rect x="3" y="7" width="10" height="8" rx="1.5" />
+                  <path d="M5 7V5a3 3 0 0 1 6 0v2" />
+                </svg>
+              </span>
+            ) : null}
             {/* Collapse toggle — only on non-own columns (teammates + agents) */}
             {canCollapse && (
               <button

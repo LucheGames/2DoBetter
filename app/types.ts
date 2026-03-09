@@ -5,6 +5,7 @@ export type Task = {
   completed: boolean;
   completedAt: string | null;
   completedBreadcrumb: string | null;
+  createdBy: string | null;
   order: number;
   createdAt: string;
 };
@@ -28,10 +29,12 @@ export type ColumnData = {
   order: number;
   createdAt: string;
   ownerUsername: string | null;
+  locked: boolean;
   lists: ListData[];
 };
 
 export type BoardData = {
   columns: ColumnData[];
   currentUser: string | null;
+  isAdmin: boolean;
 };

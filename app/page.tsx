@@ -182,6 +182,7 @@ export default function Home() {
               <ColumnPanel
                 column={col}
                 currentUser={board.currentUser}
+                isAdmin={board.isAdmin}
                 onRefresh={fetchBoard}
                 collapsed={isCollapsed}
                 onToggleCollapse={() => toggleCollapse(col.id)}
