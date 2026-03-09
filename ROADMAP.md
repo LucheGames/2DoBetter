@@ -81,6 +81,140 @@ Roughly 90% of the codebase is already Windows-compatible.
 
 ---
 
+## Agent-Agnostic Architecture
+
+**Status:** Planned. Research complete. No implementation started.
+
+### The headline
+
+MCP has become the industry standard — and it isn't just Anthropic's protocol anymore. In December 2025, Anthropic donated MCP to the **Agentic AI Foundation** (a Linux Foundation fund), co-founded with **OpenAI, Block, Google, Microsoft, AWS, Cloudflare, and Bloomberg**. Every major AI platform now supports or is actively adopting it.
+
+**This means our existing MCP server already works — without any code changes — with:**
+
+| Agent / Platform | MCP Support | Notes |
+|---|---|---|
+| Claude Code | ✅ Native | Current setup — stdio transport |
+| OpenAI Agents SDK | ✅ Native | MCP as first-class citizen since March 2025 |
+| ChatGPT (desktop/web) | ✅ Native | Full MCP rollout, Oct 2025 |
+| Google Gemini SDK | ✅ Native | Built-in MCP with auto tool calling |
+| Vertex AI / ADK | ✅ Native | Google-managed MCP servers in Cloud |
+| GitHub Copilot | ✅ Tools only | MCP tools work; resources/prompts not yet |
+| LangChain, CrewAI | ✅ Via integration | MCP adapters available |
+| Microsoft Semantic Kernel | ✅ Native | MCP supported |
+| **Custom GPTs** | ❌ OpenAPI only | Still uses OpenAPI Actions, not MCP |
+
+We already built the right thing. We're roughly 80% of the way there today.
+
+---
+
+### The gaps
+
+**Gap 1 — Custom GPTs (OpenAPI Actions)**
+
+Custom GPTs don't support MCP. They use OpenAPI 3.0 schemas to define external API calls. Our REST API (the Next.js API routes) is already there — we just need to write an `openapi.yaml` that documents it. This is documentation work, not engineering work. Any agent that can make an HTTP request can use the REST API directly regardless of MCP.
+
+**Gap 2 — Transport: stdio vs HTTP/SSE**
+
+Our MCP server currently runs over **stdio** — it's a local process that Claude Code spawns on the Mac. This is fine for locally-running agents (Claude Code, Cursor, a local Gemini CLI session). But cloud-based agents (ChatGPT web, a Gemini web session, a teammate's Copilot) can't reach a stdio process.
+
+The MCP spec supports a second transport: **HTTP/SSE** (Server-Sent Events). Adding this would let any agent connect to a remotely running 2DoBetter instance over the network — the same way a browser connects. The MCP SDK supports both transports; it's a medium-effort addition.
+
+**Gap 3 — Network access for cloud agents**
+
+Even with HTTP/SSE transport, a cloud agent can't reach a server sitting behind a home router. Solutions (in order of simplicity):
+
+| Option | Effort | Notes |
+|---|---|---|
+| Tailscale Funnel | Low | Public HTTPS URL to your Tailscale node, no router config |
+| Cloudflare Tunnel | Low | Free, stable, same idea |
+| ngrok | Very low | Good for dev/demo, less good for always-on |
+| Hosted option | High | Real answer for non-technical users — see below |
+
+**Gap 4 — Auth for non-Claude agents**
+
+The `agentToken` system works fine for any agent that can set an HTTP header. No changes needed for local agents. For cloud agents calling the REST API or MCP over HTTP, they'd use the same bearer token in the `Authorization` header or the MCP env config. This is already supported.
+
+If we want **per-agent identity** (know which agent took which action, revoke access per agent without affecting others), we'd need OAuth 2.0 — a significant complexity jump that probably only makes sense if we go hosted.
+
+---
+
+### Three-layer architecture (recommended)
+
+```
+┌─────────────────────────────────────────────────┐
+│  Layer 3: OAuth 2.0  (future / hosted only)     │
+│  Per-agent identity, revocable tokens           │
+├─────────────────────────────────────────────────┤
+│  Layer 2: MCP over HTTP/SSE  (medium-term)      │
+│  Remote agents, cloud platforms, teammates      │
+├─────────────────────────────────────────────────┤
+│  Layer 1: OpenAPI spec  (near-term, low effort) │
+│  Custom GPTs, universal docs, any HTTP client   │
+├─────────────────────────────────────────────────┤
+│  Layer 0: MCP over stdio  (EXISTS TODAY)        │
+│  Claude Code, Cursor, local Agents SDK, etc.    │
+└─────────────────────────────────────────────────┘
+              ↕ all layers hit the same REST API
+```
+
+---
+
+### Pros and cons
+
+**Option A — MCP stdio only (current state)**
+
+| Pros | Cons |
+|---|---|
+| Already built and working | Doesn't cover Custom GPTs |
+| Covers most developer tools and IDEs | Only works for locally-running agents |
+| Protocol is now industry standard | Cloud agents need HTTP transport |
+| Zero additional maintenance | |
+
+**Option B — Add OpenAPI spec (Layer 1)**
+
+| Pros | Cons |
+|---|---|
+| Covers Custom GPTs | Two interfaces to document (but same underlying API) |
+| Universal — any HTTP client works | Agents get less "rich" tool discovery than MCP |
+| Very low effort (docs, not code) | |
+| Also serves as developer API reference | |
+| Enables future SDK generation | |
+
+**Recommended next step.** Low effort, high payoff.
+
+**Option C — Add HTTP/SSE MCP transport (Layer 2)**
+
+| Pros | Cons |
+|---|---|
+| Same rich MCP tools, now accessible remotely | Security surface increases |
+| Cloud agents (ChatGPT, Gemini web) can connect | Needs auth hardening for public internet |
+| Teammates can use their own agents on shared board | Requires Tailscale Funnel or similar for reachability |
+| One protocol for all agents | Medium implementation effort |
+
+**Worth doing after Layer 1.** Unlocks the really interesting multi-agent use cases — two people with different AI agents both working the same board simultaneously.
+
+**Option D — OAuth 2.0 (Layer 3)**
+
+| Pros | Cons |
+|---|---|
+| Proper per-agent identity and audit trail | Significant implementation complexity |
+| Revoke one agent without affecting others | Probably only worth it for a hosted product |
+| Industry-standard for third-party integrations | Most self-hosters won't need this |
+
+**Defer until hosted product.** Overkill for self-hosted.
+
+---
+
+### Implementation order
+
+1. **Write `openapi.yaml`** — document existing REST API routes, authentication, and response shapes. No code changes. Enables Custom GPTs and serves as API reference. (~1 day)
+2. **Add `gen-agent-token` to UI** — let users generate tokens for specific agents from the web UI, not just the CLI. (~half day)
+3. **Add HTTP/SSE transport to MCP server** — wire the existing MCP tools up to the SSE transport the SDK already supports. (~1-2 days)
+4. **Document per-agent setup** — write setup guides for Claude Code, OpenAI Agents SDK, Gemini CLI, GitHub Copilot, Custom GPTs. (~1 day)
+5. **OAuth 2.0** — only if we build a hosted tier.
+
+---
+
 ## Longer Horizon
 
 ### Native App Packaging
