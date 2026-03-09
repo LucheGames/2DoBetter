@@ -129,7 +129,7 @@ function HoldButton({
 }
 
 // ── Admin panel modal ─────────────────────────────────────────────────────────
-export default function AdminPanel({ onClose }: { onClose: () => void }) {
+export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => void; onDataChanged?: () => void }) {
   const [users,        setUsers]        = useState<AdminUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
 
@@ -266,6 +266,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
       const { deleted } = await res.json();
       setPurgeMsg(`Deleted ${deleted} completed task${deleted !== 1 ? "s" : ""}.`);
       setPurgeCount(0);
+      onDataChanged?.();
     } else {
       setPurgeMsg("Error purging tasks.");
     }
@@ -284,6 +285,7 @@ export default function AdminPanel({ onClose }: { onClose: () => void }) {
       const { deleted } = await res.json();
       setGraveMsg(`Deleted ${deleted} archived list${deleted !== 1 ? "s" : ""} and their tasks.`);
       setGraveCount(0);
+      onDataChanged?.();
     } else {
       setGraveMsg("Error purging graveyard.");
     }

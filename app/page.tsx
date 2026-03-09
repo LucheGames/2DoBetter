@@ -179,7 +179,7 @@ export default function Home() {
       </header>
 
       {/* Admin panel modal */}
-      {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
+      {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} onDataChanged={fetchBoard} />}
 
       {/* Columns — side by side on desktop, stacked on mobile.
           Each column targets 1/3 viewport width on desktop. With flex-1 +
