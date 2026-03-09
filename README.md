@@ -31,7 +31,7 @@ Self-hosted · real-time sync · no subscriptions · your data stays on your mac
 
 ## 👤 New User — Get Started (single device)
 
-> **Requires:** Node.js 20+, macOS or Linux
+> **Requires:** Node.js 20+, macOS or Linux *(Windows support planned — see [ROADMAP.md](ROADMAP.md))*
 
 ```bash
 git clone https://github.com/LucheGames/2DoBetter.git
@@ -263,6 +263,12 @@ Run `npm run admin` for a quick summary. All commands run on the server machine.
 | **Tailscale** | Private VPN — your board is only reachable by invited devices |
 | **PWA** | Makes 2Do installable as a home-screen app on any device |
 | **MCP** | Plugin protocol that lets Claude read and write your board directly |
+
+---
+
+## Roadmap
+
+See [ROADMAP.md](ROADMAP.md) for planned work, including Windows 10/11 support and native app packaging.
 
 ---
 
