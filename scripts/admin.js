@@ -643,6 +643,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     npm run restart                 Restart the server (auto-detects launchctl / systemctl)
     npm run service:install         Install as auto-start service
     npm run service:uninstall       Remove auto-start service
+    npm run uninstall               ${C.red}Nuke — remove all app footprint from this machine${C.reset}
 `);
 }
 

@@ -24,7 +24,8 @@
     "seed": "npx tsx prisma/seed.ts",
     "service:install": "cp com.luchegames.2dobetter.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.luchegames.2dobetter.plist",
     "service:uninstall": "launchctl unload ~/Library/LaunchAgents/com.luchegames.2dobetter.plist && rm ~/Library/LaunchAgents/com.luchegames.2dobetter.plist",
-    "service:restart": "launchctl kickstart -k gui/$(id -u)/com.luchegames.2dobetter"
+    "service:restart": "launchctl kickstart -k gui/$(id -u)/com.luchegames.2dobetter",
+    "uninstall": "node scripts/uninstall.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
