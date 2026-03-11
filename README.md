@@ -144,12 +144,12 @@ cd mcp && npm install && npm run build
 
 ### Managing users
 
-**In-app admin panel** *(recommended)* — ⚙ gear icon, top-right:
+**In-app admin panel** — ⚙ gear icon, top-right:
 - Generate invite links with access level and expiry baked in
 - Toggle access: **Full** / **Own column** / **Read only** · Toggle Human / Agent display
 - Reset passwords, rotate agent tokens (hold 2 s)
 - Purge completed tasks (all or older than N days)
-- Purge graveyard — permanently delete archived lists (admin panel only, no CLI)
+- Purge graveyard — permanently delete archived lists
 
 **Access levels:**
 
@@ -161,16 +161,18 @@ cd mcp && npm install && npm run build
 
 Human users default to **Own column**. Monitor agents should be **Read only**.
 
-**CLI fallback:**
+**CLI:**
 ```bash
 npm run add-user
-npm run remove-user [name]           # column renamed → "Shared"
-npm run remove-user [name] delete    # remove user + delete tasks
+npm run remove-user [name]                     # column renamed → "Shared"
+npm run remove-user [name] delete              # remove user + delete tasks
 npm run reset-password [name]
 npm run rename-user [old] [new]
-npm run gen-invite [minutes]         # single-use invite code (default 10 min)
-npm run gen-agent-token [username]   # generate/rotate permanent MCP agent token
-npm run list-users
+npm run set-access [name] [full|own|readonly]  # set access level
+npm run set-type [name] [human|agent]          # set display type
+npm run gen-invite                             # interactive: prompts for expiry, access, type
+npm run gen-agent-token [username]             # generate/rotate permanent MCP token
+npm run list-users                             # shows access level + type for each user
 ```
 
 ---
@@ -279,6 +281,7 @@ npm run admin                          # full command list
 
 npm run gen-agent-token [username]     # generate/rotate permanent MCP token
 npm run purge-completed                # delete completed tasks (all or older than N days)
+npm run purge-graveyard                # permanently delete archived lists
 
 npm run export-data [file]
 npm run import-data <file>             # replaces all data — use with caution

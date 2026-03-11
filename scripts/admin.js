@@ -339,10 +339,13 @@ function listUsers() {
 
   console.log('  ' + C.bold + 'Users (' + users.length + '):' + C.reset);
   users.forEach(function(u, i) {
-    var tag    = i === 0 ? ' ' + C.dim + '(admin)' + C.reset : '';
-    var col    = colMap[u.username];
-    var colStr = col ? '  ' + C.dim + '→ ' + col + C.reset : '';
-    console.log('    ' + (i + 1) + '. ' + C.bold + u.username + C.reset + tag + colStr);
+    var adminTag  = u.isAdmin ? ' ' + C.dim + '(admin)' + C.reset : '';
+    var typeTag   = u.isAgent ? ' ' + C.dim + '[agent]' + C.reset : '';
+    var access    = u.readOnly ? 'readonly' : (u.ownColumnOnly ? 'own' : 'full');
+    var accessTag = u.isAdmin ? '' : '  ' + C.dim + access + C.reset;
+    var col       = colMap[u.username];
+    var colStr    = col ? '  ' + C.dim + '→ ' + col + C.reset : '';
+    console.log('    ' + (i + 1) + '. ' + C.bold + u.username + C.reset + adminTag + typeTag + accessTag + colStr);
   });
   console.log('');
 }
@@ -473,12 +476,37 @@ function restartService() {
 
 // ── gen-invite ────────────────────────────────────────────────────────────────
 async function genInvite() {
-  var minutesArg = parseInt(process.argv[3] || '10', 10);
-  var minutes = (isNaN(minutesArg) || minutesArg < 1) ? 10 : minutesArg;
+  var minutesArg = parseInt(process.argv[3] || '0', 10);
+  var minutes;
+  if (!isNaN(minutesArg) && minutesArg > 0) {
+    minutes = minutesArg;
+  } else {
+    var mStr = await prompt('Expires in (minutes)', '60');
+    minutes = parseInt(mStr, 10);
+    if (isNaN(minutes) || minutes < 1) minutes = 60;
+  }
+
+  // Access level
+  console.log('\n  Access levels: full · own (default) · readonly');
+  var levelStr = (await prompt('Access level', 'own')).toLowerCase().trim();
+  var readOnly = false;
+  var ownColumnOnly = false;
+  if (levelStr === 'readonly') { readOnly = true; }
+  else if (levelStr === 'own' || levelStr === '') { ownColumnOnly = true; }
+  // 'full' leaves both false
+
+  // Type
+  var typeStr = (await prompt('Type (human/agent)', 'human')).toLowerCase().trim();
+  var isAgent = (typeStr === 'agent');
 
   var code = crypto.randomBytes(4).toString('hex'); // 8 hex chars — short enough to read aloud
   var now = new Date();
   var expiresAt = new Date(now.getTime() + minutes * 60 * 1000);
+
+  var invite = { code: code, createdAt: now.toISOString(), expiresAt: expiresAt.toISOString() };
+  if (readOnly)      { invite.readOnly = true; }
+  if (ownColumnOnly) { invite.ownColumnOnly = true; }
+  if (isAgent)       { invite.isAgent = true; }
 
   var invitesFile = path.join(ROOT, 'data', 'invites.json');
   var invites = [];
@@ -489,15 +517,17 @@ async function genInvite() {
   // Prune expired codes
   var nowMs = Date.now();
   invites = invites.filter(function(i) { return new Date(i.expiresAt).getTime() > nowMs; });
-
-  invites.push({ code: code, createdAt: now.toISOString(), expiresAt: expiresAt.toISOString() });
+  invites.push(invite);
 
   fs.mkdirSync(path.join(ROOT, 'data'), { recursive: true });
   fs.writeFileSync(invitesFile, JSON.stringify(invites, null, 2), { mode: 0o600 });
 
+  var levelLabel = readOnly ? 'readonly' : (ownColumnOnly ? 'own column' : 'full');
+  var typeLabel  = isAgent ? 'agent' : 'human';
   var expireTime = expiresAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   console.log('\n  ' + C.bold + 'Invite code generated:' + C.reset + '\n');
   console.log('  ' + C.bold + C.cyan + code + C.reset + '\n');
+  console.log('  ' + C.dim + 'Access: ' + levelLabel + '  ·  Type: ' + typeLabel + C.reset);
   console.log('  ' + C.dim + 'Single-use  ·  expires at ' + expireTime + ' (' + minutes + ' min)' + C.reset);
   console.log('  ' + C.dim + 'Send to the new user — they enter it on the Create Account page.' + C.reset);
   console.log('');
@@ -580,6 +610,143 @@ async function purgeCompleted() {
   console.log('');
 }
 
+// ── purge-graveyard ───────────────────────────────────────────────────────────
+async function purgeGraveyard() {
+  var total = runSql('SELECT COUNT(*) FROM "List" WHERE archivedAt IS NOT NULL') || '0';
+
+  if (total === '0') {
+    console.log('\n  No archived lists in the graveyard.\n');
+    return;
+  }
+
+  console.log('\n  Archived lists in graveyard: ' + C.bold + total + C.reset + '\n');
+  console.log('  ' + C.dim + '(a) Delete ALL ' + total + ' archived lists and their tasks' + C.reset);
+  console.log('  ' + C.dim + '(d) Delete only those archived more than N days ago' + C.reset + '\n');
+
+  var choice = await prompt('Choice (a/d)', 'd');
+  var where, count;
+
+  if (choice.toLowerCase() === 'a') {
+    where = 'archivedAt IS NOT NULL';
+    count = total;
+  } else {
+    var days = await prompt('Archived more than how many days ago?', '30');
+    var n = parseInt(days, 10);
+    if (isNaN(n) || n < 1) n = 30;
+    where = 'archivedAt IS NOT NULL AND archivedAt <= datetime(\'now\', \'-' + n + ' days\')';
+    count = runSql('SELECT COUNT(*) FROM "List" WHERE ' + where) || '0';
+  }
+
+  if (count === '0') {
+    console.log('\n  Nothing to delete.\n');
+    return;
+  }
+
+  console.log('\n  ' + C.yellow + C.bold + '⚠  This will permanently delete ' + count + ' list(s) and all their tasks.' + C.reset + '\n');
+  var answer = await prompt('Type YES to confirm');
+
+  if (answer !== 'YES') {
+    console.log('\n  Cancelled — nothing changed.\n');
+    return;
+  }
+
+  // Delete child tasks first, then lists (guards against FK cascade not being enabled)
+  runSql('DELETE FROM "Task" WHERE listId IN (SELECT id FROM "List" WHERE ' + where + ')');
+  runSql('DELETE FROM "List" WHERE ' + where);
+  ok('Deleted ' + count + ' list(s) from graveyard.');
+  console.log('');
+}
+
+// ── set-access ────────────────────────────────────────────────────────────────
+async function setAccess() {
+  var usersFile = path.join(ROOT, 'data', 'users.json');
+  if (!fs.existsSync(usersFile)) { console.log('\n  No users file found.\n'); return; }
+  var users;
+  try { users = JSON.parse(fs.readFileSync(usersFile, 'utf8')); } catch (_) { users = []; }
+  if (!users.length) { console.log('\n  No users configured.\n'); return; }
+
+  var targetName = (process.argv[3] || '').trim();
+  var level = (process.argv[4] || '').toLowerCase().trim();
+
+  if (!targetName) {
+    console.log('');
+    users.forEach(function(u, i) {
+      var cur = u.readOnly ? 'readonly' : (u.ownColumnOnly ? 'own' : 'full');
+      console.log('  ' + (i + 1) + '. ' + u.username + (u.isAdmin ? ' (admin)' : '') + '  [' + cur + ']');
+    });
+    console.log('');
+    targetName = await prompt('Username');
+  }
+  if (!targetName) { console.log('\n  Cancelled.\n'); return; }
+
+  var idx = users.findIndex(function(u) { return u.username.toLowerCase() === targetName.toLowerCase(); });
+  if (idx === -1) { warn('User "' + targetName + '" not found.'); return; }
+  if (users[idx].isAdmin) { warn('Cannot change access flags on an admin account.'); return; }
+
+  if (level !== 'full' && level !== 'own' && level !== 'readonly') {
+    var cur = users[idx].readOnly ? 'readonly' : (users[idx].ownColumnOnly ? 'own' : 'full');
+    console.log('\n  Levels: full (read+write everywhere) · own (write only their column) · readonly');
+    level = (await prompt('Access level for "' + users[idx].username + '"', cur)).toLowerCase().trim();
+  }
+
+  if (level === 'full') {
+    users[idx].readOnly = false;
+    users[idx].ownColumnOnly = false;
+  } else if (level === 'own') {
+    users[idx].readOnly = false;
+    users[idx].ownColumnOnly = true;
+  } else if (level === 'readonly') {
+    users[idx].readOnly = true;
+    users[idx].ownColumnOnly = false;
+  } else {
+    warn('Unknown level "' + level + '". Use: full / own / readonly');
+    return;
+  }
+
+  fs.writeFileSync(usersFile, JSON.stringify(users, null, 2), { mode: 0o600 });
+  ok('Access for "' + users[idx].username + '" set to: ' + level);
+  console.log('');
+}
+
+// ── set-type ──────────────────────────────────────────────────────────────────
+async function setType() {
+  var usersFile = path.join(ROOT, 'data', 'users.json');
+  if (!fs.existsSync(usersFile)) { console.log('\n  No users file found.\n'); return; }
+  var users;
+  try { users = JSON.parse(fs.readFileSync(usersFile, 'utf8')); } catch (_) { users = []; }
+  if (!users.length) { console.log('\n  No users configured.\n'); return; }
+
+  var targetName = (process.argv[3] || '').trim();
+  var type = (process.argv[4] || '').toLowerCase().trim();
+
+  if (!targetName) {
+    console.log('');
+    users.forEach(function(u, i) {
+      console.log('  ' + (i + 1) + '. ' + u.username + '  [' + (u.isAgent ? 'agent' : 'human') + ']');
+    });
+    console.log('');
+    targetName = await prompt('Username');
+  }
+  if (!targetName) { console.log('\n  Cancelled.\n'); return; }
+
+  var idx = users.findIndex(function(u) { return u.username.toLowerCase() === targetName.toLowerCase(); });
+  if (idx === -1) { warn('User "' + targetName + '" not found.'); return; }
+
+  if (type !== 'human' && type !== 'agent') {
+    var cur = users[idx].isAgent ? 'agent' : 'human';
+    type = (await prompt('Type for "' + users[idx].username + '" (human/agent)', cur)).toLowerCase().trim();
+  }
+  if (type !== 'human' && type !== 'agent') {
+    warn('Unknown type "' + type + '". Use: human / agent');
+    return;
+  }
+
+  users[idx].isAgent = (type === 'agent');
+  fs.writeFileSync(usersFile, JSON.stringify(users, null, 2), { mode: 0o600 });
+  ok('"' + users[idx].username + '" type set to: ' + type);
+  console.log('');
+}
+
 // ── context (AI session-start dump) ──────────────────────────────────────────
 function showContext() {
   console.log('\n' + C.bold + C.cyan + '  ══ 2Do Better — Session Context ══' + C.reset + '\n');
@@ -628,9 +795,11 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     npm run add-user                           Add a new user interactively
     npm run remove-user [username]             Remove user, rename column → "Shared" (safe default)
     npm run remove-user [username] delete      Remove user + delete their column and all tasks
-    npm run reset-password [username]          Reset a user's password / access token
+    npm run reset-password [username]          Reset a user's password
     npm run rename-user [old] [new]            Rename a user (updates their column name too)
-    npm run gen-invite [minutes]               Generate a time-limited invite code (default 10 min)
+    npm run set-access [username] [full|own|readonly]   Set access level
+    npm run set-type [username] [human|agent]           Set display type
+    npm run gen-invite [minutes]               Generate a time-limited invite code (prompts for access/type)
     npm run gen-agent-token [username]         Generate a permanent MCP/agent token (default: first user)
 
   ${C.bold}Database:${C.reset}
@@ -638,6 +807,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     npm run export-data <file>      Export board → named file
     npm run import-data <file>      Import board from JSON ${C.yellow}(replaces ALL data)${C.reset}
     npm run purge-completed         Delete completed tasks (all, or older than N days)
+    npm run purge-graveyard         Permanently delete archived lists from graveyard
 
   ${C.bold}Service:${C.reset}
     npm run restart                 Restart the server (auto-detects launchctl / systemctl)
@@ -657,9 +827,12 @@ const dispatch = {
   'gen-agent-token':  genAgentToken,
   'reset-password':   resetPassword,
   'rename-user':      renameUser,
+  'set-access':       setAccess,
+  'set-type':         setType,
   'export-data':      exportData,
   'import-data':      importData,
   'purge-completed':  purgeCompleted,
+  'purge-graveyard':  purgeGraveyard,
   'restart':          () => { restartService(); return Promise.resolve(); },
 };
 
