@@ -138,7 +138,7 @@ journalctl --user -u 2dobetter -n 100 -f   # live logs
 |------|---------|
 | `app/page.tsx` | Main board UI, column sorting (own → agent → teammates) |
 | `app/components/ColumnPanel.tsx` | Column + task rendering, YOU/TEAMMATE/Agent badges |
-| `middleware.ts` | Auth gating — matches `auth_user` + `auth_token` cookies |
+| `proxy.ts` | Auth gating — matches `auth_user` + `auth_token` cookies (Next.js 16: renamed from middleware.ts) |
 | `lib/auth-helpers.ts` | `getUsers()`, `saveUsers()`, `setAuthCookies()`, `ensureUserColumn()` |
 | `app/api/auth/register/route.ts` | Self-registration — validates `data/invites.json` codes |
 | `app/api/auth/config/route.ts` | Public endpoint: `{ registrationEnabled: bool }` |
