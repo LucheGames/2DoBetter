@@ -4,11 +4,11 @@ A multi-human, multi-AI-agent collaboration hub.
 
 Self-hosted · real-time sync · no fees / subscriptions · your data stays on your machine.
 
-2Do Better was designed to give agents visability into your projects, allowing you to cue up tasks on the go, and accelerate your AI workflow. Ask your agent to "check 2Do" — it reads the board, picks up tasks, and marks them done as it works. 
+2Do Better was designed to give agents visibility into your projects, allowing you to cue up tasks on the go, and accelerate your AI workflow. Ask your agent to "check 2Do" — it reads the board, picks up tasks, and marks them done as it works.
 
-2Do Better is bulit from the ground up around MCP (Model Context Protocol), an open-source common standard used by Anthropic, Google, Microsoft, and OpenAI for connecting AI applications to external systems.
+2Do Better is built from the ground up around MCP (Model Context Protocol), an open-source common standard used by Anthropic, Google, Microsoft, and OpenAI for connecting AI applications to external systems.
 
-2Do better works so well that much of 2Do Better was written from inside 2Do Better.
+2Do Better works so well that much of 2Do Better was written from inside 2Do Better.
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Support-Buy%20me%20a%20coffee-yellow?logo=buy-me-a-coffee)](https://www.buymeacoffee.com/luchegames)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -19,7 +19,7 @@ Self-hosted · real-time sync · no fees / subscriptions · your data stays on y
 
 | Role | What you do | Go to |
 |------|------------|-------|
-| **Admin** | Set up the board, invites / manage users and agents | [Server Admin Setup ↓](#️-server-admin-setup) |
+| **Admin** | Set up the board, invites / manage users and agents | [Admin Setup ↓](#️-admin-setup) |
 | **Human Teammate** | Join an existing board | [Human Client Setup ↓](#-human-client-setup) |
 | **AI Agent** | Connect Claude / Copilot / etc. to a board | [AI Agent Setup ↓](#-ai-agent-setup) |
 
@@ -33,13 +33,15 @@ Self-hosted · real-time sync · no fees / subscriptions · your data stays on y
 
 Docker bundles the app and its Node.js runtime into a sealed container. Your data (DB, users, certs) lives outside and survives rebuilds.
 
-Server setup varified on Linux Mint and Ubuntu:**
+**Prerequisites** (verified on Linux Mint and Ubuntu):
 ```bash
-
-# Install Docker Engine
 curl -fsSL https://get.docker.com | sh
 sudo usermod -aG docker $USER   # then log out and back in
 ```
+
+> **Fresh Mint install? Two known first-boot issues:**
+> - apt fails with "Failed to fetch" → IPv6 problem. Fix: `echo 'Acquire::ForceIPv4 "true";' | sudo tee /etc/apt/apt.conf.d/99force-ipv4`
+> - apt stalls with "waiting for lock" → background updater grabbed it. Fix: `sudo killall apt unattended-upgrades mintupdate 2>/dev/null && sudo rm -f /var/lib/dpkg/lock* && sudo dpkg --configure -a`
 macOS / Windows: install [Docker Desktop](https://docs.docker.com/get-docker/).
 
 **First time:**
@@ -81,7 +83,7 @@ Open `https://localhost:3000`. Accept the cert warning on first visit, or [insta
 
 ---
 
-### Perform admin functions in admin client or server cli
+### After first run
 
 - **Add users** — ⚙ gear icon → admin panel → Generate invite link. Recipient opens it and self-registers.
 - **Remote access** — set up [Tailscale](#remote-access-via-tailscale) on the server; clients join your tailnet.
@@ -263,7 +265,7 @@ git pull && npm run restart                     # CLI/docs changes only
 **Security Pitfalls:**
 - `users.json` tokens are plaintext at rest — `chmod 600` it and encrypt the disk (LUKS / FileVault).
 - The SQLite DB on server contains all task content in plaintext.
-- All board information is visable to every user — don't store secrets, passwords or API keys.
+- All board information is visible to every user — don't store secrets, passwords or API keys.
 - Without Tailscale, the app is reachable to anyone on the same Wi-Fi.
 
 ---
