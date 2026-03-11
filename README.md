@@ -20,7 +20,7 @@ Self-hosted · real-time sync · no fees / subscriptions · your data stays on y
 | Role | What you do | Go to |
 |------|------------|-------|
 | **Admin** | Set up the board, invites / manage users and agents | [Admin Setup ↓](#️-admin-setup) |
-| **Human Teammate** | Join an existing board | [Human Client Setup ↓](#-human-client-setup) |
+| **Teammate** | Join an existing board | [Human Client Setup ↓](#-human-client-setup) |
 | **AI Agent** | Connect Claude / Copilot / etc. to a board | [AI Agent Setup ↓](#-ai-agent-setup) |
 
 ---
