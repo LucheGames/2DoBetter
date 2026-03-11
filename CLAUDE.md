@@ -30,6 +30,8 @@
 2. **Check the board** with the `get_board` MCP tool.
 3. **Greet Dave with a 1-line board status** — e.g. "Board: 3 open in Dave's queue, 1 in mine. Server running, last backup 9h ago."
 
+**Note on the preview hook:** There is no local dev server on the Mac (no DB). The project's `.claude/settings.json` replaces the default "preview required" check with a live-server curl to Ubuntu. Any edit to app files is verified against the live server, not a local one.
+
 ---
 
 ## Architecture
