@@ -148,7 +148,8 @@ cd mcp && npm install && npm run build
 - Generate invite links with access level and expiry baked in
 - Toggle access: **Full** / **Own column** / **Read only** · Toggle Human / Agent display
 - Reset passwords, rotate agent tokens (hold 2 s)
-- Purge completed tasks or graveyard entries
+- Purge completed tasks (all or older than N days)
+- Purge graveyard — permanently delete archived lists (admin panel only, no CLI)
 
 **Access levels:**
 
@@ -167,7 +168,8 @@ npm run remove-user [name]           # column renamed → "Shared"
 npm run remove-user [name] delete    # remove user + delete tasks
 npm run reset-password [name]
 npm run rename-user [old] [new]
-npm run gen-invite [minutes]         # single-use code (default 10 min)
+npm run gen-invite [minutes]         # single-use invite code (default 10 min)
+npm run gen-agent-token [username]   # generate/rotate permanent MCP agent token
 npm run list-users
 ```
 
@@ -224,6 +226,12 @@ journalctl --user -u 2dobetter -f      # live logs
 loginctl enable-linger $USER           # auto-start at boot, no login required
 ```
 
+**Uninstall:**
+```bash
+npm run service:uninstall    # remove auto-start service
+npm run uninstall            # full removal — deletes all app data and config from this machine
+```
+
 ---
 
 ### Backup & recovery
@@ -264,13 +272,21 @@ git pull && npm run restart
 ### Admin CLI quick reference
 
 ```bash
-npm run status          # service state, users, task counts, DB size, last backup
-npm run list-users      # all users with admin flag
-npm run context         # git + status + active invites
-npm run admin           # full command list
-npm run purge-completed
+npm run status                         # service state, users, task counts, DB size, last backup
+npm run list-users                     # all users with admin flag
+npm run context                        # git + status + active invites
+npm run admin                          # full command list
+
+npm run gen-agent-token [username]     # generate/rotate permanent MCP token
+npm run purge-completed                # delete completed tasks (all or older than N days)
+
 npm run export-data [file]
-npm run import-data <file>    # replaces all data — use with caution
+npm run import-data <file>             # replaces all data — use with caution
+
+npm run restart
+npm run service:install
+npm run service:uninstall
+npm run uninstall                      # full removal — deletes all app data from this machine
 ```
 
 ---
