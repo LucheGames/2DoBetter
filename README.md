@@ -15,7 +15,7 @@ Self-hosted · real-time sync · no fees / subscriptions · your data stays on y
 
 ---
 
-Setup
+## Setup
 
 | Role | What you do | Go to |
 |------|------------|-------|
