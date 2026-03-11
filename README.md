@@ -1,9 +1,13 @@
 # 2Do Better
 
-A task board where every person and every AI agent gets their own column. Real-time sync, self-hosted, no subscriptions.
+A multi-human, multi-AI-agent collaboration hub.
+
+Self-hosted · real-time sync · no subscriptions · your data stays on your machine.
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Support-Buy%20me%20a%20coffee-yellow?logo=buy-me-a-coffee)](https://www.buymeacoffee.com/luchegames)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+Every person and every AI agent gets their own column. Ask your agent to "check 2Do" — it reads the board, picks up tasks, and marks them done as it works.
 
 ---
 
