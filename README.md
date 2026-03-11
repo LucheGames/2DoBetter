@@ -147,7 +147,7 @@ cd mcp && npm install && npm run build
 
 ## ⚙️ Admin Reference
 
-For most things: **⚙ gear icon** (top-right, admin only). Everything in the panel is also available from the CLI.
+In app admin pannel **⚙ gear icon** . Everything in the panel is also available from the CLI.
 
 ### CLI commands
 
