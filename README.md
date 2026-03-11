@@ -4,39 +4,14 @@ A multi-human, multi-AI-agent collaboration hub.
 
 Self-hosted · real-time sync · no fees / subscriptions · your data stays on your machine.
 
-Every team member and every AI agent gets their own column. Ask your AI agent to "check 2Do" — it reads the board, picks up tasks, and marks them done as it works. 2Do Better was bulit around the MCP protocal, a common standard used by Anthropic, Google and OpenAI used to give ther Agents visibility into your  by making API calls  
+2Do Better was designed to give agents visability into your projects, allowing you to cue up tasks on the go, and accelerate your teams AI workflow. Ask your AI agent to "check 2Do" — it reads the board, picks up tasks, and marks them done as it works. 
+
+2Do Better is bulit from the ground up around MCP (Model Context Protocol), an open-source common standard used by Anthropic, Google and OpenAI for connecting AI applications to external systems.
+
+2Do better works so well that much of 2Do Better was written from inside 2Do Better.
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Support-Buy%20me%20a%20coffee-yellow?logo=buy-me-a-coffee)](https://www.buymeacoffee.com/luchegames)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-
----
-
-## Features
-
-- Multi-user — each person gets a column; everyone sees the full board
-- AI agent reads and writes via MCP — ask it to "check 2Do" and it picks up tasks
-- Real-time sync — changes appear on every device in ~1 second
-- PWA — installs as a home-screen app on iOS, Android, and desktop
-- Project Graveyard — soft-delete lists; restore or purge later
-- Lane mode — admin can lock columns so only the owner can edit
-- Per-user access control — Full / Own column / Read only
-- In-app admin panel — user management, invite links, agent tokens
-- Task attribution — tasks pushed to another column show who created them
-- Rate limiting — 20 writes/minute per user
-- Encrypted backups — daily cron, AES-256
-
----
-
-## Tech Stack
-
-| Layer | What |
-|-------|------|
-| Next.js | Web framework — UI and API routes in one codebase |
-| SQLite | Database — a single file on disk, no separate server needed |
-| Node.js / server.js | Custom server — adds real-time push (SSE) on top of Next.js |
-| Tailscale | Private VPN — board reachable only by invited devices |
-| PWA | Makes 2Do installable on any device |
-| MCP | Plugin protocol for AI agent access |
 
 ---
 
@@ -348,6 +323,35 @@ npm run uninstall                      # full removal — deletes all app data f
 - The SQLite DB contains all task content in plaintext — encrypt the disk, use encrypted backups.
 - Task text is visible to the server admin and all DB readers — don't store passwords or API keys in tasks.
 - Without Tailscale, the app is reachable to anyone on the same Wi-Fi.
+
+---
+
+## Features
+
+- Multi-user — each person gets a column; everyone sees the full board
+- AI agent reads and writes via MCP — ask it to "check 2Do" and it picks up tasks
+- Real-time sync — changes appear on every device in ~1 second
+- PWA — Progressive Web App client installs on iOS, Android, and desktop
+- Project Graveyard — soft-delete lists; restore or purge later
+- (Stay In Your) Lane Mode — admin can lock columns so only the owner can edit
+- Per-user access control — Full / Own column / Read only
+- In-app admin panel — user management, invite links, agent tokens
+- Task attribution — tasks pushed to another column show who created them
+- Rate limiting — 20 writes/minute per user
+- Encrypted backups — daily cron, AES-256
+
+---
+
+## Tech Stack
+
+| Layer | What |
+|-------|------|
+| Next.js | Web framework — UI and API routes in one codebase |
+| SQLite | Database — a single file on disk, no separate server needed |
+| Node.js / server.js | Custom server — adds real-time push (SSE) on top of Next.js |
+| Tailscale | Private VPN — board reachable only by invited devices |
+| PWA | Makes 2Do installable on any device |
+| MCP | Plugin protocol for AI agent access |
 
 ---
 
