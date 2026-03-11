@@ -2,11 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
-// Force Node.js runtime so this proxy shares the process with API routes.
-// Edge Runtime is a separate V8 isolate — it cannot see in-memory process.env
-// mutations made by saveUsers(), so newly registered users would be denied
-// until the server restarted. Node.js runtime also lets us read disk directly.
-export const runtime = 'nodejs';
+// Next.js 16: proxy always runs on Node.js runtime (no export needed).
+// This means we can read disk and share process state with API routes,
+// which is exactly what we need for reading users.json without a restart.
 
 const USERS_FILE = path.join(process.cwd(), 'data', 'users.json');
 
