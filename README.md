@@ -39,9 +39,6 @@ curl -fsSL https://get.docker.com | sh
 sudo usermod -aG docker $USER   # then log out and back in
 ```
 
-> **Fresh Mint install? Two known first-boot issues:**
-> - apt fails with "Failed to fetch" → IPv6 problem. Fix: `echo 'Acquire::ForceIPv4 "true";' | sudo tee /etc/apt/apt.conf.d/99force-ipv4`
-> - apt stalls with "waiting for lock" → background updater grabbed it. Fix: `sudo killall apt unattended-upgrades mintupdate 2>/dev/null && sudo rm -f /var/lib/dpkg/lock* && sudo dpkg --configure -a`
 macOS / Windows: install [Docker Desktop](https://docs.docker.com/get-docker/).
 
 **First time:**
