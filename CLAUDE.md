@@ -34,19 +34,47 @@
 
 ## Architecture
 
-| Machine | Role | Address |
-|---------|------|---------|
-| **Mac** (this one) | Dev + git only | `100.106.235.14` (Tailscale) |
-| **Ubuntu HP Z2** | ⚠️ THE ONLY SERVER | `davistator@100.105.251.44` (Tailscale) · `192.168.10.165` (LAN) |
-| **Android / other devices** | Clients (PWA) | connect to Ubuntu via Tailscale |
+### Who is who
 
-- **App URL:** `https://2dobetter.duckdns.org:3000` — the one and only instance
-- DuckDNS `2dobetter.duckdns.org` → Tailscale IP `100.105.251.44` (Ubuntu), refreshed every 5 min via cron
-- Ubuntu `/etc/hosts`: `127.0.0.1 2dobetter.duckdns.org` (avoids Tailscale hairpin for local access)
-- Ubuntu static LAN IP via netplan: `192.168.10.165`
-- **Mac runs NO server** — the local launchd service is disabled. Do not `npm run restart` or `npm run build` on the Mac. It is a code editor, not a server.
-- **DB lives on Ubuntu only** — `~/2DoBetter/prisma/dev.db` (SQLite, gitignored). The Mac has no database.
-- **Always deploy to Ubuntu** — push to git, then SSH to Ubuntu to pull + build + restart.
+| Role | Machine | Needs Tailscale? | Accesses DB? |
+|------|---------|-----------------|-------------|
+| **Server** | Ubuntu HP Z2 | No — serves directly on LAN | Yes — SQLite lives here |
+| **Human client** | Mac, Android, any browser | Yes — to reach server remotely | No |
+| **AI agent client** | Mac (MCP server process) | Yes — same as human client | No |
+| **Admin (SSH)** | Mac → Ubuntu | Yes — SSH over Tailscale | Indirectly via CLI |
+
+### Network addresses
+
+| Machine | LAN IP | Tailscale IP | Notes |
+|---------|--------|-------------|-------|
+| Ubuntu (server) | `192.168.10.165` | `100.105.251.44` | Static LAN via netplan |
+| Mac (dev) | DHCP | `100.106.235.14` | Tailscale must be active to reach Ubuntu |
+
+### The one URL to rule them all
+
+**`https://2dobetter.duckdns.org:3000`** — used by ALL clients (human and AI).
+
+- DuckDNS resolves to Ubuntu's Tailscale IP `100.105.251.44`
+- Ubuntu `/etc/hosts` maps `2dobetter.duckdns.org → 127.0.0.1` so the server accesses itself via localhost (no Tailscale hairpin needed)
+- Cert is Let's Encrypt for this domain — valid in all browsers, no warnings
+- **Do not hardcode the LAN IP (`192.168.10.165`) in client configs** — it only works on the home LAN and breaks remotely. Always use the DuckDNS URL for anything that is a client of the server.
+
+### Tailscale rules (simple version)
+
+- **Ubuntu server**: Tailscale is installed but only used for SSH admin access. The app itself does NOT need Tailscale to run — it listens on all interfaces and clients reach it via DuckDNS → Tailscale.
+- **Every client** (Mac browser, Android, MCP agent): needs Tailscale active to reach the server when not on the home LAN. On the home LAN, DuckDNS → Tailscale IP still routes via Tailscale tunnel (not via LAN directly).
+- **Mac MCP config** (`~/.claude.json`): `API_BASE_URL` must be `https://2dobetter.duckdns.org:3000`, NOT the LAN IP.
+
+### What lives where
+
+- **DB**: Ubuntu only — `~/2DoBetter/prisma/dev.db` (SQLite, gitignored). Mac has no database.
+- **App server**: Ubuntu only — `npm run restart` / builds on Ubuntu only.
+- **MCP client**: Mac — compiled from `mcp/server.ts`, run by Claude Code as a stdio process. It calls the app's REST API just like a browser would.
+- **Git repo**: Mac → GitHub → Ubuntu (pull to deploy).
+
+### Mac is a code editor, not a server
+
+The Mac launchd service is disabled. Never `npm run restart` or `npm run build` on Mac. Always deploy to Ubuntu.
 
 ---
 
