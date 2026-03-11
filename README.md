@@ -29,6 +29,12 @@ Docker bundles the app and its Node.js runtime into a sealed container. Your dat
 ```bash
 # Fix apt on fresh Mint installs (apt prefers IPv6; most home routers don't route it)
 echo 'Acquire::ForceIPv4 "true";' | sudo tee /etc/apt/apt.conf.d/99force-ipv4
+
+# If apt update/upgrade stalls with "waiting for lock" or "another process using package manager":
+sudo killall apt apt-get unattended-upgrades mintupdate 2>/dev/null
+sudo rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/cache/apt/archives/lock
+sudo dpkg --configure -a
+
 sudo apt update && sudo apt upgrade -y
 
 # Install Docker Engine
