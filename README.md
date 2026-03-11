@@ -260,7 +260,7 @@ git pull && npm run restart                     # CLI/docs changes only
 | Lane mode | Column locks and access flags enforced server-side |
 | Rate limiting | 20 writes/minute per user — throttles runaway agents |
 | Input validation | Prisma parameterised queries — no raw SQL |
-| SQLite backups | encrypted at rest |
+| SQLite backups | Encrypted at rest |
 
 **Security Pitfalls:**
 - `users.json` tokens are plaintext at rest — `chmod 600` it and encrypt the disk (LUKS / FileVault).
