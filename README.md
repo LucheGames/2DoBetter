@@ -253,7 +253,6 @@ git pull && npm run restart                     # CLI/docs changes only
 | Sessions | Random 64-char hex; `httpOnly`, `Secure`, `SameSite=Strict` cookie |
 | Agent tokens | Separate from sessions; rotate any time from admin panel |
 | API auth | Every request validated before reaching any route handler |
-| Admin routes | 403 unless `isAdmin: true` in `users.json` |
 | Lane mode | Column locks and access flags enforced server-side |
 | Rate limiting | 20 writes/minute per user — throttles runaway agents |
 | Input validation | Prisma parameterised queries — no raw SQL |
@@ -263,7 +262,6 @@ git pull && npm run restart                     # CLI/docs changes only
 - `users.json` tokens are plaintext at rest — `chmod 600` it and encrypt the disk (LUKS / FileVault).
 - The SQLite DB on server contains all task content in plaintext.
 - All board information is visible to every user — don't store secrets, passwords or API keys.
-- Without Tailscale, the app is reachable to anyone on the same Wi-Fi.
 
 ---
 
