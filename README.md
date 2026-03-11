@@ -148,67 +148,52 @@ cd mcp && npm install && npm run build
 
 ## ⚙️ Admin Reference
 
-*Everything below is for the server admin.*
+For most things: **⚙ gear icon** (top-right, admin only). Everything in the panel is also available from the CLI.
+
+### CLI commands
+
+| Command | What it does |
+|---------|-------------|
+| `npm run status` | Service state, users, task counts, DB size, last backup |
+| `npm run list-users` | All users with access level and type |
+| `npm run context` | Git + status + active invites |
+| `npm run admin` | Full command list |
+| — | — |
+| `npm run add-user` | Add a user interactively |
+| `npm run remove-user [name]` | Remove user — column renamed to "Shared" |
+| `npm run remove-user [name] delete` | Remove user + delete their column and all tasks |
+| `npm run reset-password [name]` | Reset password |
+| `npm run rename-user [old] [new]` | Rename user and their column |
+| `npm run set-access [name] [full\|own\|readonly]` | Set access level (see below) |
+| `npm run set-type [name] [human\|agent]` | Set display type |
+| `npm run gen-invite` | Generate invite — prompts for expiry, access, type |
+| `npm run gen-agent-token [username]` | Generate/rotate permanent MCP token |
+| — | — |
+| `npm run purge-completed` | Delete completed tasks (all or older than N days) |
+| `npm run purge-graveyard` | Permanently delete archived lists |
+| `npm run export-data [file]` | Export board to JSON |
+| `npm run import-data <file>` | Import from JSON — **replaces all data** |
+| — | — |
+| `npm run restart` | Restart the server |
+| `npm run service:install` | Install auto-start service |
+| `npm run service:uninstall` | Remove auto-start service |
+| `npm run uninstall` | Full removal — deletes all app data from this machine |
+
+**Access levels:** `full` = read/write everywhere · `own` = read everywhere, write only own column · `readonly` = no writes. Human users default to `own`. Monitor agents should be `readonly`.
+
+**Lane mode:** Admin can lock any column (🔒 icon) — only the column owner can then edit it. Anyone can still read and push tasks to a locked column. Lock your column before assigning an agent write access to the board.
 
 ---
 
-### Managing users
+### Remote access
 
-**In-app admin panel** — ⚙ gear icon, top-right:
-- Generate invite links with access level and expiry baked in
-- Toggle access: **Full** / **Own column** / **Read only** · Toggle Human / Agent display
-- Reset passwords, rotate agent tokens (hold 2 s)
-- Purge completed tasks (all or older than N days)
-- Purge graveyard — permanently delete archived lists
-
-**Access levels:**
-
-| Level | What the user can do |
-|-------|---------------------|
-| **Full** | Read and write everywhere (locked columns still enforced) |
-| **Own column** | Read everywhere; write only to their own column |
-| **Read only** | No writes |
-
-Human users default to **Own column**. Monitor agents should be **Read only**.
-
-**CLI:**
 ```bash
-npm run add-user
-npm run remove-user [name]                     # column renamed → "Shared"
-npm run remove-user [name] delete              # remove user + delete tasks
-npm run reset-password [name]
-npm run rename-user [old] [new]
-npm run set-access [name] [full|own|readonly]  # set access level
-npm run set-type [name] [human|agent]          # set display type
-npm run gen-invite                             # interactive: prompts for expiry, access, type
-npm run gen-agent-token [username]             # generate/rotate permanent MCP token
-npm run list-users                             # shows access level + type for each user
+curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up
+tailscale ip -4    # clients connect to https://<this-ip>:3000
 ```
 
----
-
-### Lane mode
-
-Admin can lock any column (🔒 icon). When locked, only the column owner can rename lists, move tasks, or delete items in it. Anyone can still read, complete tasks, and push tasks to a locked column.
-
-**When assigning a new agent:**
-1. Generate an invite — Type = **Agent**, Access = **Own column** (or **Read only** for a monitor)
-2. Lock sensitive columns so the agent's writes stay in its own workspace
-3. Give the agent only its `agentToken` — not a shell session on the server
-
----
-
-### Remote access via Tailscale
-
-```bash
-curl -fsSL https://tailscale.com/install.sh | sh
-sudo tailscale up
-tailscale ip -4    # share this IP with clients — they connect to https://<ip>:3000
+**Optional — memorable hostname via [DuckDNS](https://duckdns.org)** (add to `crontab -e`):
 ```
-
-**Memorable hostname** — register a free subdomain at [duckdns.org](https://duckdns.org):
-```bash
-# crontab -e
 */5 * * * * curl -s "https://www.duckdns.org/update?domains=YOURNAME&token=YOURTOKEN&ip=$(tailscale ip -4)" > /dev/null
 ```
 
@@ -216,8 +201,7 @@ tailscale ip -4    # share this IP with clients — they connect to https://<ip>
 
 ### Install CA cert
 
-Removes the self-signed cert browser warning. Visit `http://your-local-ip:3001/ca.crt`, then:
-
+Removes the browser cert warning. Visit `http://your-local-ip:3001/ca.crt`, then:
 - **iOS:** tap file → Settings → Profile Downloaded → Install → General → About → Certificate Trust Settings → enable
 - **Android:** Settings → Security → Install certificates → CA certificate
 
@@ -225,46 +209,29 @@ Removes the self-signed cert browser warning. Visit `http://your-local-ip:3001/c
 
 ### Background service
 
-**macOS:**
 ```bash
-npm run service:install
-```
-
-**Linux (systemd):**
-```bash
-systemctl --user status 2dobetter
-systemctl --user restart 2dobetter
-journalctl --user -u 2dobetter -f      # live logs
-loginctl enable-linger $USER           # auto-start at boot, no login required
-```
-
-**Uninstall:**
-```bash
-npm run service:uninstall    # remove auto-start service
-npm run uninstall            # full removal — deletes all app data and config from this machine
+npm run service:install          # macOS (launchd)
+loginctl enable-linger $USER     # Linux — auto-start at boot, no login required
+journalctl --user -u 2dobetter -f   # Linux — live logs
 ```
 
 ---
 
 ### Backup & recovery
 
-Encrypted backups are configured during setup and run daily via cron.
+Encrypted backups run daily via cron (configured during setup).
 
-**Restore from encrypted backup:**
 ```bash
+# Restore from encrypted backup:
 openssl enc -d -aes-256-cbc -pbkdf2 -iter 100000 \
-  -in backup.db.enc -out restored.db \
-  -pass file:~/.2dobetter_backup_key
-
+  -in backup.db.enc -out restored.db -pass file:~/.2dobetter_backup_key
 systemctl --user stop 2dobetter
 cp restored.db ~/2DoBetter/prisma/dev.db
 systemctl --user start 2dobetter
-```
 
-**Portable JSON backup (easier for migrations):**
-```bash
-npm run export-data backup.json    # export
-npm run import-data backup.json    # import — replaces all current data
+# Portable JSON backup (easier for migrations):
+npm run export-data backup.json
+npm run import-data backup.json    # replaces all current data
 ```
 
 ---
@@ -272,34 +239,8 @@ npm run import-data backup.json    # import — replaces all current data
 ### Deploying updates
 
 ```bash
-git pull
-npm run build && npm run restart    # required for UI/API changes
-
-# CLI-only changes (scripts/, docs) — skip the build:
-git pull && npm run restart
-```
-
----
-
-### Admin CLI quick reference
-
-```bash
-npm run status                         # service state, users, task counts, DB size, last backup
-npm run list-users                     # all users with admin flag
-npm run context                        # git + status + active invites
-npm run admin                          # full command list
-
-npm run gen-agent-token [username]     # generate/rotate permanent MCP token
-npm run purge-completed                # delete completed tasks (all or older than N days)
-npm run purge-graveyard                # permanently delete archived lists
-
-npm run export-data [file]
-npm run import-data <file>             # replaces all data — use with caution
-
-npm run restart
-npm run service:install
-npm run service:uninstall
-npm run uninstall                      # full removal — deletes all app data from this machine
+git pull && npm run build && npm run restart    # UI/API changes
+git pull && npm run restart                     # CLI/docs changes only
 ```
 
 ---
