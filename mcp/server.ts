@@ -2,11 +2,12 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
-// Trust self-signed certs for local HTTPS
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-
 const API_BASE = process.env.API_BASE_URL || "https://localhost:3000";
 const AUTH_TOKEN = process.env.AUTH_TOKEN || "";
+
+// Disable TLS verification for self-signed/LAN certs.
+// Remove this line if API_BASE_URL uses a trusted cert (e.g. Let's Encrypt).
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 async function api(path: string, options?: RequestInit) {
   const headers: Record<string, string> = {
@@ -14,13 +15,17 @@ async function api(path: string, options?: RequestInit) {
     ...(options?.headers as Record<string, string>),
   };
   if (AUTH_TOKEN) {
-    headers["Cookie"] = `auth_token=${AUTH_TOKEN}`;
+    headers["Authorization"] = `Bearer ${AUTH_TOKEN}`;
   }
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers,
   });
   if (res.status === 204) return { success: true };
+  if (!res.ok) {
+    const text = await res.text();
+    return { error: `HTTP ${res.status}`, detail: text };
+  }
   return res.json();
 }
 
@@ -30,7 +35,7 @@ const server = new McpServer({
 });
 
 // Get full board state
-server.tool("get_board", "Get the full board state — all columns, lists, sub-lists, and tasks", {}, async () => {
+server.tool("get_board", "Get the full board state — all columns, lists, and tasks", {}, async () => {
   const data = await api("/api/overview");
   return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
 });
@@ -38,12 +43,15 @@ server.tool("get_board", "Get the full board state — all columns, lists, sub-l
 // Get a specific column
 server.tool(
   "get_column",
-  "Get a specific column's lists and tasks by slug (dave or claude)",
-  { column: z.enum(["dave", "claude"]).describe("Column slug") },
+  "Get a specific column's lists and tasks by slug (e.g. 'dave', 'claude', or any column slug)",
+  { column: z.string().describe("Column slug (e.g. 'dave', 'claude')") },
   async ({ column }) => {
     const board = await api("/api/overview");
     const col = board.columns?.find((c: any) => c.slug === column);
-    if (!col) return { content: [{ type: "text", text: `Column "${column}" not found` }] };
+    if (!col) {
+      const available = (board.columns || []).map((c: any) => c.slug).join(", ");
+      return { content: [{ type: "text", text: `Column "${column}" not found. Available: ${available}` }] };
+    }
     return { content: [{ type: "text", text: JSON.stringify(col, null, 2) }] };
   }
 );
@@ -53,23 +61,14 @@ server.tool(
   "create_list",
   "Create a new list in a column",
   {
-    columnId: z.number().describe("Column ID (1=Dave, 2=Claude)"),
+    columnId: z.number().describe("Column ID"),
     name: z.string().describe("List name"),
-    parentListId: z.number().optional().describe("Parent list ID for sub-lists"),
   },
-  async ({ columnId, name, parentListId }) => {
-    let data;
-    if (parentListId) {
-      data = await api(`/api/lists/${parentListId}/children`, {
-        method: "POST",
-        body: JSON.stringify({ name }),
-      });
-    } else {
-      data = await api(`/api/columns/${columnId}/lists`, {
-        method: "POST",
-        body: JSON.stringify({ name }),
-      });
-    }
+  async ({ columnId, name }) => {
+    const data = await api(`/api/columns/${columnId}/lists`, {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
     return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
   }
 );
@@ -119,7 +118,7 @@ server.tool(
   }
 );
 
-// Update a task
+// Update a task title
 server.tool(
   "update_task",
   "Update a task's title",
@@ -164,6 +163,40 @@ server.tool(
   }
 );
 
+// Rename a list
+server.tool(
+  "rename_list",
+  "Rename a list",
+  {
+    listId: z.number().describe("List ID"),
+    name: z.string().describe("New list name"),
+  },
+  async ({ listId, name }) => {
+    const data = await api(`/api/lists/${listId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ name }),
+    });
+    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  }
+);
+
+// Move a list to a different column
+server.tool(
+  "move_list",
+  "Move a list to a different column",
+  {
+    listId: z.number().describe("List ID"),
+    targetColumnId: z.number().describe("Target column ID"),
+  },
+  async ({ listId, targetColumnId }) => {
+    const data = await api(`/api/lists/${listId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ columnId: targetColumnId }),
+    });
+    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  }
+);
+
 // Search tasks
 server.tool(
   "search_tasks",
@@ -179,13 +212,6 @@ server.tool(
         for (const task of list.tasks || []) {
           if (task.title.toLowerCase().includes(q)) {
             results.push({ ...task, column: col.name, list: list.name });
-          }
-        }
-        for (const child of list.children || []) {
-          for (const task of child.tasks || []) {
-            if (task.title.toLowerCase().includes(q)) {
-              results.push({ ...task, column: col.name, list: `${list.name} > ${child.name}` });
-            }
           }
         }
       }
@@ -204,14 +230,37 @@ server.tool(
   }
 );
 
-// Delete a list
+// Archive a list (soft-delete to graveyard)
 server.tool(
-  "delete_list",
-  "Delete a list and all its tasks",
+  "archive_list",
+  "Archive a list to the graveyard (soft-delete — recoverable)",
   { listId: z.number().describe("List ID") },
   async ({ listId }) => {
     await api(`/api/lists/${listId}`, { method: "DELETE" });
-    return { content: [{ type: "text", text: `List ${listId} deleted` }] };
+    return { content: [{ type: "text", text: `List ${listId} archived to graveyard` }] };
+  }
+);
+
+// Restore a list from graveyard
+server.tool(
+  "restore_list",
+  "Restore an archived list from the graveyard back to the board",
+  { listId: z.number().describe("List ID") },
+  async ({ listId }) => {
+    const data = await api(`/api/graveyard/${listId}/resurrect`, { method: "POST" });
+    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+  }
+);
+
+// View graveyard (archived lists)
+server.tool(
+  "get_graveyard",
+  "List all archived lists in the graveyard, optionally filtered by column",
+  { columnId: z.number().optional().describe("Filter by column ID (optional)") },
+  async ({ columnId }) => {
+    const path = columnId ? `/api/graveyard?columnId=${columnId}` : "/api/graveyard";
+    const data = await api(path);
+    return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
   }
 );
 
