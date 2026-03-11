@@ -1,159 +1,104 @@
 # 2Do Better
 
-A multi-human, multi-AI-agent collaboration hub.
-
-Self-hosted · real-time sync · no subscriptions · your data stays on your machine.
+A task board where every person and every AI agent gets their own column. Real-time sync, self-hosted, no subscriptions.
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Support-Buy%20me%20a%20coffee-yellow?logo=buy-me-a-coffee)](https://www.buymeacoffee.com/luchegames)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
 
-## What is it?
+## Which role are you?
 
-2Do Better is a task board where every person and every AI agent gets their own column. All columns are shared, and information syncs in real time across every device on your network. Ask agent to "check 2Do" — it reads the board, picks up tasks, asks for clarifications, and marks them done as it works.
-
----
-
-## Who needs to install what?
-
-**There are two completely separate roles:**
-
-| Role | What you need | Install time |
-|------|--------------|-------------|
-| **Server operator** | One person sets up the server — Node.js 20+, a machine to run it on, optional domain | ~20 min |
-| **Client user** | Everyone else — just a browser and Tailscale | ~5 min |
-| **AI agent** | Node.js 20+ to compile the MCP client; an agent token from the admin | ~10 min |
-
-**If you just want to use someone else's board:** skip to [Client Setup — Join an existing board](#-client-setup--join-an-existing-board).
-
-**If you're setting up a board for others to join:** start at [Server Setup](#-server-setup--run-your-own-board).
+| Role | What you do | Go to |
+|------|------------|-------|
+| **Server Admin** | Set up the board, manage users | [Server Admin Setup ↓](#️-server-admin-setup) |
+| **Human Client** | Join a board someone else runs | [Human Client Setup ↓](#-human-client-setup) |
+| **AI Agent** | Connect Claude / Copilot / etc. to a board | [AI Agent Setup ↓](#-ai-agent-setup) |
 
 ---
 
-## Features
+## 🖥️ Server Admin Setup
 
-- **Multi-user** — each person gets a column; everyone sees the full board
-- **AI agent** — AI agent reads and writes to your board directly via MCP
-- **Real-time sync** — changes appear on every device in ~1 second
-- **PWA** — installs as a home-screen app on iOS, Android, and desktop
-- **Project Graveyard** — soft-delete projects; restore or purge later
-- **Lane mode** — admin can lock columns so only the owner can edit them
-- **Access control** — per-user flags: Full / Own column only / Read only
-- **Admin panel** — in-app GUI to manage users, set access levels, generate invite links
-- **Invite-code onboarding** — time-limited single-use codes with access flags baked in
-- **Task attribution** — tasks pushed to another column show who created them (↑ username)
-- **Rate limiting** — 20 writes/minute per user to throttle runaway agents
-- **Full admin CLI** — manage users, reset passwords, export/import from terminal
-- **Encrypted backups** — daily cron, AES-256, local or Google Drive
-
----
-
-## 🖥 Server Setup — Run your own board
-
-> **Requires:** Node.js 20+, macOS or Linux *(Windows support planned — see [ROADMAP.md](ROADMAP.md))*
->
 > **One person does this.** Everyone else joins as a client — no server install needed.
->
-> **Don't have Node.js 20?** Install via [nvm](https://github.com/nvm-sh/nvm#installing-and-updating) (follow the nvm README for your OS), then:
-> ```bash
-> nvm install 20
-> nvm use 20
-> ```
-> `git` and `curl` come pre-installed on most Linux/macOS systems. If not: `sudo apt install git curl` (Debian/Ubuntu/Mint).
 
+### Option A — Docker *(recommended for always-on servers)*
+
+Docker bundles the app and its Node.js runtime into a sealed container. Your data (DB, users, certs) lives outside and survives rebuilds.
+
+**Prerequisites — Linux / Mint / Ubuntu:**
 ```bash
-git clone https://github.com/LucheGames/2DoBetter.git
-cd 2DoBetter
-npm install
-npm run setup        # interactive wizard: creates your user, certs, and config
-npm start
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER   # then log out and back in
 ```
-
-Open `https://localhost:3000`. Accept the browser cert warning (see [Install CA cert](#install-the-ca-cert-optional--removes-browser-warnings) to fix permanently).
-
-The setup wizard creates:
-- `data/users.json` — your credentials (never committed to git)
-- `certs/` — self-signed TLS cert + CA
-- `.env.local` — local config
-
-**You now have a working board.** To share it with others, continue to [Adding Users](#adding-users-optional--multi-user-setup). To connect an AI agent, continue to [MCP Setup](#-mcp-setup--required-for-ai-agent-use).
-
----
-
-## 🐳 Server Setup — Docker *(alternative — recommended for always-on servers)*
-
-> **Requires:** git · [Docker](https://docs.docker.com/get-docker/) (Engine on Linux, Desktop on Mac/Windows)
->
-> Docker is a form of encapsulation — it wraps the app, Node.js runtime, and all dependencies into a sealed container. You ship the box, not the instructions for building it. Your data (database, users, certs) lives outside the container so you can update or rebuild it without losing anything.
->
-> **Linux Mint / Ubuntu — install Docker Engine first** (no Node.js needed):
-> ```bash
-> curl -fsSL https://get.docker.com | sh
-> sudo usermod -aG docker $USER   # then log out and back in
-> ```
-> Already have Docker? Skip ahead.
+macOS / Windows: install [Docker Desktop](https://docs.docker.com/get-docker/).
 
 **First time:**
 ```bash
 git clone https://github.com/LucheGames/2DoBetter.git
 cd 2DoBetter
-docker compose build                                    # build the image (~2-3 min first time)
-docker compose up -d                                    # start the container
-docker exec -it 2dobetter node scripts/setup.js        # run the setup wizard
-docker compose restart                                  # pick up .env.local created by wizard
+docker compose build                                   # ~2–3 min first time
+docker compose up -d
+docker exec -it 2dobetter node scripts/setup.js       # first-run wizard
+docker compose restart                                 # picks up wizard config
 ```
 
 Open `https://localhost:3000`.
 
-**Updating:**
+**Day 2+:**
 ```bash
-git pull
-docker compose up -d --build    # rebuilds image and restarts — data is untouched
-```
-
-**Useful commands:**
-```bash
-docker compose logs -f           # live logs
-docker compose down              # stop (data safe)
-docker compose down --rmi all    # stop + delete image (data still safe — it's in ./data and ./prisma)
+git pull && docker compose up -d --build              # update — data untouched
+docker compose logs -f                                # live logs
 docker exec -it 2dobetter node scripts/admin.js status
 ```
 
-**What persists between container rebuilds** (these are volume-mounted from the host):
-- `./data/` — users, invite codes
-- `./prisma/` — the SQLite database (`dev.db`)
-- `./certs/` — TLS certificate and key
+Data that persists between rebuilds (volume-mounted): `./data/` · `./prisma/` (SQLite DB) · `./certs/`
 
 ---
 
-## 📱 Client Setup — Join an existing board
+### Option B — Node.js direct
 
-**You do not need to install Node.js, clone the repo, or run any build steps.**
-The board is a web app. You need:
+**Prerequisites:** Node.js 20+ ([nvm](https://github.com/nvm-sh/nvm#installing-and-updating) recommended → `nvm install 20`). `git` and `curl` are pre-installed on most Linux/macOS; if not: `sudo apt install git curl`.
 
-1. **Tailscale** — install it and join the server operator's network:
-   - [Download Tailscale](https://tailscale.com/download) for your device
-   - The server operator sends you a Tailscale invite (or you join their tailnet)
+```bash
+git clone https://github.com/LucheGames/2DoBetter.git
+cd 2DoBetter
+npm install
+npm run setup    # wizard: creates user, certs, .env.local
+npm start
+```
 
-2. **An invite link** — the server operator generates one from the in-app admin panel. Open it in your browser, set a password, and you're in.
-
-3. **Bookmark it or install as a PWA:**
-   - On iOS: tap Share → "Add to Home Screen"
-   - On Android: tap the browser menu → "Install app"
-   - On desktop: look for the install icon in the address bar
-
-That's it. No code, no terminal, no Node.js.
-
-> **On the same local network as the server?** You may be able to connect without Tailscale — ask the server operator for the local IP address.
+Open `https://localhost:3000`. Accept the cert warning on first visit, or [install the CA cert](#install-ca-cert) to remove it permanently.
 
 ---
 
-## 🤖 MCP Setup — Required for AI Agent Use
+### After first run
 
-MCP (Model Context Protocol) is the plugin system that lets an AI Agent talk directly to 2Do Better. Without this, Agent can't see or update your board.
+- **Add users** — ⚙ gear icon → admin panel → Generate invite link. Recipient opens it and self-registers.
+- **Remote access** — set up [Tailscale](#remote-access-via-tailscale) on the server; clients join your tailnet.
+- **Auto-start** — [run as a background service](#background-service).
+- **Remove cert warnings** — [install the CA cert](#install-ca-cert) on each device.
 
-**1. Build the MCP server** (one-time, on the machine where AI Agent runs):
+---
+
+## 📱 Human Client Setup
+
+No Node.js, no git, no terminal.
+
+1. **Tailscale** — [download](https://tailscale.com/download) and join the server admin's tailnet.
+2. **Invite link** — the admin generates one from the ⚙ gear menu. Open it, set a password, done.
+3. **Install as PWA** — iOS: Share → Add to Home Screen · Android: browser menu → Install app · Desktop: install icon in address bar.
+
+> **On the same local network as the server?** Ask the admin for the LAN IP — Tailscale optional.
+
+---
+
+## 🤖 AI Agent Setup
+
+MCP (Model Context Protocol) lets an agent read and write the board directly.
+
+**Prerequisites:** Node.js 20+ on the machine where the AI runs. An agent token from the admin (⚙ gear → agent's column → Rotate agent token).
+
+**1. Build the MCP client** (one-time):
 ```bash
 cd mcp && npm install && npm run build
 ```
@@ -164,9 +109,9 @@ cd mcp && npm install && npm run build
   "mcpServers": {
     "2dobetter": {
       "command": "node",
-      "args": ["/path/to/2DoBetter/mcp/dist/server.js"],
+      "args": ["/absolute/path/to/2DoBetter/mcp/dist/server.js"],
       "env": {
-        "API_BASE_URL": "https://your-server-url:3000",
+        "API_BASE_URL": "https://your-board-url:3000",
         "AUTH_TOKEN":   "your-agent-token"
       }
     }
@@ -174,139 +119,116 @@ cd mcp && npm install && npm run build
 }
 ```
 
-- `API_BASE_URL`: the same URL you open in your browser (e.g. `https://2dobetter.duckdns.org:3000`)
-- `AUTH_TOKEN`: a permanent agent token — generate one in the admin panel under your agent's username → "Rotate agent token"
+**3.** Start a session — the agent greets you with a board summary and can read, update, and complete tasks directly.
 
-**3. Start a Claude Code session** — Claude will greet you with a board summary and can now check, update, and manage tasks directly.
+**Available tools:**
 
-**Available MCP tools:**
+| Category | Tools |
+|----------|-------|
+| Board | `get_board` · `get_column` |
+| Lists | `create_list` · `rename_list` · `move_list` · `archive_list` · `restore_list` · `get_graveyard` |
+| Tasks | `create_task` · `update_task` · `delete_task` · `move_task` · `complete_task` · `uncomplete_task` · `search_tasks` |
 
-| Tool | What it does |
-|------|-------------|
-| `get_board` | Full board — all columns, lists, tasks |
-| `get_column` | One column by slug (e.g. `'claude'`, `'dave'`) |
-| `create_list` | Add a list to a column |
-| `rename_list` | Rename a list |
-| `move_list` | Move a list to a different column |
-| `archive_list` | Soft-delete a list (recoverable from graveyard) |
-| `restore_list` | Bring a list back from the graveyard |
-| `get_graveyard` | View archived lists |
-| `create_task` | Add a task to a list |
-| `complete_task` | Mark a task done |
-| `uncomplete_task` | Reinstate a completed task |
-| `update_task` | Rename a task |
-| `delete_task` | Delete a task permanently |
-| `move_task` | Move a task to a different list |
-| `search_tasks` | Find tasks by title (case-insensitive substring) |
+> Other agents (Gemini, OpenAI Agents SDK, GitHub Copilot) also support MCP — see [ROADMAP.md](ROADMAP.md).
+> REST API / Custom GPTs: see [`openapi.yaml`](openapi.yaml).
 
-> **Other agents (Gemini, OpenAI Agents SDK, GitHub Copilot)** also support MCP natively — see [ROADMAP.md](ROADMAP.md) for setup guides.
-> **REST API / Custom GPTs:** see [`openapi.yaml`](openapi.yaml) for the full API spec.
+**Security note:** The MCP client is a client process — it connects to the board URL via HTTPS, exactly like a browser. The agent should never have SSH access to the server or read access to `data/users.json` / `prisma/dev.db`. Give it only its agent token.
 
 ---
 
-## 🔧 Admin — Server & Multi-User Setup
+## ⚙️ Admin Reference
 
-The sections below are for whoever runs the server. On a single-device personal setup the "admin" and "new user" are the same person.
-
----
-
-### Install the CA cert *(optional — removes browser warnings)*
-
-After `npm run setup`, the wizard prints your local IP. Install the CA cert once per device to trust your self-signed cert permanently:
-
-1. Visit `http://your-local-ip:3001/ca.crt`
-2. Install the cert:
-   - **iOS:** tap file → Settings → Profile Downloaded → Install → then Settings → General → About → Certificate Trust Settings → enable it
-   - **Android:** Settings → Security → Install certificates → CA certificate
-3. Open `https://your-local-ip:3000` — no more browser warning
+*Everything below is for the server admin.*
 
 ---
 
-### Run as a Background Service *(optional — auto-starts on login)*
+### Managing users
 
-By default, `npm start` runs in your terminal. To run permanently:
-
-**macOS:**
-```bash
-npm run service:install    # installs a launchd agent + 2DoBetter.app in /Applications
-```
-
-**Linux (systemd):**
-```bash
-# The setup wizard offers this automatically.
-# To manage manually:
-systemctl --user status 2dobetter
-systemctl --user restart 2dobetter
-journalctl --user -u 2dobetter -f    # live logs
-
-# Auto-start at boot (no login required):
-loginctl enable-linger $USER
-```
-
----
-
-### Remote Access via Tailscale *(optional — access from outside your LAN)*
-
-By default, 2Do Better is accessible on your local network only. Tailscale gives you secure remote access with no port-forwarding or firewall changes.
-
-**1. Install Tailscale on your server and all client devices:**
-```bash
-curl -fsSL https://tailscale.com/install.sh | sh
-sudo tailscale up
-tailscale ip -4    # note this IP — clients connect to it
-```
-
-Access the app at `https://<tailscale-ip>:3000`.
-
-**2. Memorable hostname via DuckDNS *(optional)*:**
-
-Register a free subdomain at [duckdns.org](https://duckdns.org), then keep it updated:
-```bash
-# Add to crontab (crontab -e):
-*/5 * * * * curl -s "https://www.duckdns.org/update?domains=YOURNAME&token=YOURTOKEN&ip=$(tailscale ip -4)" > /dev/null
-```
-
----
-
-### Adding Users *(optional — multi-user setup)*
-
-Every user gets their own column. All columns are visible to everyone on the board. High trust + total visibility = high velocity.
-
-**From the in-app admin panel** *(recommended)*:
-
-Click the ⚙ gear icon in the top-right header (admin only). The panel lets you:
-- See all users with their current access level
-- Toggle access: **Full** / **Own column** / **Read only** per user
-- Toggle Human / Agent display type per user
-- Generate an invite link — choose type, access level, and expiry (1h / 24h / 7d)
-- Copy the link and send it directly; recipient opens it and self-registers
+**In-app admin panel** *(recommended)* — ⚙ gear icon, top-right:
+- Generate invite links with access level and expiry baked in
+- Toggle access: **Full** / **Own column** / **Read only** · Toggle Human / Agent display
+- Reset passwords, rotate agent tokens (hold 2 s)
+- Purge completed tasks or graveyard entries
 
 **Access levels:**
 
 | Level | What the user can do |
 |-------|---------------------|
 | **Full** | Read and write everywhere (locked columns still enforced) |
-| **Own column** | Read everywhere, write only to their own column; cross-column push blocked |
-| **Read only** | Read-only — no writes of any kind |
+| **Own column** | Read everywhere; write only to their own column |
+| **Read only** | No writes |
 
-Human users invited via link default to **Own column**. Observer/monitor agents should be **Read only**.
+Human users default to **Own column**. Monitor agents should be **Read only**.
 
-**From the CLI** *(alternative)*:
+**CLI fallback:**
 ```bash
-npm run gen-invite           # 10-min code (no access flags — use admin panel for flags)
-npm run add-user             # add user interactively
-npm run list-users
-npm run remove-user [name]              # column renamed → "Shared"
-npm run remove-user [name] delete       # remove user + delete all their tasks
+npm run add-user
+npm run remove-user [name]           # column renamed → "Shared"
+npm run remove-user [name] delete    # remove user + delete tasks
 npm run reset-password [name]
 npm run rename-user [old] [new]
+npm run gen-invite [minutes]         # single-use code (default 10 min)
+npm run list-users
 ```
 
 ---
 
-### Backup & Recovery *(optional — recommended for always-on servers)*
+### Lane mode
 
-Encrypted backups are configured during `npm run setup` and run daily via cron.
+Admin can lock any column (🔒 icon). When locked, only the column owner can rename lists, move tasks, or delete items in it. Anyone can still read, complete tasks, and push tasks to a locked column.
+
+**When assigning a new agent:**
+1. Generate an invite — Type = **Agent**, Access = **Own column** (or **Read only** for a monitor)
+2. Lock sensitive columns so the agent's writes stay in its own workspace
+3. Give the agent only its `agentToken` — not a shell session on the server
+
+---
+
+### Remote access via Tailscale
+
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
+tailscale ip -4    # share this IP with clients — they connect to https://<ip>:3000
+```
+
+**Memorable hostname** — register a free subdomain at [duckdns.org](https://duckdns.org):
+```bash
+# crontab -e
+*/5 * * * * curl -s "https://www.duckdns.org/update?domains=YOURNAME&token=YOURTOKEN&ip=$(tailscale ip -4)" > /dev/null
+```
+
+---
+
+### Install CA cert
+
+Removes the self-signed cert browser warning. Visit `http://your-local-ip:3001/ca.crt`, then:
+
+- **iOS:** tap file → Settings → Profile Downloaded → Install → General → About → Certificate Trust Settings → enable
+- **Android:** Settings → Security → Install certificates → CA certificate
+
+---
+
+### Background service
+
+**macOS:**
+```bash
+npm run service:install
+```
+
+**Linux (systemd):**
+```bash
+systemctl --user status 2dobetter
+systemctl --user restart 2dobetter
+journalctl --user -u 2dobetter -f      # live logs
+loginctl enable-linger $USER           # auto-start at boot, no login required
+```
+
+---
+
+### Backup & recovery
+
+Encrypted backups are configured during setup and run daily via cron.
 
 **Restore from encrypted backup:**
 ```bash
@@ -321,18 +243,17 @@ systemctl --user start 2dobetter
 
 **Portable JSON backup (easier for migrations):**
 ```bash
-npm run export-data backup.json    # export from old server
-npm run import-data backup.json    # import on new server
+npm run export-data backup.json    # export
+npm run import-data backup.json    # import — replaces all current data
 ```
 
 ---
 
-### Deploying Updates
+### Deploying updates
 
 ```bash
 git pull
-npm run build        # required for UI/API changes
-npm run restart
+npm run build && npm run restart    # required for UI/API changes
 
 # CLI-only changes (scripts/, docs) — skip the build:
 git pull && npm run restart
@@ -340,138 +261,74 @@ git pull && npm run restart
 
 ---
 
-## 🔧 Admin CLI Reference
+### Admin CLI quick reference
 
-Run `npm run admin` for a quick summary. All commands run on the server machine.
-
-**Info**
-
-| Command | What it does |
-|---------|-------------|
-| `npm run status` | Service state, users, task counts, DB size, last backup |
-| `npm run list-users` | All users with admin tag and column name |
-| `npm run context` | Git branch, recent commits, server health, active invite codes |
-
-**User management**
-
-| Command | What it does |
-|---------|-------------|
-| `npm run setup` | Full first-run wizard |
-| `npm run add-user` | Add a user interactively |
-| `npm run remove-user [name]` | Remove user — column renamed to "Shared" |
-| `npm run remove-user [name] delete` | Remove user + delete column and all tasks |
-| `npm run reset-password [name]` | Reset password |
-| `npm run rename-user [old] [new]` | Rename user and their column atomically |
-| `npm run gen-invite [minutes]` | Single-use invite code (default 10 min) |
-
-**Database**
-
-| Command | What it does |
-|---------|-------------|
-| `npm run export-data [file]` | Export board to JSON |
-| `npm run import-data <file>` | Import from JSON — **replaces all current data** |
-| `npm run purge-completed` | Delete completed tasks — all, or older than N days |
-
-**Service**
-
-| Command | What it does |
-|---------|-------------|
-| `npm run restart` | Restart server (auto-detects launchctl / systemctl) |
-| `npm run service:install` | Install auto-start service (macOS) |
-| `npm run service:uninstall` | Remove auto-start service (macOS) |
-
----
-
-## 🔒 Lane Mode & Agent Security
-
-### Column locks
-
-Admin can lock any column by clicking its 🔒 icon. When locked:
-- Only the column owner can rename lists, move tasks, or delete items in that column
-- Anyone can still read the column, complete tasks, and push tasks to it
-- Admin can unlock at any time
-
-### Assigning a new agent
-
-1. In the admin panel, generate an invite link — set Type = **Agent**, Access = **Own column** (or **Read only** for a monitor)
-2. The invite encodes those flags into the resulting account
-3. Give the agent only its `agentToken` for MCP/API access — **not** a shell session on the server machine
-4. Lock your column and other sensitive columns so the agent's writes are limited to its own workspace
-
-### What the server enforces vs. what it cannot
-
-| Threat | Enforced? |
-|--------|-----------|
-| API calls to locked columns | ✅ 403 — enforced server-side |
-| readOnly user making any write | ✅ 403 — enforced server-side |
-| ownColumnOnly user pushing to other columns | ✅ 403 — enforced server-side |
-| Rate limiting (20 writes/min) | ✅ 429 — enforced server-side |
-| Agent with shell access editing server code | ❌ Not enforceable at app level |
-
-### ⚠️ The golden rule: agents see the API, not the server
-
-An AI agent's correct relationship to 2Do Better is identical to a browser's: it sends authenticated HTTP requests to the board's REST API and receives JSON back. That is the entire surface it needs.
-
-**An agent should never have:**
-- A shell session (SSH) on the server machine
-- Read access to `data/users.json` (contains tokens and password hashes)
-- Read access to `prisma/dev.db` (contains all task data in plaintext)
-- Knowledge of the server's filesystem layout or internal processes
-
-**How to enforce this:**
-- Give the agent only an `agentToken` — a single credential that expires only when you rotate it
-- The agent uses this token as an `Authorization: Bearer` header on API calls — same as a browser uses a cookie
-- The MCP server bundled with 2Do Better is a client process (it runs on the same machine as the AI, not on the server). It connects to the board URL exactly as a browser would.
-- If you're running an AI coding assistant (like Claude Code) on the same machine as your 2Do Better server: open a separate shell session for the assistant that does not have the server's SSH key or sudo access
+```bash
+npm run status          # service state, users, task counts, DB size, last backup
+npm run list-users      # all users with admin flag
+npm run context         # git + status + active invites
+npm run admin           # full command list
+npm run purge-completed
+npm run export-data [file]
+npm run import-data <file>    # replaces all data — use with caution
+```
 
 ---
 
 ## 🔐 Security
 
-### What's protected
-
 | Layer | How |
 |-------|-----|
-| **Transport** | HTTPS everywhere — self-signed cert by default, or bring your own (Let's Encrypt via DuckDNS) |
-| **Passwords** | bcrypt-hashed before storage — plaintext is never written anywhere |
-| **Sessions** | Random 64-char hex token; stored in an `httpOnly`, `Secure`, `SameSite=Strict` cookie — not accessible to JavaScript |
-| **Agent tokens** | Separate from session tokens; can be rotated any time from the admin panel without affecting the user's login session |
-| **API auth** | Every request validated in middleware before reaching any route handler |
-| **Admin routes** | `/api/admin/*` return 403 unless the caller has `isAdmin: true` in `users.json` |
-| **Lane mode** | Column locks and `readOnly`/`ownColumnOnly` flags enforced server-side — clients cannot bypass them |
-| **Rate limiting** | 20 writes/minute per user — keeps runaway agents from flooding the DB |
-| **Input validation** | Prisma parameterised queries throughout — no raw SQL, no injection surface |
+| Transport | HTTPS everywhere — self-signed cert by default |
+| Passwords | bcrypt-hashed; plaintext never written |
+| Sessions | Random 64-char hex; `httpOnly`, `Secure`, `SameSite=Strict` cookie |
+| Agent tokens | Separate from sessions; rotate any time from admin panel |
+| API auth | Every request validated before reaching any route handler |
+| Admin routes | 403 unless `isAdmin: true` in `users.json` |
+| Lane mode | Column locks and access flags enforced server-side |
+| Rate limiting | 20 writes/minute per user — throttles runaway agents |
+| Input validation | Prisma parameterised queries — no raw SQL |
 
-### Potential pitfalls
+**Pitfalls:**
+- `users.json` tokens are plaintext at rest — `chmod 600` it and encrypt the disk (LUKS / FileVault).
+- The SQLite DB contains all task content in plaintext — encrypt the disk, use encrypted backups.
+- Task text is visible to the server admin and all DB readers — don't store passwords or API keys in tasks.
+- Without Tailscale, the app is reachable to anyone on the same Wi-Fi.
 
-- **`users.json` is plaintext at rest.** Passwords are hashed but session tokens and agent tokens are stored as-is. If an attacker gets read access to the file they can impersonate any user. Protect it with filesystem permissions (`chmod 600`) and keep the machine's disk encrypted (FileVault / LUKS).
-- **SQLite is not encrypted.** The database file (`prisma/dev.db`) contains all task data in plaintext. Use the encrypted backup feature and keep the machine's disk encrypted.
-- **Self-signed cert produces browser warnings** on new devices. The warnings are cosmetic — the connection is still encrypted — but they can train users to click through certificate warnings generally. Install the CA cert on each device (see above) to eliminate them.
-- **Task text is not end-to-end encrypted.** Everything written to a task is readable by the server admin and by anyone with DB access. Do not use task descriptions to store passwords, API keys, tokens, or other secrets.
-- **Network scope.** Without Tailscale (or equivalent), the app listens on your local network. Anyone on the same Wi-Fi can reach it. Run behind Tailscale for any non-home network.
+---
 
-### ⚠️ Don't put secrets in tasks
+## Features
 
-The board is a shared workspace. Treat it like a shared whiteboard — visible to every user and to the server admin. If you need to share a credential with an agent, use environment variables or a secrets manager — not a task description.
+- Multi-user — each person gets a column; everyone sees the full board
+- AI agent reads and writes via MCP — ask it to "check 2Do" and it picks up tasks
+- Real-time sync — changes appear on every device in ~1 second
+- PWA — installs as a home-screen app on iOS, Android, and desktop
+- Project Graveyard — soft-delete lists; restore or purge later
+- Lane mode — admin can lock columns so only the owner can edit
+- Per-user access control — Full / Own column / Read only
+- In-app admin panel — user management, invite links, agent tokens
+- Task attribution — tasks pushed to another column show who created them
+- Rate limiting — 20 writes/minute per user
+- Encrypted backups — daily cron, AES-256
 
 ---
 
 ## Tech Stack
 
-| Layer | What it is |
-|-------|-----------|
-| **Next.js** | Web framework — handles UI and API routes in one codebase |
-| **SQLite** | Database — a single file on disk, no separate server needed |
-| **Node.js / server.js** | Custom server that adds real-time push (SSE) on top of Next.js |
-| **Tailscale** | Private VPN — your board is only reachable by invited devices |
-| **PWA** | Makes 2Do installable as a home-screen app on any device |
-| **MCP** | Plugin protocol that lets Claude read and write your board directly |
+| Layer | What |
+|-------|------|
+| Next.js | Web framework — UI and API routes in one codebase |
+| SQLite | Database — a single file on disk, no separate server needed |
+| Node.js / server.js | Custom server — adds real-time push (SSE) on top of Next.js |
+| Tailscale | Private VPN — board reachable only by invited devices |
+| PWA | Makes 2Do installable on any device |
+| MCP | Plugin protocol for AI agent access |
 
 ---
 
 ## Roadmap
 
-See [ROADMAP.md](ROADMAP.md) for planned work, including Windows 10/11 support and native app packaging.
+See [ROADMAP.md](ROADMAP.md).
 
 ---
 
