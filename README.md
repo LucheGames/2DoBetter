@@ -27,6 +27,11 @@ Docker bundles the app and its Node.js runtime into a sealed container. Your dat
 
 **Prerequisites — Linux / Mint / Ubuntu:**
 ```bash
+# Fix apt on fresh Mint installs (apt prefers IPv6; most home routers don't route it)
+echo 'Acquire::ForceIPv4 "true";' | sudo tee /etc/apt/apt.conf.d/99force-ipv4
+sudo apt update && sudo apt upgrade -y
+
+# Install Docker Engine
 curl -fsSL https://get.docker.com | sh
 sudo usermod -aG docker $USER   # then log out and back in
 ```
