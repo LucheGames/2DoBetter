@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { broadcast } from "@/lib/events";
+import { checkReadOnly, isAdminUser } from "@/lib/lane-guard";
+import { checkWriteRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function GET() {
   const columns = await prisma.column.findMany({
@@ -19,6 +21,18 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const authUser = req.headers.get('x-auth-user');
+
+  // Column creation is admin-only — user columns are created during registration
+  if (!authUser || !isAdminUser(authUser)) {
+    return NextResponse.json({ error: 'Admin only' }, { status: 403 });
+  }
+
+  const roBlock = checkReadOnly(authUser);
+  if (roBlock) return roBlock;
+
+  if (!checkWriteRateLimit(authUser)) return rateLimitResponse();
+
   const { name } = await req.json();
   if (!name?.trim()) {
     return NextResponse.json({ error: "Name required" }, { status: 400 });

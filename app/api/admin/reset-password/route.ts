@@ -10,8 +10,8 @@ export async function POST(req: NextRequest) {
   }
 
   const { username, newPassword } = await req.json() as { username?: string; newPassword?: string };
-  if (!username || !newPassword || newPassword.length < 6) {
-    return NextResponse.json({ error: 'username and newPassword (min 6 chars) required' }, { status: 400 });
+  if (!username || !newPassword || newPassword.length < 8) {
+    return NextResponse.json({ error: 'username and newPassword (min 8 chars) required' }, { status: 400 });
   }
 
   const users = getUsersFresh();

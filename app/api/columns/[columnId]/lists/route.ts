@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { broadcast } from "@/lib/events";
+import { checkReadOnly, checkLane } from "@/lib/lane-guard";
+import { checkWriteRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function GET(
   _req: Request,
@@ -22,6 +24,19 @@ export async function POST(
   { params }: { params: Promise<{ columnId: string }> }
 ) {
   const { columnId } = await params;
+  const authUser = req.headers.get('x-auth-user');
+
+  const roBlock = checkReadOnly(authUser);
+  if (roBlock) return roBlock;
+
+  if (authUser && !checkWriteRateLimit(authUser)) return rateLimitResponse();
+
+  // Lane guard — check the target column
+  const column = await prisma.column.findUnique({ where: { id: Number(columnId) } });
+  if (!column) return NextResponse.json({ error: "Column not found" }, { status: 404 });
+  const deny = checkLane(column, authUser);
+  if (deny) return deny;
+
   const { name } = await req.json();
   if (!name?.trim()) {
     return NextResponse.json({ error: "Name required" }, { status: 400 });
