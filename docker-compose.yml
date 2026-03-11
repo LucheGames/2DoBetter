@@ -1,0 +1,37 @@
+# 2Do Better — Docker Compose
+#
+# First-time setup:
+#   1. docker compose build
+#   2. docker compose up -d
+#   3. docker exec -it 2dobetter node scripts/setup.js   ← runs the setup wizard
+#   4. docker compose restart                            ← picks up .env.local created by wizard
+#   5. Open https://localhost:3000
+#
+# Updates:
+#   git pull && docker compose up -d --build
+
+services:
+  app:
+    build: .
+    container_name: 2dobetter
+    ports:
+      - "3000:3000"   # HTTPS (main app)
+      - "3001:3001"   # HTTP → HTTPS redirect
+    volumes:
+      # These directories live on the HOST machine — not inside the container.
+      # Rebuilding or deleting the container will NOT delete your data.
+      - ./data:/app/data           # users.json, invites.json
+      - ./certs:/app/certs         # TLS cert + key (created by setup wizard)
+      - ./prisma:/app/prisma       # SQLite database (dev.db created by setup wizard)
+    env_file:
+      - path: .env.local           # Created by setup wizard — never committed to git
+        required: false            # OK to be missing on first run before setup
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped        # Survives reboots; stops cleanly on `docker compose down`
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "--no-check-certificate", "https://localhost:3000/api/auth/config"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s

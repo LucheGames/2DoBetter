@@ -1,0 +1,26 @@
+# Build artifacts
+.next/
+node_modules/
+mcp/node_modules/
+mcp/dist/
+
+# Secrets and local data — NEVER go into the image
+.env
+.env.local
+.env.*
+data/
+certs/
+prisma/dev.db
+prisma/dev.db-journal
+prisma/dev.db-shm
+prisma/dev.db-wal
+
+# Dev tooling
+.git/
+.claude/
+*.log
+npm-debug.log*
+
+# OS noise
+.DS_Store
+Thumbs.db

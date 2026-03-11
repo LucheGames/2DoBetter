@@ -15,6 +15,22 @@ Self-hosted · real-time sync · no subscriptions · your data stays on your mac
 
 ---
 
+## Who needs to install what?
+
+**There are two completely separate roles:**
+
+| Role | What you need | Install time |
+|------|--------------|-------------|
+| **Server operator** | One person sets up the server — Node.js 20+, a machine to run it on, optional domain | ~20 min |
+| **Client user** | Everyone else — just a browser and Tailscale | ~5 min |
+| **AI agent** | Node.js 20+ to compile the MCP client; an agent token from the admin | ~10 min |
+
+**If you just want to use someone else's board:** skip to [Client Setup — Join an existing board](#-client-setup--join-an-existing-board).
+
+**If you're setting up a board for others to join:** start at [Server Setup](#-server-setup--run-your-own-board).
+
+---
+
 ## Features
 
 - **Multi-user** — each person gets a column; everyone sees the full board
@@ -33,26 +49,95 @@ Self-hosted · real-time sync · no subscriptions · your data stays on your mac
 
 ---
 
-## 👤 New User — Get Started (single device)
+## 🖥 Server Setup — Run your own board
 
 > **Requires:** Node.js 20+, macOS or Linux *(Windows support planned — see [ROADMAP.md](ROADMAP.md))*
+>
+> **One person does this.** Everyone else joins as a client — no server install needed.
 
 ```bash
 git clone https://github.com/LucheGames/2DoBetter.git
 cd 2DoBetter
 npm install
-npm run setup        # creates your user, certs, and config
+npm run setup        # interactive wizard: creates your user, certs, and config
 npm start
 ```
 
-Open `https://localhost:3000`. Accept the browser cert warning (see [Install CA cert](#-admin--install-the-ca-cert-optional) to fix permanently).
+Open `https://localhost:3000`. Accept the browser cert warning (see [Install CA cert](#install-the-ca-cert-optional--removes-browser-warnings) to fix permanently).
 
 The setup wizard creates:
 - `data/users.json` — your credentials (never committed to git)
 - `certs/` — self-signed TLS cert + CA
 - `.env.local` — local config
 
-**You now have a working board.** To get full use — with AI Agent reading and updating it — continue to MCP Setup below.
+**You now have a working board.** To share it with others, continue to [Adding Users](#adding-users-optional--multi-user-setup). To connect an AI agent, continue to [MCP Setup](#-mcp-setup--required-for-ai-agent-use).
+
+---
+
+## 🐳 Server Setup — Docker *(alternative — recommended for always-on servers)*
+
+> **Requires:** [Docker](https://docs.docker.com/get-docker/) (Engine on Linux, Desktop on Mac/Windows)
+>
+> Docker is a form of encapsulation — it wraps the app, Node.js runtime, and all dependencies into a sealed container. You ship the box, not the instructions for building it. Your data (database, users, certs) lives outside the container so you can update or rebuild it without losing anything.
+
+**First time:**
+```bash
+git clone https://github.com/LucheGames/2DoBetter.git
+cd 2DoBetter
+docker compose build                                    # build the image (~2-3 min first time)
+docker compose up -d                                    # start the container
+docker exec -it 2dobetter node scripts/setup.js        # run the setup wizard
+docker compose restart                                  # pick up .env.local created by wizard
+```
+
+Open `https://localhost:3000`.
+
+**Updating:**
+```bash
+git pull
+docker compose up -d --build    # rebuilds image and restarts — data is untouched
+```
+
+**Useful commands:**
+```bash
+docker compose logs -f           # live logs
+docker compose down              # stop (data safe)
+docker compose down --rmi all    # stop + delete image (data still safe — it's in ./data and ./prisma)
+docker exec -it 2dobetter node scripts/admin.js status
+```
+
+**What persists between container rebuilds** (these are volume-mounted from the host):
+- `./data/` — users, invite codes
+- `./prisma/` — the SQLite database (`dev.db`)
+- `./certs/` — TLS certificate and key
+
+> **Linux Mint / Ubuntu note:** Install Docker Engine (not Desktop) for a headless server:
+> ```bash
+> curl -fsSL https://get.docker.com | sh
+> sudo usermod -aG docker $USER   # then log out and back in
+> ```
+
+---
+
+## 📱 Client Setup — Join an existing board
+
+**You do not need to install Node.js, clone the repo, or run any build steps.**
+The board is a web app. You need:
+
+1. **Tailscale** — install it and join the server operator's network:
+   - [Download Tailscale](https://tailscale.com/download) for your device
+   - The server operator sends you a Tailscale invite (or you join their tailnet)
+
+2. **An invite link** — the server operator generates one from the in-app admin panel. Open it in your browser, set a password, and you're in.
+
+3. **Bookmark it or install as a PWA:**
+   - On iOS: tap Share → "Add to Home Screen"
+   - On Android: tap the browser menu → "Install app"
+   - On desktop: look for the install icon in the address bar
+
+That's it. No code, no terminal, no Node.js.
+
+> **On the same local network as the server?** You may be able to connect without Tailscale — ask the server operator for the local IP address.
 
 ---
 
@@ -73,18 +158,38 @@ cd mcp && npm install && npm run build
       "command": "node",
       "args": ["/path/to/2DoBetter/mcp/dist/server.js"],
       "env": {
-        "API_BASE_URL": "https://your-server:3000",
-        "AUTH_TOKEN":   "your-token",
-        "AUTH_USER":    "your-username"
+        "API_BASE_URL": "https://your-server-url:3000",
+        "AUTH_TOKEN":   "your-agent-token"
       }
     }
   }
 }
 ```
 
-**3. Start a Agent session** — AI Agent will greet you with a board summary and can now check, update, and manage tasks directly.
+- `API_BASE_URL`: the same URL you open in your browser (e.g. `https://2dobetter.duckdns.org:3000`)
+- `AUTH_TOKEN`: a permanent agent token — generate one in the admin panel under your agent's username → "Rotate agent token"
 
-**Available MCP tools:** `get_board`, `get_column`, `create_task`, `complete_task`, `uncomplete_task`, `update_task`, `delete_task`, `move_task`, `create_list`, `delete_list`, `search_tasks`
+**3. Start a Claude Code session** — Claude will greet you with a board summary and can now check, update, and manage tasks directly.
+
+**Available MCP tools:**
+
+| Tool | What it does |
+|------|-------------|
+| `get_board` | Full board — all columns, lists, tasks |
+| `get_column` | One column by slug (e.g. `'claude'`, `'dave'`) |
+| `create_list` | Add a list to a column |
+| `rename_list` | Rename a list |
+| `move_list` | Move a list to a different column |
+| `archive_list` | Soft-delete a list (recoverable from graveyard) |
+| `restore_list` | Bring a list back from the graveyard |
+| `get_graveyard` | View archived lists |
+| `create_task` | Add a task to a list |
+| `complete_task` | Mark a task done |
+| `uncomplete_task` | Reinstate a completed task |
+| `update_task` | Rename a task |
+| `delete_task` | Delete a task permanently |
+| `move_task` | Move a task to a different list |
+| `search_tasks` | Find tasks by title (case-insensitive substring) |
 
 > **Other agents (Gemini, OpenAI Agents SDK, GitHub Copilot)** also support MCP natively — see [ROADMAP.md](ROADMAP.md) for setup guides.
 > **REST API / Custom GPTs:** see [`openapi.yaml`](openapi.yaml) for the full API spec.
@@ -295,7 +400,21 @@ Admin can lock any column by clicking its 🔒 icon. When locked:
 | Rate limiting (20 writes/min) | ✅ 429 — enforced server-side |
 | Agent with shell access editing server code | ❌ Not enforceable at app level |
 
-For the last row: **never give an agent a shell session on the machine running 2Do Better.** Agents should only receive an `agentToken` for API/MCP access — they see the board data, not the server code or the filesystem.
+### ⚠️ The golden rule: agents see the API, not the server
+
+An AI agent's correct relationship to 2Do Better is identical to a browser's: it sends authenticated HTTP requests to the board's REST API and receives JSON back. That is the entire surface it needs.
+
+**An agent should never have:**
+- A shell session (SSH) on the server machine
+- Read access to `data/users.json` (contains tokens and password hashes)
+- Read access to `prisma/dev.db` (contains all task data in plaintext)
+- Knowledge of the server's filesystem layout or internal processes
+
+**How to enforce this:**
+- Give the agent only an `agentToken` — a single credential that expires only when you rotate it
+- The agent uses this token as an `Authorization: Bearer` header on API calls — same as a browser uses a cookie
+- The MCP server bundled with 2Do Better is a client process (it runs on the same machine as the AI, not on the server). It connects to the board URL exactly as a browser would.
+- If you're running an AI coding assistant (like Claude Code) on the same machine as your 2Do Better server: open a separate shell session for the assistant that does not have the server's SSH key or sudo access
 
 ---
 
