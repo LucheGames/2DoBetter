@@ -20,7 +20,7 @@ Setup
 | Role | What you do | Go to |
 |------|------------|-------|
 | **Admin** | Set up the board, invites / manage users and agents | [Server Admin Setup ↓](#️-server-admin-setup) |
-| **Human Client** | Join a board someone else runs | [Human Client Setup ↓](#-human-client-setup) |
+| **Human Teammate** | Join an existing board | [Human Client Setup ↓](#-human-client-setup) |
 | **AI Agent** | Connect Claude / Copilot / etc. to a board | [AI Agent Setup ↓](#-ai-agent-setup) |
 
 ---
