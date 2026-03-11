@@ -53,7 +53,7 @@ docker compose restart                                 # picks up wizard config
 
 Open `https://localhost:3000`.
 
-**Day 2+:**
+**Updating:**
 ```bash
 git pull && docker compose up -d --build              # update — data untouched
 docker compose logs -f                                # live logs
@@ -83,7 +83,7 @@ Open `https://localhost:3000`. Accept the cert warning on first visit, or [insta
 ### After first run
 
 - **Add users** — ⚙ gear icon → admin panel → Generate invite link. Recipient opens it and self-registers.
-- **Remote access** — set up [Tailscale](#remote-access-via-tailscale) on the server; clients join your tailnet.
+- **Remote access** — set up [Tailscale](#remote-access) on the server; clients join your tailnet.
 - **Auto-start** — [run as a background service](#background-service).
 - **Remove cert warnings** — [install the CA cert](#install-ca-cert) on each device.
 
@@ -147,7 +147,7 @@ cd mcp && npm install && npm run build
 
 ## ⚙️ Admin Reference
 
-In app admin pannel **⚙ gear icon** . Everything in the panel is also available from the CLI.
+In-app admin panel: **⚙ gear icon** (top-right). Everything in the panel is also available from the CLI.
 
 ### CLI commands
 
@@ -250,12 +250,12 @@ git pull && npm run restart                     # CLI/docs changes only
 |-------|-----|
 | Transport | HTTPS everywhere — self-signed cert by default |
 | Passwords | bcrypt-hashed; plaintext never written |
-| Sessions | Random 64-char hex; `httpOnly`, `Secure`, `SameSite=Strict` cookie |
+| Sessions | Random 64-char token; secure cookie |
 | Agent tokens | Separate from sessions; rotate any time from admin panel |
 | API auth | Every request validated before reaching any route handler |
 | Lane mode | Column locks and access flags enforced server-side |
 | Rate limiting | 20 writes/minute per user — throttles runaway agents |
-| Input validation | Prisma parameterised queries — no raw SQL |
+| Input validation | Parameterised queries — no raw SQL |
 | SQLite backups | Encrypted at rest |
 
 **Security Pitfalls:**
