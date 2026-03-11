@@ -54,6 +54,13 @@ Self-hosted · real-time sync · no subscriptions · your data stays on your mac
 > **Requires:** Node.js 20+, macOS or Linux *(Windows support planned — see [ROADMAP.md](ROADMAP.md))*
 >
 > **One person does this.** Everyone else joins as a client — no server install needed.
+>
+> **Don't have Node.js 20?** Install via [nvm](https://github.com/nvm-sh/nvm#installing-and-updating) (follow the nvm README for your OS), then:
+> ```bash
+> nvm install 20
+> nvm use 20
+> ```
+> `git` and `curl` come pre-installed on most Linux/macOS systems. If not: `sudo apt install git curl` (Debian/Ubuntu/Mint).
 
 ```bash
 git clone https://github.com/LucheGames/2DoBetter.git
@@ -76,9 +83,16 @@ The setup wizard creates:
 
 ## 🐳 Server Setup — Docker *(alternative — recommended for always-on servers)*
 
-> **Requires:** [Docker](https://docs.docker.com/get-docker/) (Engine on Linux, Desktop on Mac/Windows)
+> **Requires:** git · [Docker](https://docs.docker.com/get-docker/) (Engine on Linux, Desktop on Mac/Windows)
 >
 > Docker is a form of encapsulation — it wraps the app, Node.js runtime, and all dependencies into a sealed container. You ship the box, not the instructions for building it. Your data (database, users, certs) lives outside the container so you can update or rebuild it without losing anything.
+>
+> **Linux Mint / Ubuntu — install Docker Engine first** (no Node.js needed):
+> ```bash
+> curl -fsSL https://get.docker.com | sh
+> sudo usermod -aG docker $USER   # then log out and back in
+> ```
+> Already have Docker? Skip ahead.
 
 **First time:**
 ```bash
@@ -110,12 +124,6 @@ docker exec -it 2dobetter node scripts/admin.js status
 - `./data/` — users, invite codes
 - `./prisma/` — the SQLite database (`dev.db`)
 - `./certs/` — TLS certificate and key
-
-> **Linux Mint / Ubuntu note:** Install Docker Engine (not Desktop) for a headless server:
-> ```bash
-> curl -fsSL https://get.docker.com | sh
-> sudo usermod -aG docker $USER   # then log out and back in
-> ```
 
 ---
 
