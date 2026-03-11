@@ -2,26 +2,55 @@
 
 A multi-human, multi-AI-agent collaboration hub.
 
-Self-hosted · real-time sync · no subscriptions · your data stays on your machine.
+Self-hosted · real-time sync · no fees / subscriptions · your data stays on your machine.
+
+Every team member and every AI agent gets their own column. Ask your AI agent to "check 2Do" — it reads the board, picks up tasks, and marks them done as it works. 2Do Better was bulit around the MCP protocal, a common standard used by Anthropic, Google and OpenAI used to give ther Agents visibility into your  by making API calls  
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Support-Buy%20me%20a%20coffee-yellow?logo=buy-me-a-coffee)](https://www.buymeacoffee.com/luchegames)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Every person and every AI agent gets their own column. Ask your agent to "check 2Do" — it reads the board, picks up tasks, and marks them done as it works.
+---
+
+## Features
+
+- Multi-user — each person gets a column; everyone sees the full board
+- AI agent reads and writes via MCP — ask it to "check 2Do" and it picks up tasks
+- Real-time sync — changes appear on every device in ~1 second
+- PWA — installs as a home-screen app on iOS, Android, and desktop
+- Project Graveyard — soft-delete lists; restore or purge later
+- Lane mode — admin can lock columns so only the owner can edit
+- Per-user access control — Full / Own column / Read only
+- In-app admin panel — user management, invite links, agent tokens
+- Task attribution — tasks pushed to another column show who created them
+- Rate limiting — 20 writes/minute per user
+- Encrypted backups — daily cron, AES-256
 
 ---
 
-## Which role are you?
+## Tech Stack
+
+| Layer | What |
+|-------|------|
+| Next.js | Web framework — UI and API routes in one codebase |
+| SQLite | Database — a single file on disk, no separate server needed |
+| Node.js / server.js | Custom server — adds real-time push (SSE) on top of Next.js |
+| Tailscale | Private VPN — board reachable only by invited devices |
+| PWA | Makes 2Do installable on any device |
+| MCP | Plugin protocol for AI agent access |
+
+---
+
+Setup
 
 | Role | What you do | Go to |
 |------|------------|-------|
-| **Server Admin** | Set up the board, manage users | [Server Admin Setup ↓](#️-server-admin-setup) |
+| **Admin** | Set up the board, invites / manage users and agents | [Server Admin Setup ↓](#️-server-admin-setup) |
 | **Human Client** | Join a board someone else runs | [Human Client Setup ↓](#-human-client-setup) |
 | **AI Agent** | Connect Claude / Copilot / etc. to a board | [AI Agent Setup ↓](#-ai-agent-setup) |
 
 ---
 
-## 🖥️ Server Admin Setup
+## 🖥️ Admin Setup
 
 > **One person does this.** Everyone else joins as a client — no server install needed.
 
@@ -29,17 +58,8 @@ Every person and every AI agent gets their own column. Ask your agent to "check 
 
 Docker bundles the app and its Node.js runtime into a sealed container. Your data (DB, users, certs) lives outside and survives rebuilds.
 
-**Prerequisites — Linux / Mint / Ubuntu:**
+Server setup varified on Linux Mint and Ubuntu:**
 ```bash
-# Fix apt on fresh Mint installs (apt prefers IPv6; most home routers don't route it)
-echo 'Acquire::ForceIPv4 "true";' | sudo tee /etc/apt/apt.conf.d/99force-ipv4
-
-# If apt update/upgrade stalls with "waiting for lock" or "another process using package manager":
-sudo killall apt apt-get unattended-upgrades mintupdate 2>/dev/null
-sudo rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/cache/apt/archives/lock
-sudo dpkg --configure -a
-
-sudo apt update && sudo apt upgrade -y
 
 # Install Docker Engine
 curl -fsSL https://get.docker.com | sh
@@ -86,7 +106,7 @@ Open `https://localhost:3000`. Accept the cert warning on first visit, or [insta
 
 ---
 
-### After first run
+### Perform admin functions in admin client or server cli
 
 - **Add users** — ⚙ gear icon → admin panel → Generate invite link. Recipient opens it and self-registers.
 - **Remote access** — set up [Tailscale](#remote-access-via-tailscale) on the server; clients join your tailnet.
@@ -323,40 +343,11 @@ npm run uninstall                      # full removal — deletes all app data f
 | Rate limiting | 20 writes/minute per user — throttles runaway agents |
 | Input validation | Prisma parameterised queries — no raw SQL |
 
-**Pitfalls:**
+**Security Pitfalls:**
 - `users.json` tokens are plaintext at rest — `chmod 600` it and encrypt the disk (LUKS / FileVault).
 - The SQLite DB contains all task content in plaintext — encrypt the disk, use encrypted backups.
 - Task text is visible to the server admin and all DB readers — don't store passwords or API keys in tasks.
 - Without Tailscale, the app is reachable to anyone on the same Wi-Fi.
-
----
-
-## Features
-
-- Multi-user — each person gets a column; everyone sees the full board
-- AI agent reads and writes via MCP — ask it to "check 2Do" and it picks up tasks
-- Real-time sync — changes appear on every device in ~1 second
-- PWA — installs as a home-screen app on iOS, Android, and desktop
-- Project Graveyard — soft-delete lists; restore or purge later
-- Lane mode — admin can lock columns so only the owner can edit
-- Per-user access control — Full / Own column / Read only
-- In-app admin panel — user management, invite links, agent tokens
-- Task attribution — tasks pushed to another column show who created them
-- Rate limiting — 20 writes/minute per user
-- Encrypted backups — daily cron, AES-256
-
----
-
-## Tech Stack
-
-| Layer | What |
-|-------|------|
-| Next.js | Web framework — UI and API routes in one codebase |
-| SQLite | Database — a single file on disk, no separate server needed |
-| Node.js / server.js | Custom server — adds real-time push (SSE) on top of Next.js |
-| Tailscale | Private VPN — board reachable only by invited devices |
-| PWA | Makes 2Do installable on any device |
-| MCP | Plugin protocol for AI agent access |
 
 ---
 
