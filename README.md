@@ -130,7 +130,7 @@ cd mcp && npm install && npm run build
 
 **3.** Start a session — the agent greets you with a board summary and can read, update, and complete tasks directly.
 
-**Available tools:**
+**Available API tools:**
 
 | Category | Tools |
 |----------|-------|
