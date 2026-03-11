@@ -6,7 +6,7 @@ Self-hosted · real-time sync · no fees / subscriptions · your data stays on y
 
 2Do Better was designed to give agents visability into your projects, allowing you to cue up tasks on the go, and accelerate your AI workflow. Ask your agent to "check 2Do" — it reads the board, picks up tasks, and marks them done as it works. 
 
-2Do Better is bulit from the ground up around MCP (Model Context Protocol), an open-source common standard used by Anthropic, Google and OpenAI for connecting AI applications to external systems.
+2Do Better is bulit from the ground up around MCP (Model Context Protocol), an open-source common standard used by Anthropic, Google, Microsoft, and OpenAI for connecting AI applications to external systems.
 
 2Do better works so well that much of 2Do Better was written from inside 2Do Better.
 
@@ -317,11 +317,12 @@ npm run uninstall                      # full removal — deletes all app data f
 | Lane mode | Column locks and access flags enforced server-side |
 | Rate limiting | 20 writes/minute per user — throttles runaway agents |
 | Input validation | Prisma parameterised queries — no raw SQL |
+| SQLite backups | encrypted at rest |
 
 **Security Pitfalls:**
 - `users.json` tokens are plaintext at rest — `chmod 600` it and encrypt the disk (LUKS / FileVault).
-- The SQLite DB contains all task content in plaintext — encrypt the disk, use encrypted backups.
-- Task text is visible to the server admin and all DB readers — don't store passwords or API keys in tasks.
+- The SQLite DB on server contains all task content in plaintext.
+- All board information is visable to every user — don't store secrets, passwords or API keys.
 - Without Tailscale, the app is reachable to anyone on the same Wi-Fi.
 
 ---
