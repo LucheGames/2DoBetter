@@ -13,12 +13,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: "Already seeded", columns: existing });
   }
 
-  // Use the actual admin username for their column, and the configured
-  // agent name (from setup wizard) or a generic default for the agent column.
+  // Create only the admin's column. Every other user (human or agent)
+  // gets their own column automatically on first login via ensureUserColumn().
   const adminName = authUser;
-  const agentName = process.env.AGENT_COLUMN_NAME || "Agent";
-  const agentSlug = agentName.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
-
   const userColumn = await prisma.column.create({
     data: {
       name: adminName,
@@ -29,18 +26,9 @@ export async function POST(req: Request) {
     },
   });
 
-  const agentColumn = await prisma.column.create({
-    data: {
-      name: agentName,
-      slug: agentSlug,
-      order: 1,
-      lists: { create: [{ name: "Tasks", order: 0 }] },
-    },
-  });
-
   broadcast();
   return NextResponse.json(
-    { message: "Seeded", columns: [userColumn, agentColumn] },
+    { message: "Seeded", columns: [userColumn] },
     { status: 201 }
   );
 }

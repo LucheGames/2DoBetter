@@ -484,13 +484,6 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     info(`${users.length} users configured. Each gets their own column on first login.`);
   }
 
-  // ── Agent column name ─────────────────────────────────────────────
-  const defaultAgent = existing.AGENT_COLUMN_NAME || 'Agent';
-  const agentNameInput = await ask(`Name for your AI agent's column (press Enter for '${defaultAgent}')`, defaultAgent);
-  const agentColumnName = agentNameInput.trim() || defaultAgent;
-  cfg.AGENT_COLUMN_NAME = agentColumnName;
-  ok(`Agent column will be named "${agentColumnName}".`);
-
   // ── [2/5] Self-Registration ──────────────────────────────────────
   step(2, 5, 'Self-Registration (Invite Code)');
   info('An invite code lets new users create accounts directly from the login page.');
