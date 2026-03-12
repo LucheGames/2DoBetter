@@ -26,7 +26,8 @@ You'll need a few standard tools before you start:
 | **Terminal** | Running commands | Built into Linux and macOS · Windows: [install WSL](https://learn.microsoft.com/en-us/windows/wsl/install), then use the Ubuntu terminal inside it |
 | **git** | Downloading the app | Usually pre-installed — check with `git --version` · if missing: `sudo apt install git` (Linux) · `xcode-select --install` (macOS) |
 | **curl** | Running install scripts | Usually pre-installed — check with `curl --version` · if missing: `sudo apt install curl` |
-| **npm / Node.js** | For running the app | Covered in [Option B ↓](#option-b--nodejs-direct) — do **not** install Node from apt, use nvm |
+
+Docker and Node.js are set up as part of the install path you choose — you don't need them yet.
 
 ---
 
