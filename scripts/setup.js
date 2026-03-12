@@ -575,6 +575,23 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     info('  Then set APP_DOMAIN=<tailscale-ip> in .env.local and restart.');
   }
 
+  // ── Generate TLS certs (if missing) ──────────────────────────────
+  const certDir  = path.join(ROOT, 'certs');
+  const certKey  = path.join(certDir, 'server.key');
+  const certFile = path.join(certDir, 'server.crt');
+  if (!fs.existsSync(certKey) || !fs.existsSync(certFile)) {
+    console.log('\n' + '─'.repeat(44));
+    info('Generating TLS certificates...');
+    const certScript = path.join(ROOT, 'generate-certs.sh');
+    const r = spawnSync('bash', [certScript], { stdio: 'inherit' });
+    if (r.status !== 0) {
+      warn('Certificate generation failed — server will start in HTTP mode.');
+      warn('Run:  bash generate-certs.sh  to enable HTTPS later.');
+    }
+  } else {
+    ok('TLS certificates already present — skipping cert generation.');
+  }
+
   // ── Write config ──────────────────────────────────────────────────
   console.log('\n' + '─'.repeat(44));
 
