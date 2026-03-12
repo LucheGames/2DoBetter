@@ -4,7 +4,7 @@ A multi-human, multi-AI-agent collaboration hub.
 
 self-hosted · real-time sync · no fees / no subscriptions ever · your data stays on your machine.
 
-2Do Better was designed to give agents visibility into your projects, allowing you to cue up tasks on the go, and accelerate your AI workflow. Ask your agent to "check 2Do" — it reads the board, picks up tasks, and marks them done as it works.
+2Do Better was designed to give agents visibility into your projects, allowing you to to think through problems and solutions from anywhere, cue up tasks, and when your are back in your dev cave simply ask your agent to "check 2Do" — it reads the board, picks up tasks, and marks them done as it works.
 
 2Do Better is built from the ground up around MCP (Model Context Protocol), an open-source common standard used by Anthropic, Google, Microsoft, and OpenAI for connecting AI applications to external systems.
 
