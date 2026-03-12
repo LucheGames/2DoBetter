@@ -84,8 +84,8 @@ macOS / Windows: install [Docker Desktop](https://docs.docker.com/get-docker/) (
 ```bash
 git clone https://github.com/LucheGames/2DoBetter.git
 cd 2DoBetter
-docker compose build                                   # ~2–3 min first time
-docker compose up -d
+docker compose build                                   # ~2–3 min — terminal returns when done
+docker compose up -d                                   # -d runs in background, keeps terminal free
 docker exec -it 2dobetter node scripts/setup.js       # first-run wizard
 docker compose restart                                 # picks up wizard config
 ```
