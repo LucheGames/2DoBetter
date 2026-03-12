@@ -31,19 +31,31 @@ The new bottleneck to development is not implemmentation but the speed what we c
 
 > **One person does this.** Everyone else joins as a client — no server install needed.
 
-### Option A — Docker *(recommended for always-on servers)*
+**Choose your install method:**
 
-Docker bundles the app and its Node.js runtime into a sealed container. Your data (DB, users, certs) lives outside and survives rebuilds.
+| | Option A — Docker | Option B — Node.js direct |
+|---|---|---|
+| **Best for** | Most users, always-on servers | Developers, or if Docker isn't available |
+| **Requires** | Docker (bundles Node.js — nothing else) | Node.js 20+ installed separately |
 
-**Prerequisites** (verified on Linux Mint and Ubuntu):
+---
+
+### Option A — Docker *(recommended)*
+
+Docker bundles Node.js and the app into a sealed container — **no separate Node.js install needed.** Your data (DB, users, certs) lives outside and survives rebuilds.
+
+**1. Install prerequisites**
+
+Linux Mint / Ubuntu:
 ```bash
+sudo apt install -y git curl               # usually pre-installed — safe to re-run
 curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER   # then log out and back in
+sudo usermod -aG docker $USER             # then log out and back in
 ```
 
-macOS / Windows: install [Docker Desktop](https://docs.docker.com/get-docker/).
+macOS / Windows: install [Docker Desktop](https://docs.docker.com/get-docker/) (includes Docker Compose). Git for macOS comes with Xcode Command Line Tools — run `git` in the terminal and follow the prompt.
 
-**First time:**
+**2. Clone and start:**
 ```bash
 git clone https://github.com/LucheGames/2DoBetter.git
 cd 2DoBetter
@@ -68,8 +80,17 @@ Data that persists between rebuilds (volume-mounted): `./data/` · `./prisma/` (
 
 ### Option B — Node.js direct
 
-**Prerequisites:** Node.js 20+ ([nvm](https://github.com/nvm-sh/nvm#installing-and-updating) recommended → `nvm install 20`). `git` and `curl` are pre-installed on most Linux/macOS; if not: `sudo apt install git curl`.
+**1. Install Node.js 20+** via [nvm](https://github.com/nvm-sh/nvm) (Linux / macOS):
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
+```
+Close and reopen your terminal, then:
+```bash
+nvm install 20
+```
+Windows: use [nvm-windows](https://github.com/coreybutler/nvm-windows).
 
+**2. Clone and start:**
 ```bash
 git clone https://github.com/LucheGames/2DoBetter.git
 cd 2DoBetter
