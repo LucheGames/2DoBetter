@@ -289,12 +289,17 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     rl.close(); return;
   }
 
+  const typeChoice = await askChoice('Account type:', ['Human', 'AI agent']);
+  const isAgent = typeChoice === 1;
+
   const token = await collectToken();
 
   const hash = await bcrypt.hash(token, 12);
-  users.push({ username: username, hash: hash });
+  const userObj = { username: username, hash: hash };
+  if (isAgent) userObj.isAgent = true;
+  users.push(userObj);
   saveUsers(users);
-  ok(`User "${username}" added.`);
+  ok(`User "${username}" added (${isAgent ? 'AI agent' : 'human'}).`);
   info('They\'ll get their own column automatically on first login.');
   console.log('');
 
@@ -461,9 +466,13 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     if (users.some(u => u.username.toLowerCase() === uname.toLowerCase())) {
       warn(`User "${uname}" already exists — skipping.`);
     } else {
+      const typeChoice = await askChoice('Account type:', ['Human', 'AI agent']);
+      const isAgent = typeChoice === 1;
       const tok = await collectToken();
-      users.push({ username: uname, hash: await bcrypt.hash(tok, 12) });
-      ok(`User "${uname}" added.`);
+      const userObj = { username: uname, hash: await bcrypt.hash(tok, 12) };
+      if (isAgent) userObj.isAgent = true;
+      users.push(userObj);
+      ok(`User "${uname}" added (${isAgent ? 'AI agent' : 'human'}).`);
     }
     addMore = await ask('Add another user? (y/N)', 'N');
   }
