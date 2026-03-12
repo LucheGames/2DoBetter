@@ -67,8 +67,10 @@ Linux Mint / Ubuntu:
 ```bash
 sudo apt install -y git curl               # usually pre-installed — safe to re-run
 curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER             # then log out and back in
+sudo usermod -aG docker $USER
+newgrp docker                              # activates Docker group immediately — or log out and back in
 ```
+> ⚠️ If you see **"permission denied while trying to connect to the Docker daemon"** it means the group change hasn't taken effect yet. Run `newgrp docker` in your terminal, or log out and back into your desktop session, then continue.
 
 macOS / Windows: install [Docker Desktop](https://docs.docker.com/get-docker/) (includes Docker Compose). Git for macOS comes with Xcode Command Line Tools — run `git` in the terminal and follow the prompt.
 
