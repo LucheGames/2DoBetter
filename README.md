@@ -46,7 +46,7 @@ cd ~/Documents    # or wherever you keep your projects
 
 ## 🖥️ Admin Setup
 
-> **One person does this.** Everyone else joins as a client — no server install needed.
+> **One person does sets up a server .** Everyone else joins this server as a client.
 
 **Choose your install method:**
 
