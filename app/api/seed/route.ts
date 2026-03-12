@@ -13,19 +13,26 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: "Already seeded", columns: existing });
   }
 
-  const dave = await prisma.column.create({
+  // Use the actual admin username for their column, and the configured
+  // agent name (from setup wizard) or a generic default for the agent column.
+  const adminName = authUser;
+  const agentName = process.env.AGENT_COLUMN_NAME || "Agent";
+  const agentSlug = agentName.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
+
+  const userColumn = await prisma.column.create({
     data: {
-      name: "Dave",
-      slug: "dave",
+      name: adminName,
+      slug: adminName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      ownerUsername: adminName,
       order: 0,
       lists: { create: [{ name: "Tasks", order: 0 }] },
     },
   });
 
-  const claude = await prisma.column.create({
+  const agentColumn = await prisma.column.create({
     data: {
-      name: "Claude",
-      slug: "claude",
+      name: agentName,
+      slug: agentSlug,
       order: 1,
       lists: { create: [{ name: "Tasks", order: 0 }] },
     },
@@ -33,7 +40,7 @@ export async function POST(req: Request) {
 
   broadcast();
   return NextResponse.json(
-    { message: "Seeded", columns: [dave, claude] },
+    { message: "Seeded", columns: [userColumn, agentColumn] },
     { status: 201 }
   );
 }

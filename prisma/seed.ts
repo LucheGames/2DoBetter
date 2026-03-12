@@ -9,10 +9,10 @@ async function main() {
     return;
   }
 
-  const dave = await prisma.column.create({
+  const userColumn = await prisma.column.create({
     data: {
-      name: "Dave",
-      slug: "dave",
+      name: "User",
+      slug: "user",
       order: 0,
       lists: {
         create: [{ name: "Tasks", order: 0 }],
@@ -20,10 +20,10 @@ async function main() {
     },
   });
 
-  const claude = await prisma.column.create({
+  const agentColumn = await prisma.column.create({
     data: {
-      name: "Claude",
-      slug: "claude",
+      name: "Agent",
+      slug: "agent",
       order: 1,
       lists: {
         create: [{ name: "Tasks", order: 0 }],
@@ -32,7 +32,7 @@ async function main() {
   });
 
   console.log(
-    `Seed: Created columns "${dave.name}" and "${claude.name}" with default lists.`
+    `Seed: Created columns "${userColumn.name}" and "${agentColumn.name}" with default lists.`
   );
 }
 

@@ -241,7 +241,13 @@ function installCron() {
 }
 
 // ── Service restart command detector ─────────────────────────────────────────
+function isDocker() {
+  return fs.existsSync('/.dockerenv');
+}
+
 function getRestartCommand() {
+  // Inside a Docker container — user must restart from the host
+  if (isDocker()) return 'docker compose restart';
   // macOS: check for installed launchd plist
   if (process.platform === 'darwin') {
     const plist = path.join(os.homedir(), 'Library/LaunchAgents/com.luchegames.2dobetter.plist');
@@ -466,6 +472,13 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     info(`${users.length} users configured. Each gets their own column on first login.`);
   }
 
+  // ── Agent column name ─────────────────────────────────────────────
+  const defaultAgent = existing.AGENT_COLUMN_NAME || 'Agent';
+  const agentNameInput = await ask(`Name for your AI agent's column (press Enter for '${defaultAgent}')`, defaultAgent);
+  const agentColumnName = agentNameInput.trim() || defaultAgent;
+  cfg.AGENT_COLUMN_NAME = agentColumnName;
+  ok(`Agent column will be named "${agentColumnName}".`);
+
   // ── [2/5] Self-Registration ──────────────────────────────────────
   step(2, 5, 'Self-Registration (Invite Code)');
   info('An invite code lets new users create accounts directly from the login page.');
@@ -641,8 +654,8 @@ ${inviteCodeLine}
   ${C.bold}Add more users (CLI):${C.reset}
     npm run setup add-user
 
-  ${C.bold}Start the server:${C.reset}
-    ${restartCmd === 'npm start' ? 'npm start' : restartCmd}
+  ${C.bold}${isDocker() ? 'Restart the container (run this on your host machine):' : 'Start the server:'}${C.reset}
+    ${restartCmd}
 
   ${C.bold}Then open:${C.reset}
     https://localhost:${port}
