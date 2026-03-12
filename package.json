@@ -17,14 +17,15 @@
     "export-data": "node scripts/admin.js export-data",
     "import-data": "node scripts/admin.js import-data",
     "purge-completed": "node scripts/admin.js purge-completed",
+    "purge-graveyard": "node scripts/admin.js purge-graveyard",
     "restart": "node scripts/admin.js restart",
     "dev": "next dev --webpack",
     "build": "bash scripts/build.sh",
     "start": "node server.js",
     "seed": "npx tsx prisma/seed.ts",
-    "service:install": "cp com.luchegames.2dobetter.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.luchegames.2dobetter.plist",
-    "service:uninstall": "launchctl unload ~/Library/LaunchAgents/com.luchegames.2dobetter.plist && rm ~/Library/LaunchAgents/com.luchegames.2dobetter.plist",
-    "service:restart": "launchctl kickstart -k gui/$(id -u)/com.luchegames.2dobetter",
+    "service:install": "node scripts/admin.js service:install",
+    "service:uninstall": "node scripts/admin.js service:uninstall",
+    "service:restart": "node scripts/admin.js restart",
     "uninstall": "node scripts/uninstall.js"
   },
   "dependencies": {

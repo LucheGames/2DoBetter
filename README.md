@@ -73,6 +73,7 @@ git clone https://github.com/LucheGames/2DoBetter.git
 cd 2DoBetter
 npm install
 npm run setup    # wizard: creates user, certs, .env.local
+npm run build    # compile Next.js (~2–3 min first time)
 npm start
 ```
 
@@ -209,8 +210,7 @@ Removes the browser cert warning. Visit `http://your-local-ip:3001/ca.crt`, then
 ### Background service
 
 ```bash
-npm run service:install          # macOS (launchd)
-loginctl enable-linger $USER     # Linux — auto-start at boot, no login required
+npm run service:install          # macOS (launchd) and Linux (systemd) — installs and starts
 journalctl --user -u 2dobetter -f   # Linux — live logs
 ```
 

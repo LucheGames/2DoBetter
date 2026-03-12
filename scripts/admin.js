@@ -474,6 +474,99 @@ function restartService() {
   console.log('');
 }
 
+// ── service:install / service:uninstall ──────────────────────────────────────
+function serviceInstall() {
+  if (process.platform === 'darwin') {
+    const plistSrc  = path.join(ROOT, 'com.luchegames.2dobetter.plist');
+    const launchDir = path.join(os.homedir(), 'Library', 'LaunchAgents');
+    const plistDst  = path.join(launchDir, 'com.luchegames.2dobetter.plist');
+    if (!fs.existsSync(plistSrc)) throw new Error('plist template not found: ' + plistSrc);
+    if (!fs.existsSync(launchDir)) fs.mkdirSync(launchDir, { recursive: true });
+    fs.copyFileSync(plistSrc, plistDst);
+    const r = spawnSync('launchctl', ['load', plistDst], { stdio: 'inherit' });
+    if (r.status !== 0) throw new Error('launchctl load failed');
+    ok('Service installed (macOS launchd). 2Do Better will start at login.');
+    return;
+  }
+
+  if (process.platform === 'linux') {
+    // Prefer nvm node v20+ over the system node
+    let nodeBin = process.execPath;
+    const nvmDir = path.join(os.homedir(), '.nvm', 'versions', 'node');
+    if (fs.existsSync(nvmDir)) {
+      const v20 = fs.readdirSync(nvmDir)
+        .filter(v => /^v[2-9]\d*\./.test(v) && parseInt(v.slice(1), 10) >= 20)
+        .sort().reverse()[0];
+      if (v20) nodeBin = path.join(nvmDir, v20, 'bin', 'node');
+    }
+
+    const serviceContent = [
+      '[Unit]',
+      'Description=2Do Better',
+      'After=network.target',
+      '',
+      '[Service]',
+      'Type=simple',
+      'WorkingDirectory=' + ROOT,
+      'ExecStart=' + nodeBin + ' ' + path.join(ROOT, 'server.js'),
+      'Restart=on-failure',
+      'RestartSec=5',
+      'StandardOutput=journal',
+      'StandardError=journal',
+      '',
+      '[Install]',
+      'WantedBy=default.target',
+      '',
+    ].join('\n');
+
+    const unitDir  = path.join(os.homedir(), '.config', 'systemd', 'user');
+    const unitFile = path.join(unitDir, '2dobetter.service');
+    fs.mkdirSync(unitDir, { recursive: true });
+    fs.writeFileSync(unitFile, serviceContent);
+
+    spawnSync('systemctl', ['--user', 'daemon-reload'],       { stdio: 'inherit' });
+    spawnSync('systemctl', ['--user', 'enable', '2dobetter'], { stdio: 'inherit' });
+    const r = spawnSync('systemctl', ['--user', 'start',  '2dobetter'], { stdio: 'inherit' });
+    if (r.status !== 0) throw new Error('systemctl start failed — check: journalctl --user -u 2dobetter -n 50');
+
+    // Allow service to start at boot without an interactive login session
+    spawnSync('loginctl', ['enable-linger', os.userInfo().username], { stdio: 'pipe' });
+
+    ok('Service installed (Linux systemd). 2Do Better will start at boot.');
+    console.log('  Unit file: ' + unitFile);
+    console.log('  Node:      ' + nodeBin);
+    console.log('  Logs:      journalctl --user -u 2dobetter -f');
+    console.log('');
+    return;
+  }
+
+  throw new Error('service:install is only supported on macOS and Linux');
+}
+
+function serviceUninstall() {
+  if (process.platform === 'darwin') {
+    const plistDst = path.join(os.homedir(), 'Library', 'LaunchAgents', 'com.luchegames.2dobetter.plist');
+    if (!fs.existsSync(plistDst)) { info('No launchd service found — nothing to remove.'); return; }
+    spawnSync('launchctl', ['unload', plistDst], { stdio: 'inherit' });
+    fs.unlinkSync(plistDst);
+    ok('Service removed (macOS launchd).');
+    return;
+  }
+
+  if (process.platform === 'linux') {
+    const unitFile = path.join(os.homedir(), '.config', 'systemd', 'user', '2dobetter.service');
+    if (!fs.existsSync(unitFile)) { info('No systemd service found — nothing to remove.'); return; }
+    spawnSync('systemctl', ['--user', 'stop',    '2dobetter'], { stdio: 'inherit' });
+    spawnSync('systemctl', ['--user', 'disable', '2dobetter'], { stdio: 'inherit' });
+    fs.unlinkSync(unitFile);
+    spawnSync('systemctl', ['--user', 'daemon-reload'], { stdio: 'inherit' });
+    ok('Service removed (Linux systemd).');
+    return;
+  }
+
+  throw new Error('service:uninstall is only supported on macOS and Linux');
+}
+
 // ── gen-invite ────────────────────────────────────────────────────────────────
 async function genInvite() {
   var minutesArg = parseInt(process.argv[3] || '0', 10);
@@ -833,7 +926,9 @@ const dispatch = {
   'import-data':      importData,
   'purge-completed':  purgeCompleted,
   'purge-graveyard':  purgeGraveyard,
-  'restart':          () => { restartService(); return Promise.resolve(); },
+  'restart':          () => { restartService();    return Promise.resolve(); },
+  'service:install':  () => { serviceInstall();   return Promise.resolve(); },
+  'service:uninstall':() => { serviceUninstall(); return Promise.resolve(); },
 };
 
 if (dispatch[cmd]) {
