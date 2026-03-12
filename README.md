@@ -73,6 +73,12 @@ sudo usermod -aG docker $USER             # then log out and back in
 macOS / Windows: install [Docker Desktop](https://docs.docker.com/get-docker/) (includes Docker Compose). Git for macOS comes with Xcode Command Line Tools — run `git` in the terminal and follow the prompt.
 
 **2. Clone and start:**
+
+> No GitHub account needed — the repo is public. If git asks for a username or password, press **Ctrl+C** and use this instead:
+> ```bash
+> git clone --config credential.helper= https://github.com/LucheGames/2DoBetter.git
+> ```
+
 ```bash
 git clone https://github.com/LucheGames/2DoBetter.git
 cd 2DoBetter
@@ -108,6 +114,12 @@ nvm install 20
 Windows: use [nvm-windows](https://github.com/coreybutler/nvm-windows).
 
 **2. Clone and start:**
+
+> No GitHub account needed — the repo is public. If git asks for a username or password, press **Ctrl+C** and use this instead:
+> ```bash
+> git clone --config credential.helper= https://github.com/LucheGames/2DoBetter.git
+> ```
+
 ```bash
 git clone https://github.com/LucheGames/2DoBetter.git
 cd 2DoBetter
