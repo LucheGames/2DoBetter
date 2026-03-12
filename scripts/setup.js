@@ -399,6 +399,25 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   rl.close();
 }
 
+// ── TLS cert helper (called from both full run and early exit) ────────────────
+function ensureCerts() {
+  const certDir  = path.join(ROOT, 'certs');
+  const certKey  = path.join(certDir, 'server.key');
+  const certFile = path.join(certDir, 'server.crt');
+  if (!fs.existsSync(certKey) || !fs.existsSync(certFile)) {
+    console.log('\n' + '─'.repeat(44));
+    info('Generating TLS certificates...');
+    const certScript = path.join(ROOT, 'generate-certs.sh');
+    const r = spawnSync('bash', [certScript], { stdio: 'inherit' });
+    if (r.status !== 0) {
+      warn('Certificate generation failed — server will start in HTTP mode.');
+      warn('Run:  bash generate-certs.sh  to enable HTTPS later.');
+    }
+  } else {
+    ok('TLS certificates already present — skipping cert generation.');
+  }
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
   // Subcommand routing
@@ -437,6 +456,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
       console.log('\n  Nothing changed. Existing config preserved.\n');
       info(`  To add more users: ${C.bold}npm run setup add-user${C.reset}`);
       console.log('');
+      ensureCerts();   // always generate certs if missing, even on early exit
       rl.close(); return;
     }
   }
@@ -609,21 +629,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   }
 
   // ── Generate TLS certs (if missing) ──────────────────────────────
-  const certDir  = path.join(ROOT, 'certs');
-  const certKey  = path.join(certDir, 'server.key');
-  const certFile = path.join(certDir, 'server.crt');
-  if (!fs.existsSync(certKey) || !fs.existsSync(certFile)) {
-    console.log('\n' + '─'.repeat(44));
-    info('Generating TLS certificates...');
-    const certScript = path.join(ROOT, 'generate-certs.sh');
-    const r = spawnSync('bash', [certScript], { stdio: 'inherit' });
-    if (r.status !== 0) {
-      warn('Certificate generation failed — server will start in HTTP mode.');
-      warn('Run:  bash generate-certs.sh  to enable HTTPS later.');
-    }
-  } else {
-    ok('TLS certificates already present — skipping cert generation.');
-  }
+  ensureCerts();
 
   // ── Write config ──────────────────────────────────────────────────
   console.log('\n' + '─'.repeat(44));
