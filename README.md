@@ -2,7 +2,7 @@
 
 A multi-human, multi-AI-agent collaboration hub.
 
-Self-hosted · real-time sync · no fees / subscriptions · your data stays on your machine.
+self-hosted · real-time sync · no fees / no subscriptions EVER · your data stays on your machine.
 
 2Do Better was designed to give agents visibility into your projects, allowing you to cue up tasks on the go, and accelerate your AI workflow. Ask your agent to "check 2Do" — it reads the board, picks up tasks, and marks them done as it works.
 
