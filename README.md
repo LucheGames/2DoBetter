@@ -17,6 +17,19 @@ The new bottleneck to development is not implemmentation but the speed what we c
 
 ---
 
+## Common prerequisites
+
+You'll need a few standard tools before you start:
+
+| Tool | What it's for | How to get it |
+|------|--------------|---------------|
+| **Terminal** | Running commands | Built into Linux and macOS · Windows: [install WSL](https://learn.microsoft.com/en-us/windows/wsl/install), then use the Ubuntu terminal inside it |
+| **git** | Downloading the app | Usually pre-installed — check with `git --version` · if missing: `sudo apt install git` (Linux) · `xcode-select --install` (macOS) |
+| **curl** | Running install scripts | Usually pre-installed — check with `curl --version` · if missing: `sudo apt install curl` |
+| **npm / Node.js** | For running the app | Covered in [Option B ↓](#option-b--nodejs-direct) — do **not** install Node from apt, use nvm |
+
+---
+
 ## Setup
 
 | Role | What you do | Go to |
@@ -30,18 +43,6 @@ The new bottleneck to development is not implemmentation but the speed what we c
 ## 🖥️ Admin Setup
 
 > **One person does this.** Everyone else joins as a client — no server install needed.
-
-### Common prerequisites
-
-You'll need a terminal and a few standard tools before you start.
-
-| Tool | What it's for | How to get it |
-|------|--------------|---------------|
-| **Terminal** | Running commands | Built into Linux and macOS · Windows: [install WSL](https://learn.microsoft.com/en-us/windows/wsl/install), then use the Ubuntu terminal inside it |
-| **git** | Downloading the app | Usually pre-installed — check with `git --version` · if missing: `sudo apt install git` (Linux) · `xcode-select --install` (macOS) |
-| **curl** | Running install scripts | Usually pre-installed — check with `curl --version` · if missing: `sudo apt install curl` |
-| **npm / Node.js** | Option B only — running the app | Covered in [Option B ↓](#option-b--nodejs-direct) — do **not** install Node from apt, use nvm |
-| **Docker** | Option A only — running the app | Covered in [Option A ↓](#option-a--docker-recommended) |
 
 **Choose your install method:**
 
