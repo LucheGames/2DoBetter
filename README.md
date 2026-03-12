@@ -23,7 +23,7 @@ You'll need a few standard tools before you start:
 
 | Tool | What it's for | How to get it |
 |------|--------------|---------------|
-| **Terminal** | Running commands | Built into Linux and macOS · Windows: [install WSL](https://learn.microsoft.com/en-us/windows/wsl/install), then use the Ubuntu terminal inside it |
+| **Terminal** | Running commands | Built into Linux and macOS · Windows: open the folder where you want to install the app in Explorer, then type `cmd` in the address bar and press Enter |
 | **git** | Downloading the app | Usually pre-installed — check with `git --version` · if missing: `sudo apt install git` (Linux) · `xcode-select --install` (macOS) |
 | **curl** | Running install scripts | Usually pre-installed — check with `curl --version` · if missing: `sudo apt install curl` |
 
