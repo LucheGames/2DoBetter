@@ -94,7 +94,7 @@ Open `https://localhost:3000`.
 
 **Updating:**
 ```bash
-git pull && docker compose up -d --build              # update — data untouched
+git pull && docker compose up -d --build              # pull latest + rebuild image — your data is untouched
 docker compose logs -f                                # live logs
 docker exec -it 2dobetter node scripts/admin.js status
 ```
