@@ -86,7 +86,7 @@ git clone https://github.com/LucheGames/2DoBetter.git
 cd 2DoBetter
 docker compose build                                   # ~2–3 min — terminal returns when done
 docker compose up -d                                   # -d runs in background, keeps terminal free
-docker exec -it 2dobetter node scripts/setup.js       # first-run wizard
+docker exec -it 2dobetter node scripts/setup.js       # first-run wizard: DB migration, certs, user setup
 docker compose restart                                 # picks up wizard config
 ```
 
@@ -126,7 +126,7 @@ Windows: use [nvm-windows](https://github.com/coreybutler/nvm-windows).
 git clone https://github.com/LucheGames/2DoBetter.git
 cd 2DoBetter
 npm install
-npm run setup    # wizard: creates user, certs, .env.local
+npm run setup    # wizard: DB migration, TLS certs, user setup, .env.local
 npm run build    # compile Next.js (~2–3 min first time)
 npm start
 ```

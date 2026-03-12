@@ -400,6 +400,21 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   ╚════════════════════════════════════╝${C.reset}
 `);
 
+  // ── Run DB migrations ─────────────────────────────────────────────
+  // Ensures the SQLite schema is up to date before we touch anything.
+  info('Applying database migrations...');
+  const migrateResult = spawnSync(
+    process.execPath,
+    [path.join(ROOT, 'node_modules', '.bin', 'prisma'), 'migrate', 'deploy'],
+    { stdio: 'inherit', cwd: ROOT }
+  );
+  if (migrateResult.status !== 0) {
+    warn('Migration failed — the app may not work correctly.');
+    warn('Try running manually:  npx prisma migrate deploy');
+  } else {
+    ok('Database schema up to date.');
+  }
+
   // Load existing config so we can preserve / show current values
   const existing = { ...parseEnv(ENV_FILE), ...parseEnv(ENV_LOCAL) };
   const existingUsers = loadUsers();
