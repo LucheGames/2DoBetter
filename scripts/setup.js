@@ -457,24 +457,27 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   users.push({ username: firstUsername, hash: await bcrypt.hash(firstToken, 12), isAdmin: true });
 
   // Ask about additional users
-  console.log('');
-  let addMore = await ask('Add more users now? (y/N)', 'N');
-  while (addMore.toLowerCase() === 'y') {
+  while (true) {
     console.log('');
-    const uname = await ask('New username');
-    if (!uname) { warn('Skipping — username cannot be empty.'); break; }
+    const addChoice = await askChoice(
+      'Add another account?',
+      ['Add human user', 'Add AI agent', 'Skip for now (users can be added later)']
+    );
+    if (addChoice === 2) break;
+
+    const isAgent = addChoice === 1;
+    console.log('');
+    const uname = await ask(isAgent ? 'Agent username' : 'Username');
+    if (!uname) { warn('Username cannot be empty — skipping.'); continue; }
     if (users.some(u => u.username.toLowerCase() === uname.toLowerCase())) {
       warn(`User "${uname}" already exists — skipping.`);
-    } else {
-      const typeChoice = await askChoice('Account type:', ['Human', 'AI agent']);
-      const isAgent = typeChoice === 1;
-      const tok = await collectToken();
-      const userObj = { username: uname, hash: await bcrypt.hash(tok, 12) };
-      if (isAgent) userObj.isAgent = true;
-      users.push(userObj);
-      ok(`User "${uname}" added (${isAgent ? 'AI agent' : 'human'}).`);
+      continue;
     }
-    addMore = await ask('Add another user? (y/N)', 'N');
+    const tok = await collectToken();
+    const userObj = { username: uname, hash: await bcrypt.hash(tok, 12) };
+    if (isAgent) userObj.isAgent = true;
+    users.push(userObj);
+    ok(`${isAgent ? 'AI agent' : 'Human user'} "${uname}" added.`);
   }
 
   if (users.length > 1) {
