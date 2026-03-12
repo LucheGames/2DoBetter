@@ -23,11 +23,14 @@ You'll need a few standard tools before you start:
 
 | Tool | What it's for | How to get it |
 |------|--------------|---------------|
-| **Terminal** | Running commands | Built into Linux and macOS · Windows: open the folder where you want to install the app in Explorer, then type `cmd` in the address bar and press Enter |
-| **git** | Downloading the app | Usually pre-installed — check with `git --version` · if missing: `sudo apt install git` (Linux) · `xcode-select --install` (macOS) |
+| **Terminal** | Running commands | Built into Linux and macOS · Windows: search for **cmd** or **PowerShell** in the Start menu |
+| **git** | Downloading the app | Usually pre-installed — check with `git --version` · if missing: `sudo apt install git` (Linux) · [git-scm.com](https://git-scm.com/downloads) (macOS/Windows) |
 | **curl** | Running install scripts | Usually pre-installed — check with `curl --version` · if missing: `sudo apt install curl` |
 
-Docker and Node.js are set up as part of the install path you choose — you don't need them yet.
+Before running any commands, navigate to where you want to install the app:
+```bash
+cd ~/Documents    # or wherever you keep your projects
+```
 
 ---
 
