@@ -182,17 +182,20 @@ export default function Home() {
       {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} onDataChanged={fetchBoard} />}
 
       {/* Columns — side by side on desktop, stacked on mobile.
-          Each column targets 1/3 viewport width on desktop. With flex-1 +
-          min-w-[33vw]: 1-2 columns fill the screen evenly, 3 columns sit at
-          exactly 1/3 each, 4+ overflow and scroll horizontally. */}
+          1–3 visible columns: min-w-[33vw] fills screen evenly.
+          4+ visible columns: min-w-[30vw] so the 4th peeks ~10% on the right,
+          hinting that horizontal scroll is available. */}
       <div className="flex-1 flex flex-col md:flex-row md:min-h-0 overflow-y-auto md:overflow-x-auto md:overflow-y-hidden">
-        {board.columns.map((col, i) => {
+        {(() => {
+          const visibleCount = board.columns.filter(c => !collapsedCols.has(c.id)).length;
+          const colMinW = visibleCount >= 4 ? "md:min-w-[30vw]" : "md:min-w-[33vw]";
+          return board.columns.map((col, i) => {
           const isCollapsed = collapsedCols.has(col.id);
           return (
             <div
               key={col.id}
               className={`flex flex-col md:min-h-0 transition-[width,flex] duration-200 ${
-                isCollapsed ? "md:flex-none md:w-12" : "md:flex-1 md:min-w-[33vw]"
+                isCollapsed ? "md:flex-none md:w-12" : `md:flex-1 ${colMinW}`
               } ${
                 i < board.columns.length - 1
                   ? "border-b md:border-b-0 md:border-r border-gray-800"
@@ -209,7 +212,8 @@ export default function Home() {
               />
             </div>
           );
-        })}
+        });
+        })()}
       </div>
     </div>
   );
