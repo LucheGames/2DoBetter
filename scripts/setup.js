@@ -465,15 +465,26 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   const users = []; // will be written to data/users.json
 
   // ── Server port ───────────────────────────────────────────────────
-  const defaultPort = existing.PORT || '3000';
-  const portInput = await ask(`Server port (press Enter for ${defaultPort}, change if port ${defaultPort} is already in use)`, defaultPort);
-  const chosenPort = portInput.trim() || defaultPort;
+  const existingPort = existing.PORT || '3000';
+  const portChoice = await askChoice(
+    `Server port (change if ${existingPort} is already in use on this machine):`,
+    [`${existingPort === '3000' ? '3000 (default)' : existingPort}`, '4000', '8080', 'Enter a different port']
+  );
+  let chosenPort;
+  if (portChoice === 3) {
+    const custom = await ask('Port number', existingPort);
+    chosenPort = custom.trim() || existingPort;
+  } else {
+    chosenPort = [existingPort === '3000' ? '3000' : existingPort, '4000', '8080'][portChoice] || existingPort;
+    if (portChoice === 0) chosenPort = existingPort; // keep existing / default
+  }
   cfg.PORT = chosenPort;
+  ok(`Server port: ${chosenPort}`);
   if (chosenPort !== '3000') {
     const httpPort = String(parseInt(chosenPort, 10) + 1);
-    warn(`Port set to ${chosenPort}. If using Docker, also update docker-compose.yml:`);
-    info(`  Change  "3000:3000"  to  "${chosenPort}:${chosenPort}"`);
-    info(`  Change  "3001:3001"  to  "${httpPort}:${httpPort}"`);
+    warn(`Using port ${chosenPort}. If running Docker, also update docker-compose.yml:`);
+    info(`  Change  "3000:3000"  →  "${chosenPort}:${chosenPort}"`);
+    info(`  Change  "3001:3001"  →  "${httpPort}:${httpPort}"`);
   }
 
   // ── [1/5] Identity & Access ──────────────────────────────────────

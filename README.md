@@ -263,34 +263,63 @@ tailscale ip -4    # clients connect to https://<this-ip>:3000
 
 ### Browser cert warning
 
-When you first open the app you'll see a security warning. This is expected — your browser doesn't know your self-signed certificate yet. Your server is not unsafe; the cert was generated just for your private install.
-
-**Why "Advanced → does nothing" in Firefox?**
-Firefox on Linux sometimes refuses to let you bypass cert errors at all — this is a Firefox policy, not a problem with your server. The fix is to install the CA cert once (takes 30 seconds), after which Firefox trusts your server permanently with no warnings.
+When you first open the app you'll see a security warning. **This is normal and safe** — your browser doesn't recognise your self-signed certificate yet. The cert was generated for your private server; no one else can use it.
 
 ---
 
-#### Install the CA cert (recommended — removes warnings forever)
+#### Step 1 — Find your server's IP address
 
-First, download the CA cert — open this in any browser on the same machine:
+You'll need this to connect from phones and other devices on the same network.
+
+On the server machine, run:
+```bash
+hostname -I       # Linux / Mac
+ipconfig          # Windows — look for IPv4 Address
 ```
-http://localhost:3001/ca.crt
-```
+Use that IP (e.g. `192.168.1.42`) wherever you see `YOUR-SERVER-IP` below.
 
-Then install it for your browser or device:
+---
 
-**Firefox (desktop)**
-Settings → Privacy & Security → scroll to Certificates → **View Certificates** → **Authorities** tab → **Import** → select the downloaded `.crt` file → tick **"Trust this CA to identify websites"** → OK
+#### Step 2 — Install the CA cert (removes warnings forever)
+
+Download the CA cert from the server — open this URL on the device you want to trust it on:
+
+| Device | URL |
+|--------|-----|
+| Same machine as server | `http://localhost:3001/ca.crt` |
+| Phone / other device | `http://YOUR-SERVER-IP:3001/ca.crt` |
+
+Then follow the steps for your browser or device:
+
+**Firefox (desktop) — required, Advanced button does nothing without this**
+1. Download the file above
+2. Firefox menu → Settings → Privacy & Security → scroll to **Certificates** → click **View Certificates**
+3. **Authorities** tab → **Import** → select the downloaded `.crt` file
+4. Tick **"Trust this CA to identify websites"** → OK
+5. Reload `https://localhost:3000` — no more warning
 
 **Chrome / Brave / Edge (desktop)**
-Click **Advanced** → **Proceed to localhost** (or your IP). That's it — no import needed for a one-time bypass.
-For a permanent fix: Settings → Privacy and security → Security → Manage certificates → Authorities → Import.
+One-time bypass (no install needed): click **Advanced** → **Proceed to [address] (unsafe)**
 
-**iOS**
-Tap `http://your-server-ip:3001/ca.crt` on the phone → Settings → Profile Downloaded → Install → then Settings → General → About → Certificate Trust Settings → enable the 2DoBetter CA
+Permanent fix (no warning ever again):
+- **Windows/Linux:** Settings → Privacy and security → Security → **Manage certificates** → Authorities → Import → select the `.crt` file → trust for websites
+- **Mac:** double-click the downloaded `.crt` → Keychain opens → find "2DoBetter Local CA" → double-click → Trust → set "When using this certificate" to **Always Trust**
 
-**Android**
-Open `http://your-server-ip:3001/ca.crt` on the phone → Settings → Security → Install certificates → CA certificate
+**Android (Samsung / Chrome mobile)**
+1. In Chrome on the phone, open `http://YOUR-SERVER-IP:3001/ca.crt`
+2. It will download — open the notification to install it
+3. Name it anything (e.g. `2DoBetter`) → OK
+4. If Chrome still warns: Settings → Security → Encryption & credentials → Trusted credentials → User tab — confirm it's listed
+5. Open `https://YOUR-SERVER-IP:3000` in Chrome
+
+> **Samsung Internet browser** has its own cert store. Use Chrome on Android for the smoothest experience.
+
+**iOS (Safari)**
+1. On the iPhone, open `http://YOUR-SERVER-IP:3001/ca.crt`
+2. Safari prompts to download — tap Allow
+3. Go to **Settings** → **Profile Downloaded** → **Install** (top right) → enter passcode → Install again
+4. Then go to **Settings** → **General** → **About** → **Certificate Trust Settings** → toggle on the 2DoBetter CA
+5. Open `https://YOUR-SERVER-IP:3000` in Safari
 
 ---
 
