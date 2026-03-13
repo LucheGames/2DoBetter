@@ -137,7 +137,7 @@ export default function Home() {
             target="_blank"
             rel="noopener noreferrer"
             title="Support development ☕"
-            className="app-logo app-ui-text font-semibold uppercase tracking-widest hover:text-gray-300 transition-colors select-none"
+            className="app-logo app-ui-text font-semibold uppercase tracking-widest hover:text-gray-300 transition-colors select-none relative top-[2px]"
           >
             2Do Better
           </a>
