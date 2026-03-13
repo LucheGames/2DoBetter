@@ -7,6 +7,7 @@ const http = require('http');
 const https = require('https');
 const os   = require('os');
 let bcrypt; try { bcrypt = require('bcrypt'); } catch { /* installed post-setup */ }
+let QRCode; try { QRCode = require('qrcode'); } catch { /* installed post-setup */ }
 
 // Load .env then .env.local (local overrides base — written by npm run setup)
 try { require('dotenv').config(); } catch {}
@@ -162,6 +163,124 @@ function broadcastReload() {
 global.__sseBroadcast = broadcast;
 global.__sseBroadcastReload = broadcastReload;
 
+// ── Onboarding / device setup page ───────────────────────────────────────────
+// Served at http://[ip]:[httpPort]/ (TLS mode) or http://[ip]:[port]/setup (HTTP mode).
+// Shows QR codes for CA cert + app URL so adding a new device is scan-and-go.
+async function serveSetupPage(req, res, { useTLS, port, hostname, lanAddresses }) {
+  const httpPort = port + 1;
+  const primaryIP = lanAddresses[0]?.address;
+  const host = primaryIP || 'localhost';
+  const appUrl = `${useTLS ? 'https' : 'http'}://${host}:${port}`;
+  const certUrl = useTLS ? `http://${host}:${httpPort}/ca.crt` : null;
+
+  let certQrSvg = '', appQrSvg = '';
+  if (QRCode) {
+    // Match qr-box background (#111827) so QR blends into the dark card
+    const opts = { type: 'svg', color: { dark: '#e5e7eb', light: '#111827' }, margin: 1, width: 200 };
+    try {
+      if (certUrl) certQrSvg = await QRCode.toString(certUrl, opts);
+      appQrSvg = await QRCode.toString(appUrl, opts);
+    } catch (e) { console.warn('  ⚠  QR generation error:', e.message); }
+  }
+
+  const addrRows = lanAddresses
+    .map(a => `<div class="addr"><span>${a.address}</span><em>${a.name}</em></div>`)
+    .join('');
+
+  const noQr = '<p class="no-qr">Install the qrcode package and restart to show QR codes</p>';
+
+  const certStep = useTLS ? `
+    <div class="step">
+      <div class="step-num">1</div>
+      <h2>Install the certificate</h2>
+      <p>Your browser needs to trust this server. Scan the QR code to download and install the certificate.</p>
+      <div class="qr-box">
+        ${certQrSvg || noQr}
+        <div class="url">${certUrl}</div>
+      </div>
+      <div class="tabs">
+        <button class="tab active" data-p="android" onclick="showTab('android')">Android</button>
+        <button class="tab" data-p="ios" onclick="showTab('ios')">iPhone</button>
+      </div>
+      <div id="android" class="platform active">
+        <div class="note"><strong>⚠ Chrome on Android 7 won\u2019t work \u2014 use Firefox instead.</strong><br><br>
+        After downloading the cert:<br>
+        Settings \u2192 Security \u2192 Encryption &amp; credentials \u2192 Install a certificate \u2192 CA certificate \u2192 pick the file.</div>
+      </div>
+      <div id="ios" class="platform">
+        <div class="note">After downloading the cert:<br>
+        Settings \u2192 Profile Downloaded \u2192 Install \u2192 enter passcode \u2192 Install.<br><br>
+        Then: Settings \u2192 General \u2192 About \u2192 Certificate Trust Settings \u2192 enable the certificate.</div>
+      </div>
+    </div>
+    <hr class="divider">
+  ` : '<div class="badge-http">HTTP mode \u2014 no certificate needed</div>';
+
+  const stepNum = useTLS ? '2' : '1';
+  const browserNote = useTLS ? ' (use Firefox on Android 7)' : '';
+
+  const html = `<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2Do Better \u2014 Add Device</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#030712;color:#e5e7eb;font-family:Arial,sans-serif;padding:24px 16px;max-width:480px;margin:0 auto}
+h1{font-size:1.25rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#d1d5db;margin-bottom:4px}
+.sub{color:#6b7280;font-size:.875rem;margin-bottom:24px}
+.server-info{background:#111827;border:1px solid #1f2937;border-radius:8px;padding:12px 14px;margin-bottom:28px}
+.server-info .label{font-size:.7rem;color:#4b5563;text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+.addr{font-size:.8125rem;color:#6b7280;margin-bottom:3px}
+.addr span{color:#d1d5db;font-family:monospace;margin-right:6px}
+.addr em{font-style:normal;color:#4b5563;font-size:.75rem}
+.step{margin-bottom:28px}
+.step-num{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#1f2937;color:#9ca3af;font-size:.8125rem;font-weight:700;margin-bottom:12px}
+.step h2{font-size:1rem;font-weight:600;color:#f3f4f6;margin-bottom:6px}
+.step>p{font-size:.875rem;color:#9ca3af;margin-bottom:14px;line-height:1.5}
+.qr-box{background:#111827;border:1px solid #1f2937;border-radius:12px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:14px}
+.qr-box svg{width:176px;height:176px}
+.url{font-size:.75rem;color:#6b7280;font-family:monospace;word-break:break-all;text-align:center}
+.no-qr{font-size:.8125rem;color:#6b7280;font-style:italic;padding:20px 0;text-align:center}
+.tabs{display:flex;gap:8px;margin-bottom:10px}
+.tab{padding:5px 14px;border-radius:6px;font-size:.8125rem;cursor:pointer;border:1px solid #374151;color:#9ca3af;background:none}
+.tab.active{background:#1f2937;color:#f3f4f6;border-color:#4b5563}
+.platform{display:none}
+.platform.active{display:block}
+.note{background:#111827;border:1px solid #1f2937;border-radius:8px;padding:12px 14px;font-size:.8125rem;color:#9ca3af;line-height:1.6}
+.note strong{color:#e5e7eb}
+.divider{border:none;border-top:1px solid #1f2937;margin:28px 0}
+.badge-http{display:inline-block;background:#1c1917;border:1px solid #44403c;border-radius:4px;padding:3px 10px;font-size:.75rem;color:#a8a29e;margin-bottom:20px}
+</style></head>
+<body>
+<h1>2Do Better</h1>
+<p class="sub">Add this device</p>
+<div class="server-info">
+  <div class="label">Server</div>
+  <div class="addr"><span>${hostname}</span></div>
+  ${addrRows}
+</div>
+${certStep}
+<div class="step">
+  <div class="step-num">${stepNum}</div>
+  <h2>Open the app</h2>
+  <p>Scan the QR code or type the address into your browser${browserNote}.</p>
+  <div class="qr-box">
+    ${appQrSvg || noQr}
+    <div class="url">${appUrl}</div>
+  </div>
+</div>
+<script>
+function showTab(p){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('active',t.dataset.p===p)});
+  document.querySelectorAll('.platform').forEach(function(c){c.classList.toggle('active',c.id===p)});
+}
+</scr` + `ipt>
+</body></html>`;
+
+  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+  res.end(html);
+}
+
 function getLanAddresses() {
   const interfaces = os.networkInterfaces();
   const addresses = [];
@@ -239,11 +358,16 @@ app.prepare().then(() => {
       }
     });
 
-    // HTTP server on port+1 for CA cert download + redirect
+    // HTTP server on port+1 for onboarding page, CA cert download + redirect
     const httpPort = port + 1;
-    const httpServer = http.createServer((req, res) => {
+    const httpServer = http.createServer(async (req, res) => {
       if (req.url === '/ca.crt' || req.url === '/ca.pem' || req.url === '/ca.der.crt') {
         serveCaCert(req, res);
+        return;
+      }
+      // Onboarding setup page at root and /setup
+      if (req.url === '/' || req.url === '/setup') {
+        await serveSetupPage(req, res, { useTLS: true, port, hostname, lanAddresses });
         return;
       }
       // Redirect everything else to HTTPS
@@ -253,18 +377,23 @@ app.prepare().then(() => {
     });
 
     httpServer.listen(httpPort, '0.0.0.0', () => {
-      console.log(`\n  HTTP redirect + CA cert: http://localhost:${httpPort}`);
+      console.log(`\n  HTTP setup + CA cert: http://localhost:${httpPort}`);
       for (const { address } of lanAddresses) {
-        console.log(`  CA cert:  http://${address}:${httpPort}/ca.crt`);
+        console.log(`  Setup:    http://${address}:${httpPort}`);
       }
       console.log('');
     });
 
   } else {
     // No certs — HTTP only (local dev or pre-setup)
-    const httpServer = http.createServer((req, res) => {
+    const httpServer = http.createServer(async (req, res) => {
       if (req.url === '/api/events') {
         sseHandler(req, res);
+        return;
+      }
+      // Onboarding setup page at /setup
+      if (req.url === '/setup') {
+        await serveSetupPage(req, res, { useTLS: false, port, hostname, lanAddresses });
         return;
       }
       handle(req, res);
@@ -276,6 +405,7 @@ app.prepare().then(() => {
       console.log(`  Network:  http://${hostname}:${port}`);
       for (const { address } of lanAddresses) {
         console.log(`  LAN IP:   http://${address}:${port}`);
+        console.log(`  Setup:    http://${address}:${port}/setup`);
       }
       console.log(`\n  Run generate-certs.sh to enable HTTPS\n`);
     });
