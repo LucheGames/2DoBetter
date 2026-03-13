@@ -254,11 +254,36 @@ tailscale ip -4    # clients connect to https://<this-ip>:3000
 
 ---
 
-### Install CA cert
+### Browser cert warning
 
-Removes the browser cert warning. Visit `http://your-local-ip:3001/ca.crt`, then:
-- **iOS:** tap file → Settings → Profile Downloaded → Install → General → About → Certificate Trust Settings → enable
-- **Android:** Settings → Security → Install certificates → CA certificate
+When you first open the app you'll see a security warning. This is expected — your browser doesn't know your self-signed certificate yet. Your server is not unsafe; the cert was generated just for your private install.
+
+**Why "Advanced → does nothing" in Firefox?**
+Firefox on Linux sometimes refuses to let you bypass cert errors at all — this is a Firefox policy, not a problem with your server. The fix is to install the CA cert once (takes 30 seconds), after which Firefox trusts your server permanently with no warnings.
+
+---
+
+#### Install the CA cert (recommended — removes warnings forever)
+
+First, download the CA cert — open this in any browser on the same machine:
+```
+http://localhost:3001/ca.crt
+```
+
+Then install it for your browser or device:
+
+**Firefox (desktop)**
+Settings → Privacy & Security → scroll to Certificates → **View Certificates** → **Authorities** tab → **Import** → select the downloaded `.crt` file → tick **"Trust this CA to identify websites"** → OK
+
+**Chrome / Brave / Edge (desktop)**
+Click **Advanced** → **Proceed to localhost** (or your IP). That's it — no import needed for a one-time bypass.
+For a permanent fix: Settings → Privacy and security → Security → Manage certificates → Authorities → Import.
+
+**iOS**
+Tap `http://your-server-ip:3001/ca.crt` on the phone → Settings → Profile Downloaded → Install → then Settings → General → About → Certificate Trust Settings → enable the 2DoBetter CA
+
+**Android**
+Open `http://your-server-ip:3001/ca.crt` on the phone → Settings → Security → Install certificates → CA certificate
 
 ---
 
