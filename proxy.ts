@@ -8,7 +8,7 @@ import path from 'path';
 
 const USERS_FILE = path.join(process.cwd(), 'data', 'users.json');
 
-function readUsers(): Array<{ username: string; hash?: string; token?: string; session?: string; agentToken?: string }> {
+function readUsers(): Array<{ username: string; hash?: string; token?: string; session?: string; sessions?: string[]; agentToken?: string }> {
   try {
     // Read fresh from disk so newly registered users are visible immediately.
     return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
