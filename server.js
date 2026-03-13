@@ -196,8 +196,9 @@ async function serveSetupPage(req, res, { useTLS, port, hostname, lanAddresses }
       <p>Your browser needs to trust this server. Scan the QR code to download and install the certificate.</p>
       <div class="qr-box">
         ${certQrSvg || noQr}
-        <div class="url">${certUrl}</div>
       </div>
+      <a href="${certUrl}" class="tap-btn" download="2DoBetter-CA.crt">\u2b07 Download certificate</a>
+      <div class="url">${certUrl}</div>
       <div class="tabs">
         <button class="tab active" data-p="android" onclick="showTab('android')">Android</button>
         <button class="tab" data-p="ios" onclick="showTab('ios')">iPhone</button>
@@ -250,9 +251,12 @@ h1{font-size:1.25rem;font-weight:600;text-transform:uppercase;letter-spacing:.1e
 .note strong{color:#e5e7eb}
 .divider{border:none;border-top:1px solid #1f2937;margin:28px 0}
 .badge-http{display:inline-block;background:#1c1917;border:1px solid #44403c;border-radius:4px;padding:3px 10px;font-size:.75rem;color:#a8a29e;margin-bottom:20px}
+.coffee{text-decoration:none;margin-left:5px;font-size:1rem}
+.tap-btn{display:block;background:#1f2937;border:1px solid #374151;border-radius:10px;padding:14px 20px;text-align:center;color:#f3f4f6;text-decoration:none;font-size:.9375rem;font-weight:600;margin-bottom:8px}
+.tap-btn:active{background:#374151}
 </style></head>
 <body>
-<h1>2Do Better</h1>
+<h1>2Do Better <a href="https://www.buymeacoffee.com/luchegames" target="_blank" class="coffee">\u2615</a></h1>
 <p class="sub">Add this device</p>
 <div class="server-info">
   <div class="label">Server</div>
@@ -263,11 +267,12 @@ ${certStep}
 <div class="step">
   <div class="step-num">${stepNum}</div>
   <h2>Open the app</h2>
-  <p>Scan the QR code or type the address into your browser${browserNote}.</p>
+  <p>Tap the button to open the app. The QR code is for scanning from a second device${browserNote}.</p>
   <div class="qr-box">
     ${appQrSvg || noQr}
-    <div class="url">${appUrl}</div>
   </div>
+  <a href="${appUrl}" class="tap-btn">\u2192 Open 2Do Better</a>
+  <div class="url">${appUrl}</div>
 </div>
 <script>
 function showTab(p){
