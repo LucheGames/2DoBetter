@@ -88,7 +88,7 @@ function SortableTaskRow({
         moveButton={moveButton}
         dragHandle={
           <button
-            className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-700 hover:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity touch-none"
+            className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-700 hover:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity touch-none min-w-[36px] min-h-[36px] flex items-center justify-center"
             {...(attributes as DragHandleProps)}
             {...(listeners as DragHandleProps)}
             tabIndex={-1}
