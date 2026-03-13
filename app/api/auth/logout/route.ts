@@ -4,9 +4,15 @@ import { getUsersFresh, saveUsers } from '@/lib/auth-helpers';
 function clearSession(token: string | undefined) {
   if (!token) return;
   const users = getUsersFresh();
-  const idx = users.findIndex(u => u.session === token);
+  const idx = users.findIndex(
+    u => u.session === token || u.sessions?.includes(token)
+  );
   if (idx !== -1) {
+    // Remove only this device's session — other devices stay logged in
     delete users[idx].session;
+    if (users[idx].sessions) {
+      users[idx].sessions = users[idx].sessions!.filter(s => s !== token);
+    }
     saveUsers(users);
   }
 }

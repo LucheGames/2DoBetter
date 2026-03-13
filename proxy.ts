@@ -48,10 +48,14 @@ export function proxy(request: NextRequest) {
   if (usersFileExists || process.env.AUTH_USERS_JSON) {
     const users = readUsers();
     // Accept session token (new), legacy plaintext token (migration), or permanent agent token.
+    const matchesSession = (u: typeof users[0]) =>
+      (tokenCookie != null && u.sessions?.includes(tokenCookie)) ||
+      u.session === tokenCookie ||
+      u.token === tokenCookie ||
+      u.agentToken === tokenCookie;
     const user = userCookie
-      ? users.find(u => u.username === userCookie &&
-          (u.session === tokenCookie || u.token === tokenCookie || u.agentToken === tokenCookie))
-      : users.find(u => u.session === tokenCookie || u.token === tokenCookie || u.agentToken === tokenCookie);
+      ? users.find(u => u.username === userCookie && matchesSession(u))
+      : users.find(u => matchesSession(u));
     if (user) {
       // Inject authenticated username for API routes to consume
       const headers = new Headers(request.headers);

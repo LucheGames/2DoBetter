@@ -71,9 +71,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    // Issue a new session token
+    // Issue a new session token — supports multiple concurrent devices.
+    // Migrate legacy single-session field to array on first multi-device login.
     const session = generateSession();
-    users[userIdx].session = session;
+    if (!users[userIdx].sessions) users[userIdx].sessions = [];
+    if (users[userIdx].session) {
+      // absorb the old single-session token so existing browsers don't get logged out
+      users[userIdx].sessions!.push(users[userIdx].session!);
+      delete users[userIdx].session;
+    }
+    users[userIdx].sessions!.push(session);
+    // Cap at 10 sessions (oldest evicted first)
+    if (users[userIdx].sessions!.length > 10) {
+      users[userIdx].sessions!.splice(0, users[userIdx].sessions!.length - 10);
+    }
     saveUsers(users);
 
     await ensureUserColumn(user.username);

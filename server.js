@@ -99,12 +99,15 @@ function sseHandler(req, res) {
   const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
   const token = bearerToken || cookies['auth_token'];
 
-  const usersJson = process.env.AUTH_USERS_JSON;
+  // Read fresh from disk so newly-logged-in sessions are always valid.
+  // Falls back to the startup env snapshot if the file can't be read.
+  let usersJson;
+  try { usersJson = fs.readFileSync(usersFile, 'utf8'); } catch { usersJson = process.env.AUTH_USERS_JSON; }
   if (usersJson) {
     try {
       const users = JSON.parse(usersJson);
       // Accept session token, legacy plaintext token, or permanent agentToken.
-      if (!users.some(u => u.session === token || u.token === token || u.agentToken === token)) {
+      if (!users.some(u => (u.sessions && u.sessions.includes(token)) || u.session === token || u.token === token || u.agentToken === token)) {
         res.writeHead(401);
         res.end('Unauthorized');
         return;

@@ -30,7 +30,8 @@ export type UserRecord = {
   username: string;
   hash?: string;        // bcrypt hash (new users)
   token?: string;       // legacy plaintext password (migrated to hash on next login)
-  session?: string;     // current session token (set on login, cleared on logout)
+  session?: string;     // DEPRECATED: single session — migrated to sessions[] on next login
+  sessions?: string[];  // active session tokens — supports multiple concurrent devices (capped at 10)
   agentToken?: string;  // permanent MCP/agent token — survives logout, rotate with gen-agent-token
   isAdmin?: boolean;       // first user from setup wizard; can lock/unlock columns + run import
   readOnly?: boolean;      // token can read anything but cannot write (observer / monitor agents)
