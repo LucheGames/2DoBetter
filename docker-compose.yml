@@ -14,9 +14,11 @@ services:
   app:
     build: .
     container_name: 2dobetter
-    ports:
-      - "3000:3000"   # HTTPS (main app)
-      - "3001:3001"   # HTTP → HTTPS redirect
+    # host networking: container shares the host's network stack directly.
+    # This means server.js sees the real LAN IPs (not Docker bridge IPs),
+    # so setup-page QR codes and tap-button URLs point to the right address.
+    # `ports:` is not compatible with network_mode: host — host ports are used directly.
+    network_mode: host
     volumes:
       # These directories live on the HOST machine — not inside the container.
       # Rebuilding or deleting the container will NOT delete your data.
