@@ -31,7 +31,12 @@ detect_lan_ip() {
     ip=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "")
     if [ -n "$ip" ]; then echo "$ip"; return; fi
   fi
-  # Linux
+  # Linux — try ip route first (works in Alpine/Docker), fall back to hostname -I
+  if command -v ip &>/dev/null; then
+    local ip
+    ip=$(ip route get 1.1.1.1 2>/dev/null | awk '/src/{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}')
+    if [ -n "$ip" ]; then echo "$ip"; return; fi
+  fi
   if command -v hostname &>/dev/null; then
     local ip
     ip=$(hostname -I 2>/dev/null | awk '{print $1}')
@@ -40,8 +45,8 @@ detect_lan_ip() {
   echo ""
 }
 
-LAN_IP=$(detect_lan_ip)
-RAW_HOSTNAME=$(hostname)
+LAN_IP=$(detect_lan_ip || echo "")
+RAW_HOSTNAME=$(hostname 2>/dev/null || echo "localhost")
 # Ensure .local suffix (macOS hostname may already include it)
 if [[ "$RAW_HOSTNAME" == *.local ]]; then
   MDNS_HOSTNAME="$RAW_HOSTNAME"
