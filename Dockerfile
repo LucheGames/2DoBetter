@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1
 # 2Do Better — Dockerfile
 #
 # Builds a self-contained production image.
@@ -17,11 +16,11 @@ WORKDIR /app
 #   python3, make, g++ — node-gyp native addons (bcrypt)
 RUN apk add --no-cache bash python3 make g++
 
-# Install dependencies — BuildKit cache mount keeps the npm download cache
-# between builds so packages aren't re-downloaded when lock file changes.
+# Install dependencies — Docker layer cache handles this automatically.
+# This layer only re-runs when package.json or package-lock.json change.
+# When they haven't changed, Docker skips this step entirely (instant).
 COPY package*.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --cache /root/.npm
+RUN npm ci
 
 # Copy source code
 COPY . .
