@@ -17,6 +17,7 @@
   --input-font-size:      1.0625rem;  /* task input boxes  17px  (+2pt)                */
   --meta-font-size:       0.875rem;   /* badges/breadcrumbs 14px (+2pt)                */
   --header-font-size:     1.125rem;   /* column headers    18px  (+2pt)                */
+  --logo-font-size:       1.5rem;     /* logo                     */
 
   /* ── Accent colour ── */
   --accent:               #3b82f6;   /* blue-500 — checkboxes, focus rings, borders   */
@@ -29,6 +30,7 @@
   --text-primary:         #e5e7eb;   /* gray-200  main text                           */
   --text-muted:           #9ca3af;   /* gray-400  secondary text  (was gray-500)      */
   --text-faint:           #6b7280;   /* gray-500  very subtle text (was gray-700)     */
+  --text-ui:              #9ca3af;   /* gray-400  UI chrome: username, sign out, badges */
 }
 /* ════════════════════════════════════════════════════════════════ */
 
@@ -57,6 +59,8 @@ body {
 .app-input        { font-size: var(--input-font-size);   }
 .app-meta         { font-size: var(--meta-font-size);    }
 .app-header       { font-size: var(--header-font-size);  }
+.app-logo         { font-size: var(--logo-font-size);    }
+.app-ui-text      { color: var(--text-ui);               }
 
 /* Dark scrollbars — match gray-950 theme */
 * {

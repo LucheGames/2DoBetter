@@ -137,7 +137,7 @@ export default function Home() {
             target="_blank"
             rel="noopener noreferrer"
             title="Support development ☕"
-            className="text-xs font-semibold uppercase tracking-widest text-gray-500 hover:text-gray-300 transition-colors select-none"
+            className="app-logo app-ui-text font-semibold uppercase tracking-widest hover:text-gray-300 transition-colors select-none"
           >
             2Do Better
           </a>
@@ -171,11 +171,11 @@ export default function Home() {
           {/* Signed-in user + sign out */}
           {board.currentUser && (
             <div className="flex items-center gap-2 border-l border-gray-800 pl-4">
-              <span className="text-xs text-gray-500 select-none">{board.currentUser}</span>
+              <span className="text-xs app-ui-text select-none">{board.currentUser}</span>
               <button
                 onClick={handleSignOut}
                 title="Sign out"
-                className="text-xs text-gray-600 hover:text-gray-400 transition-colors select-none"
+                className="text-xs app-ui-text hover:text-gray-200 transition-colors select-none"
               >
                 sign out
               </button>

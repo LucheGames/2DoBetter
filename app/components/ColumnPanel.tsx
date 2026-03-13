@@ -125,7 +125,7 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
     : 'Agent';
   const badgeClass = isOwnColumn
     ? 'text-xs text-blue-500 uppercase tracking-wider font-semibold'
-    : 'text-xs text-gray-600 uppercase tracking-wider';
+    : 'text-xs app-ui-text uppercase tracking-wider';
 
   // Local list order state — synced from props, updated optimistically on drag
   const listIdsStr = column.lists.map((l) => l.id).join(",");
