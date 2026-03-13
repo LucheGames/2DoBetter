@@ -151,33 +151,5 @@ openssl x509 -in "$CERT_DIR/ca.crt" -outform DER -out "$CERT_DIR/ca.der.crt" 2>/
 rm -f "$CERT_DIR/server.csr" "$CERT_DIR/ca.srl"
 
 echo -e "  ${GREEN}✓ Server certificate created (valid 825 days)${NC}"
-echo ""
-
-# ── 6. Print phone setup instructions ────────────────────────────────────────
-HTTP_PORT=$((${PORT:-3000} + 1))
-
-echo -e "  ${CYAN}═══════════════════════════════════════${NC}"
-echo -e "  ${CYAN}  Phone Setup Instructions${NC}"
-echo -e "  ${CYAN}═══════════════════════════════════════${NC}"
-echo ""
-echo "  1. Download the CA certificate on your phone:"
-if [ -n "$LAN_IP" ]; then
-  echo "     http://${LAN_IP}:${HTTP_PORT}/ca.crt"
-fi
-echo "     http://${MDNS_HOSTNAME}:${HTTP_PORT}/ca.crt"
-echo ""
-echo "  2. Install the certificate:"
-echo "     iOS:     Settings > General > VPN & Device Management > Install"
-echo "              Then: Settings > General > About > Certificate Trust Settings > Enable"
-echo "     Android: Settings > Security > Install certificates > CA certificate"
-echo ""
-echo "  3. Open the app:"
-if [ -n "$LAN_IP" ]; then
-  echo "     https://${LAN_IP}:${PORT:-3000}"
-fi
-echo "     https://${MDNS_HOSTNAME}:${PORT:-3000}"
-echo ""
-echo "  4. Add to Home Screen for a native app experience"
-echo ""
-echo -e "  ${CYAN}═══════════════════════════════════════${NC}"
+echo -e "  ${GREEN}✓ Done — restart the server to enable HTTPS${NC}"
 echo ""
