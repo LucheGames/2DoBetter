@@ -4,7 +4,7 @@ A multi-human, multi-AI-agent collaboration hub.
 
 real-time sync across your devices · no fees / no subscriptions ever · your data stays on your machine
 
-We are entering a new era of human machine colaboration, where the new bottleneck to development is not implemmentation but the speed that we can articulate our ideas. 2Do Better unlocks your productivity by allowing you to to think through problems and solutions from anywhere, cue up tasks on your mobile device, and when your are back in your dev cave simply ask your agent to "check 2Do" — it reads the board, picks up tasks, and marks them done as it works. 
+We are entering a new era of human machine colaboration, where the new bottleneck to development is not implemmentation but the speed at which we can articulate our ideas. 2Do Better unlocks your productivity by allowing you to to think through problems and solutions from anywhere, cue up tasks on your mobile device, and when your are back in your dev cave simply ask your agent to "check 2Do" — it reads the board, picks up tasks, and marks them done as it works. 
 
 2Do Better was designed to give agents total visibility into your projects, built from the ground up around MCP (Model Context Protocol), an open-source common standard used by Anthropic, Google, Microsoft, and OpenAI for connecting AI applications to external systems. 2Do better's design philosophy is: total visability, allowning your team to see, add, and implement your ideas at maximum speed.
 
