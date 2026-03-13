@@ -171,11 +171,11 @@ export default function Home() {
           {/* Signed-in user + sign out */}
           {board.currentUser && (
             <div className="flex items-center gap-2 border-l border-gray-800 pl-4">
-              <span className="text-xs app-ui-text select-none">{board.currentUser}</span>
+              <span className="app-ui-text select-none">{board.currentUser}</span>
               <button
                 onClick={handleSignOut}
                 title="Sign out"
-                className="text-xs app-ui-text hover:text-gray-200 transition-colors select-none"
+                className="app-ui-text hover:text-gray-200 transition-colors select-none"
               >
                 sign out
               </button>
