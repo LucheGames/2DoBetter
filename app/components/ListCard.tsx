@@ -88,7 +88,7 @@ function SortableTaskRow({
         moveButton={moveButton}
         dragHandle={
           <button
-            className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-700 hover:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity touch-none min-w-[36px] min-h-[36px] flex items-center justify-center"
+            className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-700 hover:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity touch-none p-1"
             {...(attributes as DragHandleProps)}
             {...(listeners as DragHandleProps)}
             tabIndex={-1}
@@ -266,7 +266,7 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
         {/* Drag handle */}
         {dragHandleProps && (
           <button
-            className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-700 hover:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity touch-none min-w-[36px] min-h-[36px] flex items-center justify-center"
+            className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-700 hover:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity touch-none p-1"
             {...dragHandleProps}
             tabIndex={-1}
             title="Drag to reorder list"

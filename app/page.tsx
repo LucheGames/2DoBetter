@@ -131,22 +131,28 @@ export default function Home() {
     <div className="flex flex-col h-screen bg-gray-950 text-gray-100 font-sans">
       {/* Top bar */}
       <header className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-gray-800">
-        <h1 className="text-xs font-semibold uppercase tracking-widest text-gray-500">
-          2 Do Better
-        </h1>
-
-        <div className="flex items-center gap-4">
-          {/* Buy Me a Coffee */}
+        <div className="flex items-center gap-2">
           <a
             href="https://www.buymeacoffee.com/luchegames"
             target="_blank"
             rel="noopener noreferrer"
-            title="2Do Better is free — support development ☕"
+            title="Support development ☕"
+            className="text-xs font-semibold uppercase tracking-widest text-gray-500 hover:text-gray-300 transition-colors select-none"
+          >
+            2Do Better
+          </a>
+          <a
+            href="https://www.buymeacoffee.com/luchegames"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Support development ☕"
             className="text-base leading-none text-gray-700 hover:text-yellow-400 transition-colors duration-200 select-none"
           >
             ☕
           </a>
+        </div>
 
+        <div className="flex items-center gap-4">
           {/* Admin panel button — admin only */}
           {board.isAdmin && (
             <button
