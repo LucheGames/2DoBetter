@@ -464,6 +464,18 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   const cfg = {};   // will be merged into .env.local at the end
   const users = []; // will be written to data/users.json
 
+  // ── Server port ───────────────────────────────────────────────────
+  const defaultPort = existing.PORT || '3000';
+  const portInput = await ask(`Server port (press Enter for ${defaultPort}, change if port ${defaultPort} is already in use)`, defaultPort);
+  const chosenPort = portInput.trim() || defaultPort;
+  cfg.PORT = chosenPort;
+  if (chosenPort !== '3000') {
+    const httpPort = String(parseInt(chosenPort, 10) + 1);
+    warn(`Port set to ${chosenPort}. If using Docker, also update docker-compose.yml:`);
+    info(`  Change  "3000:3000"  to  "${chosenPort}:${chosenPort}"`);
+    info(`  Change  "3001:3001"  to  "${httpPort}:${httpPort}"`);
+  }
+
   // ── [1/5] Identity & Access ──────────────────────────────────────
   step(1, 5, 'Identity & Access');
   info('Set up the first user — this will be your admin account.\n');

@@ -102,6 +102,13 @@ docker exec -it 2dobetter node scripts/admin.js status
 
 Data that persists between rebuilds (volume-mounted): `./data/` · `./prisma/` (SQLite DB) · `./certs/`
 
+**Changing the port** (if 3000 is already in use on your machine):
+1. Edit `docker-compose.yml` — change both `"3000:3000"` → `"4000:4000"` and `"3001:3001"` → `"4001:4001"`
+2. Edit `.env.local` — add `PORT=4000`
+3. `docker compose up -d --build`
+
+The setup wizard will also remind you of this if you choose a non-default port during first-run setup.
+
 ---
 
 ### Option B — Node.js direct
