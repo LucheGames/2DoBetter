@@ -11,12 +11,12 @@
    ──────────────────────────────────────────────────── */
 :root {
   /* ── Sizes ── */
-  --task-font-size:       0.9375rem;  /* task titles      ~15px  → try 1rem for 16px  */
-  --list-font-size:       0.9375rem;  /* project names    ~15px                        */
-  --sublist-font-size:    0.875rem;   /* sub-list names    14px  (was 12px)             */
-  --input-font-size:      0.9375rem;  /* task input boxes ~15px                        */
-  --meta-font-size:       0.75rem;    /* badges/breadcrumbs 12px                       */
-  --header-font-size:     1rem;       /* column headers    16px                        */
+  --task-font-size:       1.0625rem;  /* task titles       17px  (+2pt)                */
+  --list-font-size:       1.0625rem;  /* project names     17px  (+2pt)                */
+  --sublist-font-size:    1rem;       /* sub-list names    16px  (+2pt)                */
+  --input-font-size:      1.0625rem;  /* task input boxes  17px  (+2pt)                */
+  --meta-font-size:       0.875rem;   /* badges/breadcrumbs 14px (+2pt)                */
+  --header-font-size:     1.125rem;   /* column headers    18px  (+2pt)                */
 
   /* ── Accent colour ── */
   --accent:               #3b82f6;   /* blue-500 — checkboxes, focus rings, borders   */
@@ -27,8 +27,8 @@
   --surface:              #111827;   /* gray-900  card backgrounds                    */
   --border-color:         #1f2937;   /* gray-800  card borders                        */
   --text-primary:         #e5e7eb;   /* gray-200  main text                           */
-  --text-muted:           #6b7280;   /* gray-500  secondary text                      */
-  --text-faint:           #374151;   /* gray-700  very subtle text (badges)           */
+  --text-muted:           #9ca3af;   /* gray-400  secondary text  (was gray-500)      */
+  --text-faint:           #6b7280;   /* gray-500  very subtle text (was gray-700)     */
 }
 /* ════════════════════════════════════════════════════════════════ */
 

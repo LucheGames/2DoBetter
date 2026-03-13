@@ -55,7 +55,7 @@ function SignInForm({
         required
         autoFocus
         autoComplete="username"
-        className="w-full px-3 py-2.5 mb-3 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        className="w-full px-3 py-2.5 mb-3 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-base placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
       />
 
       <div className="relative mb-4">
@@ -66,12 +66,12 @@ function SignInForm({
           placeholder="Password"
           required
           autoComplete="current-password"
-          className="w-full px-3 py-2.5 pr-16 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          className="w-full px-3 py-2.5 pr-16 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-base placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
         />
         <button
           type="button"
           onClick={() => setShowToken(!showToken)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-xs text-gray-500 hover:text-gray-300"
+          className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-sm text-gray-400 hover:text-gray-200"
           style={{ cursor: "pointer" }}
         >
           {showToken ? "Hide" : "Show"}
@@ -83,14 +83,14 @@ function SignInForm({
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
+        className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white text-base font-medium rounded-lg transition-colors"
         style={{ cursor: loading ? "default" : "pointer" }}
       >
         {loading ? "Signing in…" : "Sign in"}
       </button>
 
       {registrationEnabled && (
-        <p className="mt-6 text-center text-xs text-gray-600">
+        <p className="mt-6 text-center text-sm text-gray-400">
           Have an invite code?{" "}
           <button
             type="button"
@@ -158,7 +158,7 @@ function CreateAccountForm({
         minLength={2}
         autoFocus
         autoComplete="username"
-        className="w-full px-3 py-2.5 mb-3 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        className="w-full px-3 py-2.5 mb-3 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-base placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
       />
 
       <div className="relative mb-3">
@@ -170,12 +170,12 @@ function CreateAccountForm({
           required
           minLength={8}
           autoComplete="new-password"
-          className="w-full px-3 py-2.5 pr-16 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          className="w-full px-3 py-2.5 pr-16 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-base placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
         />
         <button
           type="button"
           onClick={() => setShowPassword(!showPassword)}
-          className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-xs text-gray-500 hover:text-gray-300"
+          className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-sm text-gray-400 hover:text-gray-200"
           style={{ cursor: "pointer" }}
         >
           {showPassword ? "Hide" : "Show"}
@@ -190,7 +190,7 @@ function CreateAccountForm({
         required
         autoComplete="off"
         defaultValue={prefillInvite ?? ""}
-        className="w-full px-3 py-2.5 mb-4 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        className="w-full px-3 py-2.5 mb-4 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-base placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
       />
 
       {error && <p className="text-red-400 text-sm mb-4 text-center">{error}</p>}
@@ -198,13 +198,13 @@ function CreateAccountForm({
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
+        className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white text-base font-medium rounded-lg transition-colors"
         style={{ cursor: loading ? "default" : "pointer" }}
       >
         {loading ? "Creating account…" : "Create account"}
       </button>
 
-      <p className="mt-6 text-center text-xs text-gray-600">
+      <p className="mt-6 text-center text-sm text-gray-400">
         Already have an account?{" "}
         <button
           type="button"
@@ -246,7 +246,7 @@ export default function LoginPage() {
         <h1 className="text-xl font-semibold text-gray-100 text-center mb-1">
           2 Do Better
         </h1>
-        <p className="text-sm text-gray-500 text-center mb-6">
+        <p className="text-base text-gray-400 text-center mb-6">
           {mode === "signin" ? "Sign in to continue" : "Create your account"}
         </p>
 
