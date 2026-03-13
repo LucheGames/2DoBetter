@@ -15,7 +15,7 @@ async function main() {
       slug: "user",
       order: 0,
       lists: {
-        create: [{ name: "Tasks", order: 0 }],
+        create: [{ name: "Project", order: 0 }],
       },
     },
   });
@@ -26,7 +26,7 @@ async function main() {
       slug: "agent",
       order: 1,
       lists: {
-        create: [{ name: "Tasks", order: 0 }],
+        create: [{ name: "Project", order: 0 }],
       },
     },
   });

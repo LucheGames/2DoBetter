@@ -22,7 +22,7 @@ export async function POST(req: Request) {
       slug: adminName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
       ownerUsername: adminName,
       order: 0,
-      lists: { create: [{ name: "Tasks", order: 0 }] },
+      lists: { create: [{ name: "Project", order: 0 }] },
     },
   });
 

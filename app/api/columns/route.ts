@@ -62,7 +62,7 @@ export async function POST(req: Request) {
       slug,
       order,
       lists: {
-        create: [{ name: "Tasks", order: 0 }],
+        create: [{ name: "Project", order: 0 }],
       },
     },
     include: { lists: true },

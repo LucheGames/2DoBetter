@@ -107,6 +107,9 @@ export async function ensureUserColumn(username: string) {
   const nextOrder = (agg._max.order ?? -1) + 1;
   const slug = `${username.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`;
   await prisma.column.create({
-    data: { name: username, slug, order: nextOrder, ownerUsername: username },
+    data: {
+      name: username, slug, order: nextOrder, ownerUsername: username,
+      lists: { create: [{ name: "Project", order: 0 }] },
+    },
   });
 }
