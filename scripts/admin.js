@@ -19,7 +19,7 @@ const http       = require('http');
 const readline   = require('readline');
 const os         = require('os');
 const crypto     = require('crypto');
-const bcrypt     = require('bcrypt');
+const bcrypt     = require('bcryptjs');
 const { spawnSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');

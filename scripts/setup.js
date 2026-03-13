@@ -13,9 +13,9 @@ const { spawnSync } = require('child_process');
 
 let bcrypt;
 try {
-  bcrypt = require('bcrypt');
+  bcrypt = require('bcryptjs');
 } catch {
-  console.error('\n  ✗  bcrypt is not installed. Run:  npm install\n');
+  console.error('\n  ✗  bcryptjs is not installed. Run:  npm install\n');
   process.exit(1);
 }
 

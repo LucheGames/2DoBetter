@@ -11,10 +11,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# System packages needed at build time:
-#   bash    — build.sh uses bash (Alpine ships ash by default)
-#   python3, make, g++ — node-gyp native addons (bcrypt)
-RUN apk add --no-cache bash python3 make g++
+# bash — build.sh uses bash (Alpine ships ash by default)
+# python3, make, g++ no longer needed — bcryptjs is pure JS (no native addons)
+RUN apk add --no-cache bash
 
 # Install dependencies — Docker layer cache handles this automatically.
 # This layer only re-runs when package.json or package-lock.json change.

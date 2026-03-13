@@ -6,7 +6,7 @@ const path = require('path');
 const http = require('http');
 const https = require('https');
 const os   = require('os');
-let bcrypt; try { bcrypt = require('bcrypt'); } catch { /* installed post-setup */ }
+let bcrypt; try { bcrypt = require('bcryptjs'); } catch { /* installed post-setup */ }
 let QRCode; try { QRCode = require('qrcode'); } catch { /* installed post-setup */ }
 
 // Load .env then .env.local (local overrides base — written by npm run setup)
