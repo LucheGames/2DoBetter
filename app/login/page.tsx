@@ -5,14 +5,17 @@ import { useEffect, useRef, useState } from "react";
 export default function LoginPage() {
   // Read ?created=1 client-side — avoids Suspense wrapper that makes the
   // pre-rendered HTML show "Loading…" instead of the actual login form.
-  const [created, setCreated] = useState(false);
-  const [codeDigits, setCodeDigits] = useState("");
-  const [error, setError]           = useState("");
-  const [loading, setLoading]       = useState(false);
-  const [showToken, setShowToken]   = useState(false);
+  const [created, setCreated]     = useState(false);
+  const [codeError, setCodeError] = useState("");
+  const [error, setError]         = useState("");
+  const [loading, setLoading]     = useState(false);
+  const [showToken, setShowToken] = useState(false);
 
   const usernameRef = useRef<HTMLInputElement>(null);
   const tokenRef    = useRef<HTMLInputElement>(null);
+  // Use a ref for the code input — avoids controlled-state issues on
+  // Android keyboards where onChange may not fire for every keystroke.
+  const codeRef     = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setCreated(new URLSearchParams(window.location.search).get("created") === "1");
@@ -43,12 +46,15 @@ export default function LoginPage() {
     }
   }
 
-  function handleCodeSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const digits = codeDigits.trim();
-    if (digits.length === 4 && /^\d{4}$/.test(digits)) {
-      window.location.href = `/join?code=${digits}`;
+  function handleCodeGo() {
+    const raw    = codeRef.current?.value ?? "";
+    const digits = raw.replace(/\D/g, "").slice(0, 4);
+    if (digits.length !== 4) {
+      setCodeError("Enter the 4-digit code from your admin.");
+      return;
     }
+    setCodeError("");
+    window.location.href = `/join?code=${digits}`;
   }
 
   return (
@@ -113,26 +119,25 @@ export default function LoginPage() {
 
         <div className="mt-8 pt-6 border-t border-gray-800">
           <p className="text-xs text-gray-600 text-center mb-3">Have a setup code from an admin?</p>
-          <form onSubmit={handleCodeSubmit} className="flex gap-2">
+          <div className="flex gap-2">
             <input
-              type="text"
+              ref={codeRef}
+              type="tel"
               inputMode="numeric"
-              pattern="\d{4}"
               maxLength={4}
               placeholder="4-digit code"
-              value={codeDigits}
-              onChange={e => setCodeDigits(e.target.value.replace(/\D/g, "").slice(0, 4))}
               className="flex-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-base placeholder-gray-500 text-center tracking-widest focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
             <button
-              type="submit"
-              disabled={codeDigits.length !== 4}
-              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-200 text-sm rounded-lg transition-colors"
-              style={{ cursor: codeDigits.length !== 4 ? "default" : "pointer" }}
+              type="button"
+              onClick={handleCodeGo}
+              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm rounded-lg transition-colors"
+              style={{ cursor: "pointer" }}
             >
               Set up →
             </button>
-          </form>
+          </div>
+          {codeError && <p className="text-red-400 text-xs mt-2 text-center">{codeError}</p>}
         </div>
       </div>
     </div>
