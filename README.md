@@ -221,9 +221,22 @@ cd mcp && npm install && npm run build
 
 ## ⚙️ Admin Reference
 
-In-app admin panel: **⚙ gear icon** (top-right). Everything in the panel is also available from the CLI.
+In-app admin panel: **⚙ gear icon** (top-right). The panel covers all common operations — user management, invites, password resets, agent tokens, and removing users.
+
+The CLI is a fallback for scripting or SSH access.
 
 ### CLI commands
+
+> **Docker users:** `npm run` commands don't work inside the container. Use `docker exec` instead:
+> ```bash
+> # General pattern
+> docker exec -it 2dobetter node scripts/admin.js <command>
+>
+> # Examples
+> docker exec -it 2dobetter node scripts/admin.js status
+> docker exec -it 2dobetter node scripts/admin.js list-users
+> docker exec -it 2dobetter node scripts/admin.js reset-password <username>
+> ```
 
 | Command | What it does |
 |---------|-------------|

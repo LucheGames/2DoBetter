@@ -166,6 +166,10 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
   const [tokenValue,    setTokenValue]    = useState<string | null>(null);
   const [tokenCopied,   setTokenCopied]   = useState(false);
 
+  // Remove user
+  const [removeTarget,  setRemoveTarget]  = useState("");
+  const [removeMsg,     setRemoveMsg]     = useState<string | null>(null);
+
   async function loadUsers() {
     setLoadingUsers(true);
     try {
@@ -176,9 +180,10 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
         // Default selects to first non-admin user
         const first = list.find(u => !u.isAdmin);
         if (first) {
-          if (!renameTarget) setRenameTarget(first.username);
-          if (!resetTarget)  setResetTarget(first.username);
-          if (!tokenTarget)  setTokenTarget(first.username);
+          if (!renameTarget)  setRenameTarget(first.username);
+          if (!resetTarget)   setResetTarget(first.username);
+          if (!tokenTarget)   setTokenTarget(first.username);
+          if (!removeTarget)  setRemoveTarget(first.username);
         }
       }
     } finally {
@@ -336,6 +341,25 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
     navigator.clipboard.writeText(tokenValue).catch(() => {});
     setTokenCopied(true);
     setTimeout(() => setTokenCopied(false), 2500);
+  }
+
+  // ── Remove user ────────────────────────────────────────────────────────────
+  async function doRemoveUser(deleteData: boolean) {
+    setRemoveMsg(null);
+    const res = await fetch(
+      `/api/admin/users/${encodeURIComponent(removeTarget)}?deleteData=${deleteData}`,
+      { method: "DELETE" },
+    );
+    if (res.ok) {
+      const verb = deleteData ? "removed and all their data deleted" : "removed (column kept as Shared)";
+      setRemoveMsg(`"${removeTarget}" ${verb}.`);
+      setRemoveTarget("");
+      loadUsers();
+      onDataChanged?.();
+    } else {
+      const d = await res.json().catch(() => ({}));
+      setRemoveMsg(`Error: ${d.error ?? "Unknown error"}`);
+    }
   }
 
   const nonAdmins = users.filter(u => !u.isAdmin);
@@ -566,6 +590,44 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
               {renameMsg && (
                 <p className={`text-xs ${renameMsg.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>
                   {renameMsg}
+                </p>
+              )}
+            </div>
+          </Section>
+
+          {/* ── Remove user ────────────────────────────────────────────────── */}
+          <Section title="Remove user">
+            <div className="space-y-3">
+              <p className="text-xs text-gray-600">
+                Keep tasks — column becomes a shared team column. Delete tasks — removes column and all its contents permanently.
+              </p>
+              <select
+                value={removeTarget}
+                onChange={e => { setRemoveTarget(e.target.value); setRemoveMsg(null); }}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200"
+                style={{ cursor: "pointer" }}
+              >
+                {nonAdmins.map(u => (
+                  <option key={u.username} value={u.username}>{u.username}</option>
+                ))}
+              </select>
+              <HoldButton
+                label="Hold to remove (keep tasks as Shared)"
+                onConfirm={() => doRemoveUser(false)}
+                holdMs={2000}
+                color="amber"
+                disabled={!removeTarget}
+              />
+              <HoldButton
+                label="Hold to remove + delete all their tasks"
+                onConfirm={() => doRemoveUser(true)}
+                holdMs={2000}
+                color="red"
+                disabled={!removeTarget}
+              />
+              {removeMsg && (
+                <p className={`text-xs ${removeMsg.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>
+                  {removeMsg}
                 </p>
               )}
             </div>
