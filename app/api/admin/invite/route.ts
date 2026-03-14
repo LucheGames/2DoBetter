@@ -25,13 +25,14 @@ export async function POST(req: NextRequest) {
 
   const {
     label           = '',
-    expiresInMinutes = 60,
+    expiresInMinutes = 10,
     readOnly        = false,
     ownColumnOnly   = false,
     isAgent         = false,
   } = await req.json().catch(() => ({}));
 
-  const code      = randomBytes(16).toString('hex');
+  // 4-digit numeric PIN (1000–9998), cryptographically random
+  const code      = String(1000 + (randomBytes(2).readUInt16BE(0) % 9000));
   const now       = new Date();
   const expiresAt = new Date(now.getTime() + Number(expiresInMinutes) * 60 * 1000);
 
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
   // Build the registration URL from the request host
   const proto = req.headers.get('x-forwarded-proto') ?? 'http';
   const host  = req.headers.get('host') ?? 'localhost:3000';
-  const url   = `${proto}://${host}/login?invite=${code}`;
+  const url   = `${proto}://${host}/join?code=${code}`;
 
   return NextResponse.json({ code, url, expiresAt: expiresAt.toISOString() });
 }

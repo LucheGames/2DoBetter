@@ -179,7 +179,7 @@ async function serveSetupPage(req, res, { useTLS, port, hostname, lanAddresses }
     const opts = { type: 'svg', color: { dark: '#e5e7eb', light: '#111827' }, margin: 1, width: 200 };
     try {
       if (certUrl) certQrSvg = await QRCode.toString(certUrl, opts);
-      appQrSvg = await QRCode.toString(appUrl, opts);
+      appQrSvg = await QRCode.toString(appUrl + '/login', opts);
     } catch (e) { console.warn('  ⚠  QR generation error:', e.message); }
   }
 
@@ -271,8 +271,8 @@ ${certStep}
   <div class="qr-box">
     ${appQrSvg || noQr}
   </div>
-  <a href="${appUrl}" class="tap-btn">\u2192 Open 2Do Better</a>
-  <div class="url">${appUrl}</div>
+  <a href="${appUrl}/login" class="tap-btn">\u2192 Open 2Do Better</a>
+  <div class="url">${appUrl}/login</div>
 </div>
 <script>
 function showTab(p){

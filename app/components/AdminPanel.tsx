@@ -136,8 +136,8 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
   // Invite form
   const [inviteIsAgent,  setInviteIsAgent]  = useState(false);
   const [inviteAccess,   setInviteAccess]   = useState<AccessLevel>("ownColumn");
-  const [inviteExpiry,   setInviteExpiry]   = useState(1440);
-  const [inviteResult,   setInviteResult]   = useState<{ url: string; expiresAt: string } | null>(null);
+  const [inviteExpiry,   setInviteExpiry]   = useState(10);
+  const [inviteResult,   setInviteResult]   = useState<{ code: string; url: string; expiresAt: string } | null>(null);
   const [inviteLoading,  setInviteLoading]  = useState(false);
   const [copied,         setCopied]         = useState(false);
 
@@ -229,9 +229,9 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
     }
   }
 
-  function copyInvite() {
+  function copyInviteCode() {
     if (!inviteResult) return;
-    navigator.clipboard.writeText(inviteResult.url).catch(() => {});
+    navigator.clipboard.writeText(inviteResult.code).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   }
@@ -404,7 +404,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
               <div className="flex items-center gap-3">
                 <span className="text-xs text-gray-500 w-14 flex-shrink-0">Expires</span>
                 <div className="flex gap-1">
-                  {([[60, "1 h"], [1440, "24 h"], [10080, "7 d"]] as [number, string][]).map(([mins, label]) => (
+                  {([[10, "10 m"], [30, "30 m"], [60, "1 h"]] as [number, string][]).map(([mins, label]) => (
                     <Pill key={mins} active={inviteExpiry === mins} onClick={() => setInviteExpiry(mins)}>{label}</Pill>
                   ))}
                 </div>
@@ -415,23 +415,24 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                 className="w-full py-2 mt-1 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white text-sm rounded-lg transition-colors"
                 style={{ cursor: inviteLoading ? "default" : "pointer" }}
               >
-                {inviteLoading ? "Generating…" : "Generate invite link"}
+                {inviteLoading ? "Generating…" : "Generate setup code"}
               </button>
               {inviteResult && (
-                <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50 space-y-2">
-                  <p className="text-xs text-gray-300 break-all font-mono leading-relaxed">{inviteResult.url}</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-600">
-                      Expires {new Date(inviteResult.expiresAt).toLocaleString()}
-                    </span>
+                <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700/50 space-y-3 text-center">
+                  <div className="text-5xl font-mono font-bold tracking-[0.25em] text-gray-100 py-2">
+                    {inviteResult.code}
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-gray-600">
+                    <span>Expires {new Date(inviteResult.expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                     <button
-                      onClick={copyInvite}
-                      className="text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium"
+                      onClick={copyInviteCode}
+                      className="text-blue-400 hover:text-blue-300 transition-colors font-medium"
                       style={{ cursor: "pointer" }}
                     >
-                      {copied ? "Copied ✓" : "Copy link"}
+                      {copied ? "Copied ✓" : "Copy code"}
                     </button>
                   </div>
+                  <p className="text-xs text-gray-700">Tell the new user to enter this on the sign-in page.</p>
                 </div>
               )}
             </div>

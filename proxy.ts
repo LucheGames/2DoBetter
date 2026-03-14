@@ -24,6 +24,7 @@ export function proxy(request: NextRequest) {
   // Public routes — no auth required
   if (
     pathname === '/login' ||
+    pathname.startsWith('/join') ||
     pathname.startsWith('/api/auth/') ||
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/icons/') ||
