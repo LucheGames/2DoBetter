@@ -1,0 +1,16 @@
+{
+  "name": "2dobetter-gemini-agent",
+  "version": "1.0.0",
+  "description": "Gemini 2.0 Flash agent for the 2Do Better task board",
+  "type": "module",
+  "scripts": {
+    "start": "node agent.mjs",
+    "repl": "node agent.mjs --interactive"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
