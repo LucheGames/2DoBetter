@@ -1,19 +1,22 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
-function LoginContent() {
-  const params  = useSearchParams();
-  const created = params.get("created") === "1";
-
-  const [error, setError]         = useState("");
-  const [loading, setLoading]     = useState(false);
-  const [showToken, setShowToken] = useState(false);
+export default function LoginPage() {
+  // Read ?created=1 client-side — avoids Suspense wrapper that makes the
+  // pre-rendered HTML show "Loading…" instead of the actual login form.
+  const [created, setCreated] = useState(false);
   const [codeDigits, setCodeDigits] = useState("");
+  const [error, setError]           = useState("");
+  const [loading, setLoading]       = useState(false);
+  const [showToken, setShowToken]   = useState(false);
 
   const usernameRef = useRef<HTMLInputElement>(null);
   const tokenRef    = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setCreated(new URLSearchParams(window.location.search).get("created") === "1");
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -58,14 +61,12 @@ function LoginContent() {
           Sign in to continue
         </p>
 
-        {/* Account-created success banner */}
         {created && (
           <div className="mb-5 p-3 bg-green-900/30 border border-green-700/50 rounded-lg text-center">
             <p className="text-green-300 text-sm">Account created — please sign in.</p>
           </div>
         )}
 
-        {/* Sign-in form */}
         <form onSubmit={handleSubmit}>
           <input
             ref={usernameRef}
@@ -110,7 +111,6 @@ function LoginContent() {
           </button>
         </form>
 
-        {/* Setup code entry */}
         <div className="mt-8 pt-6 border-t border-gray-800">
           <p className="text-xs text-gray-600 text-center mb-3">Have a setup code from an admin?</p>
           <form onSubmit={handleCodeSubmit} className="flex gap-2">
@@ -136,19 +136,5 @@ function LoginContent() {
         </div>
       </div>
     </div>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center min-h-screen bg-gray-950 text-gray-600">
-          <div className="text-sm">Loading…</div>
-        </div>
-      }
-    >
-      <LoginContent />
-    </Suspense>
   );
 }
