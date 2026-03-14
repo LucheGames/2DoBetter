@@ -83,10 +83,13 @@ export default function Home() {
   }, [fetchBoard]);
 
   // ── Sign out ───────────────────────────────────────────────────────────────
-  const handleSignOut = useCallback(() => {
-    // Navigate directly — the GET handler clears cookies and redirects server-side.
-    // No JS await = instant UX regardless of network latency.
-    window.location.href = "/api/auth/logout";
+  const handleSignOut = useCallback(async () => {
+    // POST clears cookies server-side; then navigate using a relative path so
+    // we never depend on the server building a correct absolute redirect URL
+    // (which breaks on mobile when Next.js uses localhost internally).
+    // replace() instead of href so the board isn't in the back-stack post-logout.
+    try { await fetch("/api/auth/logout", { method: "POST" }); } catch { /* ignore */ }
+    window.location.replace("/login");
   }, []);
 
   // Real-time sync: listen for server-sent events from other clients

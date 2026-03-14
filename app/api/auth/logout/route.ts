@@ -25,19 +25,26 @@ function applyClearCookies(response: NextResponse) {
 
 /** GET /api/auth/logout — browser navigation logout (instant UX).
  *  Clears cookies and redirects immediately; invalidates the server-side
- *  session token after the response has been sent via after(). */
+ *  session token after the response has been sent via after().
+ *
+ *  Uses Host header + x-forwarded-proto (set by server.js for HTTPS) to
+ *  build the redirect URL — req.url base is localhost internally in the
+ *  custom server and would redirect phones to an unreachable address. */
 export async function GET(req: NextRequest) {
   const token = req.cookies.get('auth_token')?.value;
-  const response = NextResponse.redirect(new URL('/login', req.url));
+  const host  = req.headers.get('host') ?? 'localhost:3000';
+  const proto = req.headers.get('x-forwarded-proto') ?? 'http';
+  const response = NextResponse.redirect(`${proto}://${host}/login`);
   applyClearCookies(response);
   after(() => clearSession(token));
   return response;
 }
 
-/** POST /api/auth/logout — kept for API compatibility. */
+/** POST /api/auth/logout — used by the client-side sign-out handler. */
 export async function POST(req: NextRequest) {
-  clearSession(req.cookies.get('auth_token')?.value);
+  const token = req.cookies.get('auth_token')?.value;
   const response = NextResponse.json({ ok: true });
   applyClearCookies(response);
+  after(() => clearSession(token));
   return response;
 }

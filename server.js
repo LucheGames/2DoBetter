@@ -358,6 +358,9 @@ app.prepare().then(() => {
 
     // HTTPS server (main app) on the primary port
     const httpsServer = https.createServer({ key, cert }, (req, res) => {
+      // Tell Next.js route handlers the transport is HTTPS so they build
+      // redirect URLs correctly (req.url is localhost internally otherwise).
+      req.headers['x-forwarded-proto'] = 'https';
       // Serve CA cert for phone setup
       if (req.url === '/ca.crt' || req.url === '/ca.pem' || req.url === '/ca.der.crt') {
         serveCaCert(req, res);
