@@ -167,11 +167,11 @@ Open `https://localhost:3000`. Accept the cert warning on first visit, or [insta
 
 No Node.js, no git, no terminal.
 
-1. **Tailscale** — [download](https://tailscale.com/download) and join the server admin's tailnet.
+1. **Get the server address** — ask the admin. On the same Wi-Fi as the server? Use the LAN IP (e.g. `https://192.168.x.x:3000`). Connecting remotely? You need the Tailscale IP or DuckDNS domain instead — [see Remote access](#remote-access).
 2. **Setup code** — the admin generates a 4-digit code from the ⚙ gear menu (10-minute lifespan). Enter it on the sign-in page → choose username + password → sign in.
 3. **Install as PWA** — iOS: Share → Add to Home Screen · Android: browser menu → Install app · Desktop: install icon in address bar.
 
-> **On the same local network as the server?** Ask the admin for the LAN IP — Tailscale optional.
+> **Tailscale** — only needed for access outside the home/office network. [Download](https://tailscale.com/download) and join the server admin's tailnet.
 
 ---
 
@@ -260,15 +260,29 @@ In-app admin panel: **⚙ gear icon** (top-right). Everything in the panel is al
 
 ### Remote access
 
+The app works immediately on your local Wi-Fi using the LAN IP shown on the setup page (`http://server-ip:3001`). To reach your board from anywhere:
+
+**Step 1 — Tailscale (free mesh VPN)**
+
+Install Tailscale on the server and on every device that needs remote access. They share a private network — no port forwarding, no public internet exposure.
+
 ```bash
 curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up
-tailscale ip -4    # clients connect to https://<this-ip>:3000
+tailscale ip -4    # use this to connect: https://<tailscale-ip>:3000
 ```
 
-**Optional — memorable hostname via [DuckDNS](https://duckdns.org)** (add to `crontab -e`):
+Clients install Tailscale from [tailscale.com/download](https://tailscale.com/download) and join your tailnet. The board is then reachable from any location.
+
+**Step 2 — DuckDNS hostname (optional but recommended)**
+
+A Tailscale IP works but isn't memorable and can change. [DuckDNS](https://duckdns.org) gives you a free subdomain (`yourname.duckdns.org`) that always points at your server's current Tailscale IP. It also enables a proper Let's Encrypt certificate — no browser security warnings on any device.
+
+Add to server `crontab -e` to keep the DNS record current:
 ```
 */5 * * * * curl -s "https://www.duckdns.org/update?domains=YOURNAME&token=YOURTOKEN&ip=$(tailscale ip -4)" > /dev/null
 ```
+
+After setting up the domain, re-run `npm run setup` to issue a Let's Encrypt certificate for it.
 
 ---
 

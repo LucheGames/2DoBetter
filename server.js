@@ -217,7 +217,8 @@ async function serveSetupPage(req, res, { useTLS, port, hostname, lanAddresses }
     <hr class="divider">
   ` : '<div class="badge-http">HTTP mode \u2014 no certificate needed</div>';
 
-  const stepNum = useTLS ? '2' : '1';
+  const stepNum       = useTLS ? '2' : '1';
+  const remoteStepNum = useTLS ? '3' : '2';
   const browserNote = useTLS ? ' (use Firefox on Android 7)' : '';
 
   const html = `<!DOCTYPE html><html lang="en"><head>
@@ -254,6 +255,8 @@ h1{font-size:1.25rem;font-weight:600;text-transform:uppercase;letter-spacing:.1e
 .coffee{text-decoration:none;margin-left:5px;font-size:1rem}
 .tap-btn{display:block;background:#1f2937;border:1px solid #374151;border-radius:10px;padding:14px 20px;text-align:center;color:#f3f4f6;text-decoration:none;font-size:.9375rem;font-weight:600;margin-bottom:8px}
 .tap-btn:active{background:#374151}
+.opt{font-size:.7rem;font-weight:500;color:#4b5563;background:#1f2937;border-radius:4px;padding:2px 7px;margin-left:6px;vertical-align:middle;letter-spacing:0}
+.note a{color:#60a5fa}
 </style></head>
 <body>
 <h1>2Do Better <a href="https://www.buymeacoffee.com/luchegames" target="_blank" class="coffee">\u2615</a></h1>
@@ -273,6 +276,20 @@ ${certStep}
   </div>
   <a href="${appUrl}/login" class="tap-btn">\u2192 Open 2Do Better</a>
   <div class="url">${appUrl}/login</div>
+</div>
+<hr class="divider">
+<div class="step">
+  <div class="step-num">${remoteStepNum}</div>
+  <h2>Access from anywhere <span class="opt">optional</span></h2>
+  <p>The link above works on your local Wi\u2011Fi. To reach your board from any location, you need a way for devices outside your network to find this server.</p>
+  <div class="note">
+    <strong>Step A \u2014 Tailscale (free mesh VPN)</strong><br>
+    Install Tailscale on this server and on each device that needs access. All devices share a private network \u2014 no port-forwarding, no public exposure.<br>
+    <a href="https://tailscale.com/download">tailscale.com/download \u2192</a><br><br>
+    <strong>Step B \u2014 DuckDNS hostname (optional but recommended)</strong><br>
+    Sign up at <a href="https://duckdns.org">duckdns.org</a> for a free subdomain pointing at your Tailscale IP. This gives your board a memorable URL and lets you get a trusted HTTPS certificate (no browser warnings on any device).<br><br>
+    <em>Without DuckDNS, clients connect via the Tailscale IP directly \u2014 it works, but the IP can change and the self-signed cert will still show browser warnings.</em>
+  </div>
 </div>
 <script>
 function showTab(p){
