@@ -88,8 +88,8 @@ export default function JoinPage() {
         body: JSON.stringify({ username, token: password, inviteCode: code }),
       });
       if (res.ok) {
-        try { await fetch("/api/auth/logout"); } catch { /* ignore */ }
-        window.location.href = "/login?created=1";
+        // Auth cookies were set by the register response — go straight to the board.
+        window.location.href = "/";
         return;
       }
       const data = await res.json();

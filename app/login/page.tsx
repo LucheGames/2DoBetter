@@ -126,6 +126,7 @@ export default function LoginPage() {
               inputMode="numeric"
               maxLength={4}
               placeholder="4-digit code"
+              onKeyDown={(e) => { if (e.key === 'Enter') handleCodeGo(); }}
               className="flex-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-base placeholder-gray-500 text-center tracking-widest focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
             <button
