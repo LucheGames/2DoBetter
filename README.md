@@ -99,6 +99,20 @@ docker exec -it 2dobetter node scripts/admin.js status
 
 Data that persists between rebuilds (volume-mounted): `./data/` · `./prisma/` (SQLite DB) · `./certs/`
 
+> **Linux: `sudo` may be required** — if you see *"permission denied"* on any `docker` command, prefix it with `sudo`. This happens until the `docker` group change takes effect (see step 1). All `docker exec` commands below may need `sudo` on Linux Mint / Ubuntu.
+
+**Troubleshooting — locked out / forgot password:**
+```bash
+# Find the running container name or ID
+sudo docker ps
+
+# List all usernames
+sudo docker exec -it <container_id> node scripts/admin.js list-users
+
+# Reset a user's password (interactive prompt)
+sudo docker exec -it <container_id> node scripts/admin.js reset-password <username>
+```
+
 **Changing the port** (if 3000 is already in use on your machine):
 1. Edit `docker-compose.yml` — change both `"3000:3000"` → `"4000:4000"` and `"3001:3001"` → `"4001:4001"`
 2. Edit `.env.local` — add `PORT=4000`
@@ -142,7 +156,7 @@ Open `https://localhost:3000`. Accept the cert warning on first visit, or [insta
 
 ### After first run
 
-- **Add users** — ⚙ gear icon → admin panel → Generate invite link. Recipient opens it and self-registers.
+- **Add users** — ⚙ gear icon → admin panel → Generate setup code. Give the 4-digit code to the new user — they enter it on the sign-in page, set their username and password, then log in.
 - **Remote access** — set up [Tailscale](#remote-access) on the server; clients join your tailnet.
 - **Auto-start** — [run as a background service](#background-service).
 - **Remove cert warnings** — [install the CA cert](#install-ca-cert) on each device.
@@ -154,7 +168,7 @@ Open `https://localhost:3000`. Accept the cert warning on first visit, or [insta
 No Node.js, no git, no terminal.
 
 1. **Tailscale** — [download](https://tailscale.com/download) and join the server admin's tailnet.
-2. **Invite link** — the admin generates one from the ⚙ gear menu. Open it, set a password, done.
+2. **Setup code** — the admin generates a 4-digit code from the ⚙ gear menu (10-minute lifespan). Enter it on the sign-in page → choose username + password → sign in.
 3. **Install as PWA** — iOS: Share → Add to Home Screen · Android: browser menu → Install app · Desktop: install icon in address bar.
 
 > **On the same local network as the server?** Ask the admin for the LAN IP — Tailscale optional.
