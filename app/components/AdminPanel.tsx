@@ -9,6 +9,7 @@ type AdminUser = {
   readOnly: boolean;
   ownColumnOnly: boolean;
   columnName: string | null;
+  supervisorUsername: string | null;
 };
 
 type AccessLevel = "full" | "ownColumn" | "readOnly";
@@ -168,6 +169,15 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
   // Remove user
   const [removeTarget,  setRemoveTarget]  = useState("");
   const [removeMsg,     setRemoveMsg]     = useState<string | null>(null);
+
+  // Create agent (admin)
+  const [createAgentName,       setCreateAgentName]       = useState("");
+  const [createAgentSupervisor, setCreateAgentSupervisor] = useState("");
+  const [createAgentAccess,     setCreateAgentAccess]     = useState<"full" | "ownColumn">("ownColumn");
+  const [createAgentLoading,    setCreateAgentLoading]    = useState(false);
+  const [createAgentToken,      setCreateAgentToken]      = useState<string | null>(null);
+  const [createAgentTokenCopied,setCreateAgentTokenCopied]= useState(false);
+  const [createAgentMsg,        setCreateAgentMsg]        = useState<string | null>(null);
 
   async function loadUsers() {
     setLoadingUsers(true);
@@ -361,7 +371,38 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
     }
   }
 
+  // ── Create agent (admin) ───────────────────────────────────────────────────
+  async function doCreateAgent() {
+    setCreateAgentMsg(null);
+    setCreateAgentToken(null);
+    setCreateAgentTokenCopied(false);
+    setCreateAgentLoading(true);
+    try {
+      const res = await fetch("/api/admin/create-agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agentName: createAgentName.trim(),
+          supervisorUsername: createAgentSupervisor || undefined,
+          ownColumnOnly: createAgentAccess === "ownColumn",
+        }),
+      });
+      const d = await res.json();
+      if (res.ok) {
+        setCreateAgentToken(d.agentToken);
+        setCreateAgentName("");
+        loadUsers();
+        onDataChanged?.();
+      } else {
+        setCreateAgentMsg(`Error: ${d.error ?? "Unknown error"}`);
+      }
+    } finally {
+      setCreateAgentLoading(false);
+    }
+  }
+
   const nonAdmins = users.filter(u => !u.isAdmin);
+  const humans    = users.filter(u => !u.isAdmin && !u.isAgent);
 
   return (
     <div
@@ -400,6 +441,9 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                       <span className="text-sm text-gray-200">{u.username}</span>
                       {u.columnName && u.columnName !== u.username && (
                         <span className="text-xs text-gray-600 ml-1.5">{u.columnName}</span>
+                      )}
+                      {u.isAgent && u.supervisorUsername && (
+                        <span className="text-xs text-gray-600 ml-1.5">({u.supervisorUsername}&apos;s agent)</span>
                       )}
                     </div>
                     {u.isAdmin ? (
@@ -474,6 +518,71 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                     </button>
                   </div>
                   <p className="text-xs text-gray-700">Tell the new user to enter this on the sign-in page.</p>
+                </div>
+              )}
+            </div>
+          </Section>
+
+          {/* ── Create agent ───────────────────────────────────────────────── */}
+          <Section title="Create agent">
+            <div className="space-y-3">
+              <p className="text-xs text-gray-600">Create an AI agent directly — no invite needed. The agent token is shown once.</p>
+              <input
+                type="text"
+                placeholder="Agent name"
+                value={createAgentName}
+                onChange={e => { setCreateAgentName(e.target.value); setCreateAgentMsg(null); setCreateAgentToken(null); }}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-blue-500"
+              />
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-gray-500 w-20 flex-shrink-0">Supervisor</span>
+                <select
+                  value={createAgentSupervisor}
+                  onChange={e => setCreateAgentSupervisor(e.target.value)}
+                  className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200"
+                  style={{ cursor: "pointer" }}
+                >
+                  <option value="">— None —</option>
+                  {humans.map(u => (
+                    <option key={u.username} value={u.username}>{u.username}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-gray-500 w-20 flex-shrink-0">Access</span>
+                <div className="flex gap-1">
+                  <Pill active={createAgentAccess === "ownColumn"} onClick={() => setCreateAgentAccess("ownColumn")}>Own column</Pill>
+                  <Pill active={createAgentAccess === "full"}      onClick={() => setCreateAgentAccess("full")}>Full board</Pill>
+                </div>
+              </div>
+              <button
+                onClick={doCreateAgent}
+                disabled={createAgentLoading || createAgentName.trim().length < 2}
+                className="w-full py-2 mt-1 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white text-sm rounded-lg transition-colors"
+                style={{ cursor: createAgentLoading || createAgentName.trim().length < 2 ? "default" : "pointer" }}
+              >
+                {createAgentLoading ? "Creating…" : "Create agent"}
+              </button>
+              {createAgentMsg && (
+                <p className="text-xs text-red-400">{createAgentMsg}</p>
+              )}
+              {createAgentToken && (
+                <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50 space-y-2">
+                  <p className="text-xs text-green-400 mb-1">Agent created! Copy token below — shown once.</p>
+                  <p className="text-xs text-gray-300 break-all font-mono leading-relaxed">{createAgentToken}</p>
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(createAgentToken).catch(() => {});
+                        setCreateAgentTokenCopied(true);
+                        setTimeout(() => setCreateAgentTokenCopied(false), 2500);
+                      }}
+                      className="text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium"
+                      style={{ cursor: "pointer" }}
+                    >
+                      {createAgentTokenCopied ? "Copied ✓" : "Copy token"}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

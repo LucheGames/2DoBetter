@@ -29,6 +29,13 @@ type ColumnSnapshot = {
   locked: boolean;
 };
 
+/** Returns the supervisor username for a column's owning agent, if any. */
+function getSupervisor(ownerUsername: string | null): string | undefined {
+  if (!ownerUsername) return undefined;
+  const users = getUsersFresh();
+  return users.find(u => u.username === ownerUsername)?.supervisorUsername;
+}
+
 /**
  * Returns a 403 if the user's record has readOnly: true.
  * Call this first in every write route — it's a blanket write block.
@@ -58,6 +65,8 @@ export function checkOwnColumnOnly(
   if (isAdminUser(authUser)) return null;
   const user = getUsersFresh().find(u => u.username === authUser);
   if (user?.ownColumnOnly && column.ownerUsername !== authUser) {
+    // Supervisor carve-out: can write to their supervised agent's column
+    if (getSupervisor(column.ownerUsername) === authUser) return null;
     return NextResponse.json(
       { error: 'Your token is restricted to your own column' },
       { status: 403 },
@@ -106,6 +115,9 @@ export function checkLane(
 
   // Locked column — column owner may proceed
   if (column.ownerUsername === authUser) return null;
+
+  // Supervisor may also edit their supervised agent's locked column
+  if (getSupervisor(column.ownerUsername) === authUser) return null;
 
   return NextResponse.json(
     { error: 'This column is locked — only the owner can edit it' },

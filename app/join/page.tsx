@@ -39,6 +39,7 @@ export default function JoinPage() {
   const [showConf, setShowConf]   = useState(false);
   const [autoPass, setAutoPass]   = useState("");
   const [copied, setCopied]       = useState(false);
+  const [agentName, setAgentName] = useState("");
 
   const usernameRef = useRef<HTMLInputElement>(null);
   const passRef     = useRef<HTMLInputElement>(null);
@@ -85,7 +86,7 @@ export default function JoinPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, token: password, inviteCode: code }),
+        body: JSON.stringify({ username, token: password, inviteCode: code, agentName: agentName.trim() || undefined }),
       });
       if (res.ok) {
         // Auth cookies were set by the register response — go straight to the board.
@@ -216,6 +217,21 @@ export default function JoinPage() {
               Save this password before continuing — you will need it to sign in.
             </p>
           )}
+
+          {/* Optional personal agent */}
+          <div className="border-t border-gray-800 pt-3 space-y-2">
+            <input
+              type="text"
+              placeholder="Name your AI agent (optional)"
+              value={agentName}
+              onChange={e => setAgentName(e.target.value)}
+              autoComplete="off"
+              className="w-full px-3 py-2.5 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-base placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+            {agentName.trim() && (
+              <p className="text-xs text-gray-600 text-center">Creates an AI agent column supervised by you</p>
+            )}
+          </div>
 
           {error && <p className="text-red-400 text-sm text-center">{error}</p>}
 

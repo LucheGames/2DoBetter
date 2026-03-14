@@ -29,10 +29,13 @@ export type ColumnData = {
   ownerUsername: string | null;
   locked: boolean;
   lists: ListData[];
+  isAgent?: boolean;           // true if ownerUsername belongs to an agent user
+  supervisorUsername?: string; // human supervisor for this agent column
 };
 
 export type BoardData = {
   columns: ColumnData[];
   currentUser: string | null;
   isAdmin: boolean;
+  isAgent?: boolean; // true if the current user is an agent
 };

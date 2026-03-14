@@ -33,10 +33,11 @@ export type UserRecord = {
   session?: string;     // DEPRECATED: single session — migrated to sessions[] on next login
   sessions?: string[];  // active session tokens — supports multiple concurrent devices (capped at 10)
   agentToken?: string;  // permanent MCP/agent token — survives logout, rotate with gen-agent-token
-  isAdmin?: boolean;       // first user from setup wizard; can lock/unlock columns + run import
-  readOnly?: boolean;      // token can read anything but cannot write (observer / monitor agents)
-  ownColumnOnly?: boolean; // token can only write to its own column — cross-column push blocked
-  isAgent?: boolean;       // display hint: show AGENT badge in column header instead of TEAMMATE
+  isAdmin?: boolean;          // first user from setup wizard; can lock/unlock columns + run import
+  readOnly?: boolean;         // token can read anything but cannot write (observer / monitor agents)
+  ownColumnOnly?: boolean;    // token can only write to its own column — cross-column push blocked
+  isAgent?: boolean;          // display hint: show AGENT badge in column header instead of TEAMMATE
+  supervisorUsername?: string; // human who supervises this agent — gets same edit rights as owner
 };
 
 /** Read users fresh from disk so auth operations see the latest data.

@@ -118,6 +118,8 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
   const isOwnColumn = isMultiUser && column.ownerUsername === currentUser;
   const badgeLabel = isOwnColumn
     ? 'YOU'
+    : column.isAgent
+    ? 'AGENT'
     : column.ownerUsername
     ? 'TEAMMATE'
     : isPrincipal

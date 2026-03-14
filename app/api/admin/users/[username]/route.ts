@@ -31,8 +31,18 @@ export async function PATCH(
   if (body.readOnly      !== undefined) users[idx].readOnly      = Boolean(body.readOnly);
   if (body.ownColumnOnly !== undefined) users[idx].ownColumnOnly = Boolean(body.ownColumnOnly);
   if (body.isAgent       !== undefined) users[idx].isAgent       = Boolean(body.isAgent);
+  if (body.supervisorUsername !== undefined) {
+    if (body.supervisorUsername === null || body.supervisorUsername === '') {
+      delete users[idx].supervisorUsername;
+    } else {
+      const sup = users.find(u => u.username === body.supervisorUsername);
+      if (!sup) return NextResponse.json({ error: 'Supervisor not found' }, { status: 404 });
+      users[idx].supervisorUsername = body.supervisorUsername;
+    }
+  }
 
   saveUsers(users);
+  broadcastReload();
   return NextResponse.json({ ok: true });
 }
 

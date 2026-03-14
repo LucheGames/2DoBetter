@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BoardData, ColumnData } from "./types";
 import ColumnPanel from "./components/ColumnPanel";
 import AdminPanel from "./components/AdminPanel";
@@ -12,18 +12,132 @@ function sortColumns(columns: ColumnData[], currentUser: string | null): ColumnD
     const aOwn = a.ownerUsername === currentUser ? 0 : 1;
     const bOwn = b.ownerUsername === currentUser ? 0 : 1;
     if (aOwn !== bOwn) return aOwn - bOwn;
-    // Within non-own: unowned (agent) columns before other users
-    const aAgent = !a.ownerUsername ? 0 : 1;
-    const bAgent = !b.ownerUsername ? 0 : 1;
+    // Within non-own: agent columns before teammate columns
+    const aAgent = a.isAgent ? 0 : 1;
+    const bAgent = b.isAgent ? 0 : 1;
     if (aAgent !== bAgent) return aAgent - bAgent;
     return a.order - b.order;
   });
+}
+
+// ── Create Agent modal ────────────────────────────────────────────────────────
+function CreateAgentModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const [name, setName]         = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState("");
+  const [token, setToken]       = useState<string | null>(null);
+  const [copied, setCopied]     = useState(false);
+  const inputRef                = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setTimeout(() => inputRef.current?.focus(), 0); }, []);
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/agents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agentName: name.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setToken(data.agentToken);
+        onCreated();
+      } else {
+        setError(data.error ?? "Something went wrong.");
+      }
+    } catch {
+      setError("Connection failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function copyToken() {
+    if (!token) return;
+    navigator.clipboard.writeText(token).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="w-full max-w-sm bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-300">New agent</h2>
+          <button onClick={onClose} className="text-gray-600 hover:text-gray-300 transition-colors" style={{ cursor: "pointer" }}>
+            <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" d="M3 3l10 10M13 3L3 13" />
+            </svg>
+          </button>
+        </div>
+
+        {token ? (
+          <div className="space-y-3">
+            <p className="text-xs text-green-400">Agent created! Copy the token below — you won't see it again.</p>
+            <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50 space-y-2">
+              <p className="text-xs text-gray-300 break-all font-mono leading-relaxed">{token}</p>
+              <div className="flex justify-end">
+                <button
+                  onClick={copyToken}
+                  className="text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium"
+                  style={{ cursor: "pointer" }}
+                >
+                  {copied ? "Copied ✓" : "Copy token"}
+                </button>
+              </div>
+            </div>
+            <p className="text-xs text-gray-600">Use this token as the MCP agent token in your AI client config.</p>
+            <button
+              onClick={onClose}
+              className="w-full py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm rounded-lg transition-colors"
+              style={{ cursor: "pointer" }}
+            >
+              Done
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleCreate} className="space-y-3">
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="Agent name (e.g. Jarvis)"
+              value={name}
+              onChange={e => { setName(e.target.value); setError(""); }}
+              className="w-full px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500"
+            />
+            {error && <p className="text-xs text-red-400">{error}</p>}
+            <button
+              type="submit"
+              disabled={loading || !name.trim()}
+              className="w-full py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white text-sm rounded-lg transition-colors"
+              style={{ cursor: loading || !name.trim() ? "default" : "pointer" }}
+            >
+              {loading ? "Creating…" : "Create agent"}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function Home() {
   const [board, setBoard] = useState<BoardData | null>(null);
   const [offline, setOffline] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [showCreateAgent, setShowCreateAgent] = useState(false);
   const [collapsedCols, setCollapsedCols] = useState<Set<number>>(() => {
     if (typeof window === "undefined") return new Set();
     try {
@@ -156,6 +270,18 @@ export default function Home() {
         </div>
 
         <div className="flex items-center gap-4">
+          {/* + Agent button — visible to all non-agent users */}
+          {board.currentUser && !board.isAgent && (
+            <button
+              onClick={() => setShowCreateAgent(true)}
+              title="Create a new AI agent"
+              className="app-ui-text text-gray-600 hover:text-gray-300 transition-colors select-none"
+              style={{ cursor: "pointer" }}
+            >
+              + Agent
+            </button>
+          )}
+
           {/* Admin panel button — admin only */}
           {board.isAdmin && (
             <button
@@ -189,6 +315,14 @@ export default function Home() {
 
       {/* Admin panel modal */}
       {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} onDataChanged={fetchBoard} />}
+
+      {/* Create agent modal */}
+      {showCreateAgent && (
+        <CreateAgentModal
+          onClose={() => setShowCreateAgent(false)}
+          onCreated={fetchBoard}
+        />
+      )}
 
       {/* Columns — side by side on desktop, stacked on mobile.
           1–3 visible columns: min-w-[33vw] fills screen evenly.

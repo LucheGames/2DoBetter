@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomBytes } from 'crypto';
 import {
   setAuthCookies, ensureUserColumn, getUsersFresh, saveUsers,
   hashPassword, generateSession,
@@ -51,7 +52,7 @@ function consumeInvite(code: string): Invite | null {
 
 // ── POST /api/auth/register ───────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  const { username, token, inviteCode } = await req.json();
+  const { username, token, inviteCode, agentName } = await req.json();
 
   const invite = consumeInvite(String(inviteCode ?? '').trim());
   if (!invite) {
@@ -92,6 +93,24 @@ export async function POST(req: NextRequest) {
   }
 
   await ensureUserColumn(cleanUsername);
+
+  // Optional: create a personal agent column supervised by this user
+  const cleanAgentName = String(agentName ?? '').trim();
+  if (cleanAgentName.length >= 2 && /^[a-zA-Z0-9_\-. ]+$/.test(cleanAgentName)) {
+    const updatedUsers = getUsersFresh();
+    if (!updatedUsers.some(u => u.username.toLowerCase() === cleanAgentName.toLowerCase())) {
+      const agentToken = randomBytes(32).toString('hex');
+      updatedUsers.push({
+        username: cleanAgentName,
+        isAgent: true,
+        supervisorUsername: cleanUsername,
+        agentToken,
+      });
+      saveUsers(updatedUsers);
+      await ensureUserColumn(cleanAgentName);
+    }
+  }
+
   broadcast(); // notify connected clients that a new column has appeared
 
   const response = NextResponse.json({ ok: true });

@@ -21,12 +21,13 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(
     users.map(u => ({
-      username:      u.username,
-      isAdmin:       u.isAdmin       ?? false,
-      isAgent:       u.isAgent       ?? false,
-      readOnly:      u.readOnly      ?? false,
-      ownColumnOnly: u.ownColumnOnly ?? false,
-      columnName:    colMap[u.username] ?? null,
+      username:           u.username,
+      isAdmin:            u.isAdmin            ?? false,
+      isAgent:            u.isAgent            ?? false,
+      readOnly:           u.readOnly           ?? false,
+      ownColumnOnly:      u.ownColumnOnly      ?? false,
+      columnName:         colMap[u.username]   ?? null,
+      supervisorUsername: u.supervisorUsername ?? null,
     }))
   );
 }
