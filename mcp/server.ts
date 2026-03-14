@@ -43,8 +43,8 @@ server.tool("get_board", "Get the full board state — all columns, lists, and t
 // Get a specific column
 server.tool(
   "get_column",
-  "Get a specific column's lists and tasks by slug (e.g. 'dave', 'claude', or any column slug)",
-  { column: z.string().describe("Column slug (e.g. 'dave', 'claude')") },
+  "Get a specific column's lists and tasks by slug (e.g. 'alice', 'bob', or any column slug)",
+  { column: z.string().describe("Column slug (e.g. 'alice', 'bob')") },
   async ({ column }) => {
     const board = await api("/api/overview");
     const col = board.columns?.find((c: any) => c.slug === column);

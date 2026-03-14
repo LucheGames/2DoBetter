@@ -1,4 +1,4 @@
-# 2 Do Better — Claude Instructions
+# 2 Do Better — Developer Guide
 
 ---
 ## ⚠️  ABSOLUTE RULE — NEVER COMMIT SECRETS ⚠️
@@ -15,68 +15,27 @@
 
 **Why this matters:** This repo is public. Credentials committed to git are permanently exposed — even after deletion, they live in history and are indexed by secret scanners within minutes.
 
-**History note:** The initial commit accidentally committed `.env` with a Railway MySQL password. The history was scrubbed with `git filter-repo` on 2026-03-08. Don't make us do that again.
-
 **If you accidentally commit a secret:** Immediately rotate/revoke the credential — assume it is compromised. Then scrub with `git filter-repo --replace-text`.
-
----
-
-## Session Start (do this automatically, no need to ask)
-
-1. **SSH to Ubuntu and run `npm run context`** — dumps git branch, last 5 commits, server health, user count, board stats, active invite codes, and last backup in one shot:
-   ```bash
-   ssh davistator@100.105.251.44 "bash -i -c 'cd ~/2DoBetter && npm run context'"
-   ```
-2. **Check the board** with the `get_board` MCP tool.
-3. **Greet Dave with a 1-line board status** — e.g. "Board: 3 open in Dave's queue, 1 in mine. Server running, last backup 9h ago."
-
-**Note on the preview hook:** There is no local dev server on the Mac (no DB). The project's `.claude/settings.json` replaces the default "preview required" check with a live-server curl to Ubuntu. Any edit to app files is verified against the live server, not a local one.
 
 ---
 
 ## Architecture
 
-### Who is who
+### Roles
 
-| Role | Machine | Needs Tailscale? | Accesses DB? |
-|------|---------|-----------------|-------------|
-| **Server** | Ubuntu HP Z2 | No — serves directly on LAN | Yes — SQLite lives here |
-| **Human client** | Mac, Android, any browser | Yes — to reach server remotely | No |
-| **AI agent client** | Mac (MCP server process) | Yes — same as human client | No |
-| **Admin (SSH)** | Mac → Ubuntu | Yes — SSH over Tailscale | Indirectly via CLI |
-
-### Network addresses
-
-| Machine | LAN IP | Tailscale IP | Notes |
-|---------|--------|-------------|-------|
-| Ubuntu (server) | `192.168.10.165` | `100.105.251.44` | Static LAN via netplan |
-| Mac (dev) | DHCP | `100.106.235.14` | Tailscale must be active to reach Ubuntu |
-
-### The one URL to rule them all
-
-**`https://2dobetter.duckdns.org:3000`** — used by ALL clients (human and AI).
-
-- DuckDNS resolves to Ubuntu's Tailscale IP `100.105.251.44`
-- Ubuntu `/etc/hosts` maps `2dobetter.duckdns.org → 127.0.0.1` so the server accesses itself via localhost (no Tailscale hairpin needed)
-- Cert is Let's Encrypt for this domain — valid in all browsers, no warnings
-- **Do not hardcode the LAN IP (`192.168.10.165`) in client configs** — it only works on the home LAN and breaks remotely. Always use the DuckDNS URL for anything that is a client of the server.
-
-### Tailscale rules (simple version)
-
-- **Ubuntu server**: Tailscale is installed but only used for SSH admin access. The app itself does NOT need Tailscale to run — it listens on all interfaces and clients reach it via DuckDNS → Tailscale.
-- **Every client** (Mac browser, Android, MCP agent): needs Tailscale active to reach the server when not on the home LAN. On the home LAN, DuckDNS → Tailscale IP still routes via Tailscale tunnel (not via LAN directly).
-- **Mac MCP config** (`~/.claude.json`): `API_BASE_URL` must be `https://2dobetter.duckdns.org:3000`, NOT the LAN IP.
+| Role | Description |
+|------|-------------|
+| **Server** | The machine running the app — hosts the SQLite DB, serves the Next.js app over HTTPS |
+| **Human client** | Any browser (desktop, Android, iOS) connecting to the server |
+| **AI agent client** | An MCP server process that calls the app's REST API (same as a browser) |
+| **Admin** | SSH access to the server for CLI commands and deploys |
 
 ### What lives where
 
-- **DB**: Ubuntu only — `~/2DoBetter/prisma/dev.db` (SQLite, gitignored). Mac has no database.
-- **App server**: Ubuntu only — `npm run restart` / builds on Ubuntu only.
-- **MCP client**: Mac — compiled from `mcp/server.ts`, run by Claude Code as a stdio process. It calls the app's REST API just like a browser would.
-- **Git repo**: Mac → GitHub → Ubuntu (pull to deploy).
-
-### Mac is a code editor, not a server
-
-The Mac launchd service is disabled. Never `npm run restart` or `npm run build` on Mac. Always deploy to Ubuntu.
+- **DB**: Server only — `prisma/dev.db` (SQLite, gitignored).
+- **App server**: Server only — runs via `npm run restart` or systemd/launchd service.
+- **MCP client**: Dev machine — compiled from `mcp/server.ts`, run by Claude Code as a stdio process. Calls the REST API like a browser would.
+- **Git repo**: Dev machine → GitHub → Server (pull to deploy).
 
 ---
 
@@ -91,7 +50,7 @@ The Mac launchd service is disabled. Never `npm run restart` or `npm run build` 
 
 **SSH commands need `bash -i -c '…'` to load nvm:**
 ```bash
-ssh davistator@100.105.251.44 "bash -i -c 'cd ~/2DoBetter && npm run build'"
+ssh <user>@<server-ip> "bash -i -c 'cd ~/2DoBetter && npm run build'"
 # plain `ssh … "npm run build"` fails — npm not in PATH in non-interactive shells
 ```
 
@@ -100,23 +59,19 @@ ssh davistator@100.105.251.44 "bash -i -c 'cd ~/2DoBetter && npm run build'"
 ## Deploy Workflow
 
 ```bash
-# 1. On Mac — commit and push
+# 1. On dev machine — commit and push
 git add <files> && git commit -m "message" && git push
 
-# 2. On Ubuntu — pull, build, restart
-ssh davistator@100.105.251.44 "bash -i -c 'cd ~/2DoBetter && git pull && npm run build'"
-ssh davistator@100.105.251.44 "bash -i -c 'cd ~/2DoBetter && node scripts/admin.js restart'"
-
-# Or combined:
-ssh davistator@100.105.251.44 "bash -i -c 'cd ~/2DoBetter && git pull && npm run build && node scripts/admin.js restart'"
+# 2. On server — pull, build, restart
+ssh <user>@<server-ip> "bash -i -c 'cd ~/2DoBetter && git pull && npm run build && node scripts/admin.js restart'"
 ```
 
 **When to skip the build** (CLI-only changes to `scripts/`, `CLAUDE.md`, `.gitignore`):
 ```bash
-ssh davistator@100.105.251.44 "bash -i -c 'cd ~/2DoBetter && git pull && node scripts/admin.js restart'"
+ssh <user>@<server-ip> "bash -i -c 'cd ~/2DoBetter && git pull && node scripts/admin.js restart'"
 ```
 
-Ubuntu service management:
+Server service management:
 ```bash
 systemctl --user status 2dobetter
 journalctl --user -u 2dobetter -n 100 -f   # live logs
@@ -130,7 +85,7 @@ journalctl --user -u 2dobetter -n 100 -f   # live logs
 - **Login:** username + token (password) → `auth_user` + `auth_token` cookies.
 - **Middleware** matches *both* cookies — prevents collision when two users share a password.
 - **ENV:** `AUTH_USERS_JSON` in `.env.local` is updated when users are added/removed; the live process reads `data/users.json` directly at request time (no restart needed for new users).
-- **Invite codes:** `INVITE_CODE=enabled` in `.env.local` turns on the registration page. Actual codes are time-limited, single-use, stored in `data/invites.json`. Generate with `npm run gen-invite`.
+- **Invite codes:** `INVITE_CODE=enabled` in `.env.local` turns on the registration page. Actual codes are time-limited, single-use, stored in `data/invites.json`. Generate with `npm run gen-invite` or from the admin panel.
 
 ---
 
@@ -144,9 +99,10 @@ journalctl --user -u 2dobetter -n 100 -f   # live logs
 | `lib/auth-helpers.ts` | `getUsers()`, `saveUsers()`, `setAuthCookies()`, `ensureUserColumn()` |
 | `app/api/auth/register/route.ts` | Self-registration — validates `data/invites.json` codes |
 | `app/api/auth/config/route.ts` | Public endpoint: `{ registrationEnabled: bool }` |
-| `app/login/page.tsx` | Login + create account UI |
+| `app/login/page.tsx` | Login + setup code entry UI |
+| `app/join/page.tsx` | New account setup page (username + password) |
 | `prisma/schema.prisma` | DB schema: Column → List → Task (all cascade on delete) |
-| `server.js` | Custom Next.js server (handles HTTPS + HTTP redirect) |
+| `server.js` | Custom Next.js server (handles HTTPS + HTTP redirect + onboarding page) |
 | `scripts/setup.js` | First-run setup wizard + `add-user` + `remove-user` subcommands |
 | `scripts/admin.js` | All other admin CLI commands |
 | `scripts/build.sh` | Build wrapper — finds nvm node v20, runs prisma generate + next build |
@@ -167,13 +123,13 @@ Run `npm run admin` for help. All commands work on whichever machine you run the
 |---------|-------------|
 | `npm run status` | Service running, users, open/done tasks, DB size, last backup |
 | `npm run list-users` | Print all users (first = admin) |
-| `npm run context` | Full session dump: git + status + active invites — **use at session start** |
+| `npm run context` | Full session dump: git + status + active invites |
 
 ### In-app Admin Panel (preferred for user management)
 
-Dave's ⚙ gear icon (top-right, admin only) opens the admin panel. Use it for:
+The ⚙ gear icon (top-right, admin only) opens the admin panel. Use it for:
 - View users, toggle Human/Agent, set Full/Own column/Read only access
-- Generate invite links (with access flags + expiry baked in)
+- Generate invite codes (with access flags + expiry baked in)
 - Reset a user's password (2s hold)
 - Generate/rotate agent tokens (1.5s hold)
 - Purge completed tasks or graveyard entries (2s hold, with time filter)
@@ -205,14 +161,14 @@ Dave's ⚙ gear icon (top-right, admin only) opens the admin panel. Use it for:
 
 ---
 
-## MCP Tools (use these, not screenshots)
+## MCP Tools
 
-The `2dobetter` MCP server is registered. Use these tools for all task operations:
+The `2dobetter` MCP server is available for AI agent integration. Use these tools for task operations:
 
 | Tool | What it does |
 |------|-------------|
 | `get_board` | Full board — all columns, lists, tasks |
-| `get_column` | One column's lists + tasks (`dave` or `claude`) |
+| `get_column` | One column's lists + tasks by slug |
 | `create_task` | Add a task to a list |
 | `complete_task` | Mark a task done |
 | `uncomplete_task` | Reinstate a completed task |
@@ -227,32 +183,15 @@ The `2dobetter` MCP server is registered. Use these tools for all task operation
 
 ## Column Ownership
 
-- **Dave column** — Dave's tasks. Don't touch unless Dave asks.
-- **Claude column** — Claude's workspace. Track in-progress work here.
-  - Add a task when starting a significant piece of work
-  - Complete it when done
-  - Use as a living scratchpad for the session
-- **Column sort order** (client-side): own column → unowned/agent → teammates
-
----
-
-## Session End — Wins Log
-
-At end of session, append the new entry to the gist:
-**https://gist.github.com/LucheGames/541caf8b28a471141162fed44ecf4c38**
-
-**Keep entries SHORT and punchy** — these are talking points, not a feature log. Aim for:
-- 5–8 bullet points in ACHIEVED (one line each, what it does, not how)
-- 2–4 bullets in UNRESOLVED
-- 2–3 bullets in NOTES (gotchas, key paths, things future-you needs to know)
-
-If you're writing more than 3 lines per bullet, you're writing too much.
+- Each user gets their own column, created automatically on first login.
+- Users flagged as `isAgent` get an "Agent" badge; others show "YOU" (own) or "TEAMMATE".
+- **Column sort order** (client-side): own column → unowned/agent → teammates.
+- Columns without an `ownerUsername` are shared and visible to all users.
 
 ---
 
 ## Git Rules
 
-- `/Users/macbeast/_Repos/ToDoBetter/` on Mac is the working git repo → remote `LucheGames/ToDoBetter`
 - Commit and push freely as part of the normal workflow
 - Never force-push to master
 - Build output (`.next/`), DB (`prisma/dev.db`), secrets (`data/`, `.env*`, `certs/`) are gitignored

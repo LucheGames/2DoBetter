@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -58,3 +59,9 @@ ubuntu-ca.crt
 data/users.json
 # Pending invite codes — time-limited, never commit
 data/invites.json
+
+# Dev-only Claude Code hook (contains local server IP)
+.claude/settings.json
+
+# Auto-generated macOS launchd plist (contains local home paths)
+com.luchegames.2dobetter.plist
