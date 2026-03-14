@@ -141,6 +141,11 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
   const [inviteLoading,  setInviteLoading]  = useState(false);
   const [copied,         setCopied]         = useState(false);
 
+  // Rename user
+  const [renameTarget,  setRenameTarget]  = useState("");
+  const [renameNew,     setRenameNew]     = useState("");
+  const [renameMsg,     setRenameMsg]     = useState<string | null>(null);
+
   // Reset password
   const [resetTarget,   setResetTarget]   = useState("");
   const [resetPassword, setResetPassword] = useState("");
@@ -171,6 +176,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
         // Default selects to first non-admin user
         const first = list.find(u => !u.isAdmin);
         if (first) {
+          if (!renameTarget) setRenameTarget(first.username);
           if (!resetTarget)  setResetTarget(first.username);
           if (!tokenTarget)  setTokenTarget(first.username);
         }
@@ -234,6 +240,25 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
     navigator.clipboard.writeText(inviteResult.code).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
+  }
+
+  // ── Rename user ────────────────────────────────────────────────────────────
+  async function doRenameUser() {
+    setRenameMsg(null);
+    const res = await fetch("/api/admin/rename-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ oldUsername: renameTarget, newUsername: renameNew.trim() }),
+    });
+    const d = await res.json();
+    if (res.ok) {
+      setRenameMsg(`Renamed "${renameTarget}" → "${d.newUsername}".`);
+      setRenameNew("");
+      loadUsers();
+      onDataChanged?.();
+    } else {
+      setRenameMsg(`Error: ${d.error}`);
+    }
   }
 
   // ── Reset password ─────────────────────────────────────────────────────────
@@ -506,6 +531,41 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
               {resetMsg && (
                 <p className={`text-xs ${resetMsg.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>
                   {resetMsg}
+                </p>
+              )}
+            </div>
+          </Section>
+
+          {/* ── Rename user ────────────────────────────────────────────────── */}
+          <Section title="Rename user">
+            <div className="space-y-3">
+              <select
+                value={renameTarget}
+                onChange={e => { setRenameTarget(e.target.value); setRenameMsg(null); }}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200"
+                style={{ cursor: "pointer" }}
+              >
+                {users.map(u => (
+                  <option key={u.username} value={u.username}>{u.username}{u.isAdmin ? " (admin)" : ""}</option>
+                ))}
+              </select>
+              <input
+                type="text"
+                placeholder="New username"
+                value={renameNew}
+                onChange={e => { setRenameNew(e.target.value); setRenameMsg(null); }}
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600"
+              />
+              <HoldButton
+                label="Hold to rename"
+                onConfirm={doRenameUser}
+                holdMs={1500}
+                color="amber"
+                disabled={renameNew.trim().length < 2 || !renameTarget || renameNew.trim() === renameTarget}
+              />
+              {renameMsg && (
+                <p className={`text-xs ${renameMsg.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>
+                  {renameMsg}
                 </p>
               )}
             </div>

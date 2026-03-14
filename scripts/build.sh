@@ -36,4 +36,5 @@ echo "▸ Running prisma generate..."
 "$NODE_BIN" node_modules/.bin/prisma generate
 
 echo "▸ Running next build..."
+export NEXT_TELEMETRY_DISABLED=1
 "$NODE_BIN" node_modules/.bin/next build

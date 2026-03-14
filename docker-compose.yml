@@ -30,6 +30,7 @@ services:
         required: false            # OK to be missing on first run before setup
     environment:
       - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1   # opt out of Next.js anonymous usage telemetry
     restart: unless-stopped        # Survives reboots; stops cleanly on `docker compose down`
     healthcheck:
       test: ["CMD", "wget", "-qO-", "--no-check-certificate", "https://localhost:3000/api/auth/config"]
