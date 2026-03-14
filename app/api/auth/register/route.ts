@@ -3,6 +3,7 @@ import {
   setAuthCookies, ensureUserColumn, getUsersFresh, saveUsers,
   hashPassword, generateSession,
 } from '@/lib/auth-helpers';
+import { broadcast } from '@/lib/events';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -91,6 +92,7 @@ export async function POST(req: NextRequest) {
   }
 
   await ensureUserColumn(cleanUsername);
+  broadcast(); // notify connected clients that a new column has appeared
 
   const response = NextResponse.json({ ok: true });
   setAuthCookies(response, session, cleanUsername);

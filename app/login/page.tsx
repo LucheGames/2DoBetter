@@ -60,8 +60,13 @@ export default function LoginPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-950 px-4">
       <div className="w-full max-w-sm">
-        <h1 className="text-xl font-semibold text-gray-100 text-center mb-1">
+        <h1 className="text-xl font-semibold text-gray-100 text-center mb-1 flex items-center justify-center gap-2">
           2Do Better
+          <a href="https://www.buymeacoffee.com/luchegames" target="_blank" rel="noopener noreferrer"
+            title="Support development ☕"
+            className="text-base leading-none text-gray-700 hover:text-yellow-400 transition-colors duration-200 select-none font-normal">
+            ☕
+          </a>
         </h1>
         <p className="text-base text-gray-400 text-center mb-6">
           Sign in to continue
