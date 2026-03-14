@@ -335,8 +335,9 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
                 </svg>
               </button>
             )}
-            {/* Delete — hidden on teammate columns (human-owned by someone else) */}
-            {!isPrincipal && (!isMultiUser || isOwnColumn || !column.ownerUsername) && (
+            {/* Delete — hidden on teammate and agent columns in multi-user mode;
+                agents must be removed via the admin panel to keep users.json in sync */}
+            {!isPrincipal && (!isMultiUser || isOwnColumn) && (
               <HoldToDelete
                 onConfirm={async () => {
                   await fetch(`/api/columns/${column.id}`, { method: "DELETE" });

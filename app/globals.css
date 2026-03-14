@@ -18,7 +18,7 @@
   --meta-font-size:       0.875rem;   /* badges/breadcrumbs 14px (+2pt)                */
   --header-font-size:     1.125rem;   /* column headers    18px  (+2pt)                */
   --logo-font-size:       1.25rem;    /* logo                                          */
-  --ui-font-size:         1rem;       /* header UI chrome: username, sign out          */
+  --ui-font-size:         0.875rem;   /* header UI chrome: username, sign out          */
 
   /* ── Accent colour ── */
   --accent:               #3b82f6;   /* blue-500 — checkboxes, focus rings, borders   */

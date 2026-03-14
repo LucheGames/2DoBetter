@@ -134,7 +134,6 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
   const [loadingUsers, setLoadingUsers] = useState(true);
 
   // Invite form
-  const [inviteIsAgent,  setInviteIsAgent]  = useState(false);
   const [inviteAccess,   setInviteAccess]   = useState<AccessLevel>("ownColumn");
   const [inviteExpiry,   setInviteExpiry]   = useState(10);
   const [inviteResult,   setInviteResult]   = useState<{ code: string; url: string; expiresAt: string } | null>(null);
@@ -228,7 +227,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          isAgent: inviteIsAgent,
+          isAgent: false,
           readOnly: inviteAccess === "readOnly",
           ownColumnOnly: inviteAccess === "ownColumn",
           expiresInMinutes: inviteExpiry,
@@ -435,13 +434,6 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
           {/* ── Invite new user ────────────────────────────────────────────── */}
           <Section title="Invite new user">
             <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <span className="text-xs text-gray-500 w-14 flex-shrink-0">Type</span>
-                <div className="flex gap-1">
-                  <Pill active={!inviteIsAgent} onClick={() => setInviteIsAgent(false)}>Human</Pill>
-                  <Pill active={inviteIsAgent}  onClick={() => setInviteIsAgent(true)}>Agent</Pill>
-                </div>
-              </div>
               <div className="flex items-center gap-3">
                 <span className="text-xs text-gray-500 w-14 flex-shrink-0">Access</span>
                 <div className="flex gap-1">
