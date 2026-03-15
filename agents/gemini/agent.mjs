@@ -444,9 +444,18 @@ async function sendWithRetry(chat, message, maxRetries = 3) {
 }
 
 /** Run one agentic turn on an existing chat session.
- *  Pass a persistent chat object to maintain conversation context. */
+ *  Pre-fetches board state so Gemini doesn't need a tool call for reads.
+ *  Read-only queries = 1 API call. Writes = 2. */
 async function runTurn(chat, userPrompt) {
-  let response = await sendWithRetry(chat, userPrompt);
+  // Fetch board from our server (free — no Gemini API call) and inject as context.
+  // Gemini gets current state immediately; no need to call get_board as a tool.
+  let boardContext = "";
+  try {
+    const board = stripCompleted(await api("/api/overview"));
+    boardContext = `[Current board state — do not call get_board, this is already fresh]\n${JSON.stringify(board, null, 2)}\n\n`;
+  } catch { /* non-fatal — Gemini can still use tools if pre-fetch fails */ }
+
+  let response = await sendWithRetry(chat, boardContext + userPrompt);
 
   // Loop until Gemini stops requesting tool calls
   for (let round = 0; round < 20; round++) {
