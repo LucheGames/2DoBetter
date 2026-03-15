@@ -606,6 +606,9 @@ async function main() {
         console.log(`${AGENT_NAME}: ${reply}\n`);
       } catch (err) {
         console.error(`Error: ${err.message}\n`);
+        if (err.message.toLowerCase().includes('rate limit') || err.message.includes('429') || err.message.toLowerCase().includes('quota')) {
+          console.error(`💡 Session history preserved — type 'continue' to pick up where I left off.\n`);
+        }
       }
       rl.prompt();
     });

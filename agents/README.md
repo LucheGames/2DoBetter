@@ -37,7 +37,7 @@ The board's REST API is documented in [`openapi.yaml`](../openapi.yaml) at the r
 
 **Use Gemini** if you want a free standalone agent and don't mind slower rate limits (5 RPM). Good for batch tasks, not rapid chat.
 
-**Use Cerebras** for the fastest free-tier experience — Llama 3.3 70b at ~2000 tok/s. Responses feel near-instant even for multi-step board operations. Best overall free choice.
+**Use Cerebras** for the fastest free-tier experience — Qwen 3 235B MoE (frontier-class model on custom silicon). Blazing fast, excellent multi-step tool use, chains multiple board tasks in one shot. Best overall free choice.
 
 **Use Groq** as a solid free alternative (30 RPM, Llama 4 Scout). Good for interactive sessions; slightly slower than Cerebras.
 
