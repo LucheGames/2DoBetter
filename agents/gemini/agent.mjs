@@ -405,14 +405,24 @@ You have a dedicated column on the board. Your supervisor can review and manage 
 - If asked to do something requiring multiple steps, do them all before responding.`;
 
 // ── Agentic loop ──────────────────────────────────────────────────────────────
-async function runAgent(userPrompt) {
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash",
-    systemInstruction: SYSTEM_PROMPT,
-    tools,
-  });
 
-  const chat = model.startChat();
+/** Extract text from a Gemini response, handling thinking tokens in 2.5 Flash. */
+function extractText(response) {
+  try {
+    // Standard path — works for most responses
+    const text = response.response.text();
+    if (text) return text;
+  } catch { /* fall through to manual extraction */ }
+
+  // Manual extraction: find the first text part that isn't a thinking part
+  const parts = response.response?.candidates?.[0]?.content?.parts || [];
+  const textPart = parts.find(p => p.text && !p.thought);
+  return textPart?.text || "(no response)";
+}
+
+/** Run one agentic turn on an existing chat session.
+ *  Pass a persistent chat object to maintain conversation context. */
+async function runTurn(chat, userPrompt) {
   let response = await chat.sendMessage(userPrompt);
 
   // Loop until Gemini stops requesting tool calls
@@ -438,8 +448,27 @@ async function runAgent(userPrompt) {
     response = await chat.sendMessage(functionResponses);
   }
 
-  const text = response.response.text();
-  return text || "(no response)";
+  return extractText(response);
+}
+
+/** Single-shot: create a fresh model + chat and run one turn. */
+async function runAgent(userPrompt) {
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    systemInstruction: SYSTEM_PROMPT,
+    tools,
+  });
+  return runTurn(model.startChat(), userPrompt);
+}
+
+/** Create a persistent model + chat for use across multiple turns. */
+function createChat() {
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    systemInstruction: SYSTEM_PROMPT,
+    tools,
+  });
+  return model.startChat();
 }
 
 // ── CLI entry ─────────────────────────────────────────────────────────────────
@@ -449,6 +478,8 @@ async function main() {
   // Interactive REPL mode (--chat avoids clash with Node's built-in --interactive flag)
   if (args[0] === "--chat") {
     console.log(`${AGENT_NAME} is ready. Type your message and press Enter. Ctrl+C to exit.\n`);
+    // Single persistent chat — Gemini remembers the full conversation
+    const chat = createChat();
     const rl = createInterface({ input: process.stdin, output: process.stdout, prompt: "You: " });
     rl.prompt();
     rl.on("line", async (line) => {
@@ -456,7 +487,7 @@ async function main() {
       if (!input) { rl.prompt(); return; }
       try {
         process.stdout.write(`${AGENT_NAME}: `);
-        const reply = await runAgent(input);
+        const reply = await runTurn(chat, input);
         console.log(reply + "\n");
       } catch (err) {
         console.error(`Error: ${err.message}\n`);
