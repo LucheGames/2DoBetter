@@ -379,6 +379,10 @@ async function main() {
     console.log(await runAgent(prompt));
   } catch (err) {
     console.error(`Error: ${err.message}`);
+    // Always dump full API error detail — helps diagnose 404/401/422 from Cerebras
+    if (err.status)   console.error(`  HTTP status : ${err.status}`);
+    if (err.error)    console.error(`  API error   : ${JSON.stringify(err.error)}`);
+    if (err.headers)  console.error(`  Headers     : ${JSON.stringify(Object.fromEntries(Object.entries(err.headers)))}`);
     if (process.env.DEBUG) console.error(err.stack);
     process.exit(1);
   }
