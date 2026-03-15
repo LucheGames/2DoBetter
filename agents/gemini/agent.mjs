@@ -52,8 +52,6 @@ if (!AGENT_TOKEN) {
 
 // Trust self-signed certs (same as MCP server)
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-// Suppress the Node warning that fires when the above is set — we know, it's intentional
-process.on("warning", (w) => { if (w.message?.includes("NODE_TLS_REJECT_UNAUTHORIZED")) return; console.warn(w); });
 
 // ── SDK import (dynamic — works after npm install) ────────────────────────────
 const require = createRequire(import.meta.url);
