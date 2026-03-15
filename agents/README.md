@@ -9,7 +9,7 @@ Multiple AI agents can connect to your board. Each lives in its own folder with 
 | Agent | Model | Free tier | Speed | Status | Setup |
 |-------|-------|-----------|-------|--------|-------|
 | **Claude** (MCP) | Claude 3.5+ | Requires API key | Fast | ✅ Ready | [agents/claude/](claude/) |
-| **Cerebras** | Llama 3.3 70b | ✅ No card | 🚀 ~2000 tok/s | ✅ Ready | [agents/cerebras/](cerebras/) |
+| **Cerebras** | Qwen 3 235B MoE | ✅ No card | 🚀 Fast | ✅ Ready | [agents/cerebras/](cerebras/) |
 | **Groq** | Llama 4 Scout 17b | ✅ No card | 🚀 ~400 tok/s | ✅ Ready | [agents/groq/](groq/) |
 | **Gemini** | Gemini 2.5 Flash | ✅ No card | Fast | ✅ Ready | [agents/gemini/](gemini/) |
 | **Ollama** | qwen2.5:14b (local) | ✅ Free forever | ~30 tok/s CPU | ✅ Ready | [agents/ollama/](ollama/) |
