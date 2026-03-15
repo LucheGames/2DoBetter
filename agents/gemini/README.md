@@ -99,15 +99,32 @@ API is enabled correctly. Adding billing unlocks higher rate limits
 
 ---
 
+## What the Agent Can Do
+
+The agent has been tested against the full board feature set:
+
+- **Read & summarise** — fetch your column, list open tasks, answer questions about the board
+- **Create & organise** — create tasks and lists, move tasks between lists, reorder, rename
+- **Act on tasks as prompts** — if a task title is a question or instruction ("What are the risks?", "Rename this list"), the agent reads it, does the work, then flags it done. It will not silently tick boxes without reasoning.
+- **Respect permissions** — locked columns are left untouched; the agent won't touch other users' columns unless told to
+- **Graveyard** — archive lists (reversible), restore from graveyard, understand the difference from permanent deletion
+
+---
+
 ## Rate Limit Strategy
 
-The agent uses two techniques to stay within the free tier:
+The agent uses three techniques to stay within the free tier:
 
 1. **Board pre-fetch** — the board state is fetched from your server
    (free, instant) and injected into each message. Gemini gets current
    data without a tool call, halving API usage for read queries.
 
-2. **Retry with backoff** — rate limit errors automatically wait and
+2. **Parallel tool calls** — when multiple independent operations are
+   needed (move 3 tasks, archive 2 lists), they are issued in one
+   batch rather than sequentially, reducing the number of Gemini API
+   round-trips.
+
+3. **Retry with backoff** — rate limit errors automatically wait and
    retry (up to 3 times, capped at 90s per wait).
 
 ---
