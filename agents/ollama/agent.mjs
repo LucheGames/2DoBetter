@@ -65,6 +65,29 @@ const client = new OpenAI({
   apiKey: "ollama", // required by the SDK but ignored by Ollama
 });
 
+// ── CLI spinner ───────────────────────────────────────────────────────────────
+const SPIN_FRAMES = ['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏'];
+const IS_TTY = process.stderr.isTTY;
+let _spinTimer = null;
+let _spinStart = 0;
+
+function spinStart(label = 'Thinking') {
+  if (!IS_TTY) return;
+  _spinStart = Date.now();
+  let i = 0;
+  _spinTimer = setInterval(() => {
+    const s = Math.floor((Date.now() - _spinStart) / 1000);
+    process.stderr.write(`\r${SPIN_FRAMES[i++ % SPIN_FRAMES.length]} ${label}... ${s}s `);
+  }, 100);
+}
+
+function spinStop(note = '') {
+  if (!IS_TTY) return;
+  if (_spinTimer) { clearInterval(_spinTimer); _spinTimer = null; }
+  process.stderr.write('\r\x1b[K');  // erase spinner line
+  if (note) process.stderr.write(note + '\n');
+}
+
 // ── REST helper ───────────────────────────────────────────────────────────────
 async function api(path, options = {}) {
   const headers = {
@@ -235,6 +258,7 @@ async function runTurn(messages, userPrompt) {
 
   // Agentic loop — keep going until no more tool calls
   for (let round = 0; round < 20; round++) {
+    spinStart('Thinking');
     let response;
     try {
       response = await client.chat.completions.create({
@@ -244,6 +268,7 @@ async function runTurn(messages, userPrompt) {
         tool_choice: "auto",
       });
     } catch (err) {
+      spinStop();
       if (err.code === "ECONNREFUSED" || err.message?.includes("ECONNREFUSED")) {
         throw new Error(`Cannot connect to Ollama at ${OLLAMA_HOST}. Is Ollama running? Try: ollama serve`);
       }
@@ -256,12 +281,15 @@ async function runTurn(messages, userPrompt) {
     const msg = response.choices[0].message;
     messages.push(msg);
 
-    if (!msg.tool_calls?.length) break;
+    if (!msg.tool_calls?.length) { spinStop(); break; }
 
-    // Execute all tool calls in parallel, then push results in order
+    // Show which tools are being called, then execute them in parallel
+    const toolNames = msg.tool_calls.map(c => c.function.name).join(' + ');
+    spinStop(`  🔧 ${toolNames}`);
+
     const toolResults = await Promise.all(
       msg.tool_calls.map(async (call) => {
-        if (process.env.DEBUG) console.error(`  🔧 ${call.function.name}(${call.function.arguments})`);
+        if (process.env.DEBUG) console.error(`     ${call.function.name}(${call.function.arguments})`);
         let args = {};
         try { args = JSON.parse(call.function.arguments); } catch { /* malformed args */ }
         const result = await executeTool(call.function.name, args);
@@ -299,9 +327,8 @@ async function main() {
       const input = line.trim();
       if (!input) { rl.prompt(); return; }
       try {
-        process.stdout.write(`${AGENT_NAME}: `);
         const reply = await runTurn(messages, input);
-        console.log(reply + "\n");
+        console.log(`${AGENT_NAME}: ${reply}\n`);
       } catch (err) {
         console.error(`Error: ${err.message}\n`);
       }
