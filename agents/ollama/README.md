@@ -39,11 +39,12 @@ curl -fsSL https://ollama.com/install.sh | sh
 
 **2. Pull the model and create a 32k context variant:**
 ```bash
-ollama pull qwen2.5:7b
+ollama pull qwen2.5:14b
 
-# Create a variant with a larger context window for --chat mode:
-printf "FROM qwen2.5:7b\nPARAMETER num_ctx 32768\n" | ollama create qwen2.5-32k -f -
+# Create a variant with larger context + tuned inference params:
+printf "FROM qwen2.5:14b\nPARAMETER num_ctx 32768\nPARAMETER num_batch 512\nPARAMETER num_thread 8\n" | ollama create qwen2.5-14b-32k -f -
 ```
+*On low-RAM hardware (< 16GB), substitute `qwen2.5:7b` and `qwen2.5-32k` — see [Models](#models--honest-capability-assessment).*
 
 **3. Get an agent token** from your board:
 - Open the board → click **+ Agent** → name it (e.g. `ollama`)
@@ -72,7 +73,7 @@ npm start "Check my column and summarise what needs doing"
 | `API_BASE_URL` | ✅ | Your 2Do Better server, e.g. `https://localhost:3000` |
 | `AGENT_TOKEN` | ✅ | From the board **+ Agent** button |
 | `OLLAMA_HOST` | optional | Ollama server address (default: `http://localhost:11434`) |
-| `OLLAMA_MODEL` | optional | Override model (default: `qwen2.5-32k`) |
+| `OLLAMA_MODEL` | optional | Override model (default: `qwen2.5-14b-32k`) |
 | `AGENT_NAME` | optional | Name shown in prompts — **must match the column owner username** (default: `Ollama`) |
 | `DEBUG` | optional | Set to `1` to log every tool call with full arguments |
 
@@ -80,25 +81,45 @@ npm start "Check my column and summarise what needs doing"
 
 ---
 
-## Models
+## Models & Honest Capability Assessment
 
 Ollama supports many models. Set `OLLAMA_MODEL` in `.env` to switch.
-Pull a model first with `ollama pull <model>`.
 
-| Model | Size | Context | Best for |
-|-------|------|---------|----------|
-| `qwen2.5-14b-32k` | ~9GB + ~3GB KV | 32768 | **Recommended** — significantly better instruction-following and tool use than 7b. Needs 16GB+ RAM. |
-| `qwen2.5-32k` | ~4.7GB + 1.8GB KV | 32768 | 7b variant — adequate for simple single-step tasks; unreliable for multi-step tool sequences |
-| `qwen2.5:7b` | ~4.7GB | 4096 | Bare 7b — context too small for `--chat` mode |
-| `llama3.2:3b` | ~2GB | 4096 | Very fast on limited hardware, simpler tasks only |
+| Model | Size | RAM needed | Tool use quality |
+|-------|------|-----------|-----------------|
+| `qwen2.5-14b-32k` | ~9GB | 16GB+ | **Best available locally** — handles multi-step tool calls within a single task reliably; struggles to chain multiple board tasks autonomously |
+| `qwen2.5-32k` | ~4.7GB | 8GB+ | Simple single-step tasks only; unreliable for anything multi-step |
+| `qwen2.5:7b` | ~4.7GB | 8GB+ | Bare 7b — context too small for `--chat` mode |
+| `llama3.2:3b` | ~2GB | 4GB+ | Read/summarise only; tool calling too unreliable |
 
-**Create the 14b variant** (recommended setup):
+**Create the 14b variant** (current recommended setup):
 ```bash
 ollama pull qwen2.5:14b
 printf "FROM qwen2.5:14b\nPARAMETER num_ctx 32768\nPARAMETER num_batch 512\nPARAMETER num_thread 8\n" | ollama create qwen2.5-14b-32k -f -
 ```
 
-**Why the 32k variant?** Single-shot requests (`npm start "..."`) use modest context (~2–3k tokens). But in `--chat` mode, conversation history grows with every turn. Without a 32k context window, long sessions hit the 4096-token limit and start truncating early messages — the model forgets what it did earlier in the conversation.
+### Known limitations of local models
+
+Local 7b–14b models are significantly less capable than cloud agents for agentic board work:
+
+| Capability | qwen2.5:14b (local) | Groq / Gemini (cloud) |
+|-----------|--------------------|-----------------------|
+| Single-task tool use | ✅ Works well | ✅ Works well |
+| Multi-step within one task (e.g. create list → add 3 tasks → reorder) | ✅ Reliable | ✅ Reliable |
+| Autonomously chaining multiple board tasks in one shot | ⚠️ Stops to report after each task | ✅ Reliable |
+| Summarising another user's column | ⚠️ May hallucinate | ✅ Calls get_board correctly |
+| Response language | ⚠️ May drift to other languages | ✅ Always English |
+
+**The sweet spot for the local agent** is giving it **one clear task at a time**:
+```
+"Create a Sprint 2 list with tasks X, Y, Z"        ← works reliably
+"Check the board and do the first three tasks"      ← stops after task 1
+```
+
+For multi-task autonomy, use the [Groq](../groq/) or [Gemini](../gemini/) agents instead.
+The local agent is best valued for: privacy-sensitive boards, offline use, or as a free-forever fallback.
+
+**Why the 32k variant?** In `--chat` mode, conversation history grows every turn. Without a 32k context window the model truncates early messages and forgets prior tool results.
 
 ---
 
