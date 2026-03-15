@@ -1,6 +1,15 @@
 # 2 Do Better — Developer Guide
 
 ---
+## ⚠️  PRIVACY RULE — PUBLIC-FACING CONTENT ⚠️
+
+**Never include biographical details in any committed file (README, docs, comments, examples):**
+- No real names (use "the user", "the admin", "a teammate")
+- No locations, countries, or regions
+- No personal details that could de-anonymise the owner
+- This repo is public — treat all committed content as readable by anyone
+
+---
 ## ⚠️  ABSOLUTE RULE — NEVER COMMIT SECRETS ⚠️
 
 **STOP. Before every `git add` or `git commit`, ask yourself:**

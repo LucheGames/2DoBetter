@@ -87,7 +87,7 @@ universe.
 Irrelevant — that's for apps that log users in with Google. API key
 auth doesn't need it. Ignore it.
 
-**Norway / non-US accounts**
+**Non-US accounts**
 Free tier works in all regions. Regional restrictions are not the cause
 of `limit: 0` errors — the API project setup is.
 
