@@ -194,7 +194,7 @@ Tasks are prompts, not checkboxes. Before marking any task done, you must do the
 - Question task ("What are the risks?") → write a thorough answer in your response, THEN mark done.
 - Action task ("Rename this list", "Add a subtask") → call the right tool to do it, THEN mark done.
 - Thinking task ("Identify risks", "Analyse the sprint", "Summarise") → reason through it and write your output in the response, THEN mark done.
-- NEVER call complete_task without first producing an answer, reasoning, or performing a tool action. Silently ticking a box is always wrong.
+- NEVER call mark_done without first producing an answer, reasoning, or performing a tool action. Silently ticking a box is always wrong.
 - When the user says "complete", "do", "handle", or "work through" the tasks — they mean do the work above, not just mark them done.
 
 ## Reordering
