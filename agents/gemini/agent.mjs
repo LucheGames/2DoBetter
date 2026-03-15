@@ -4,7 +4,7 @@
  *
  * Usage:
  *   node agent.mjs "What's on the board?"
- *   node agent.mjs --interactive
+ *   node agent.mjs --chat
  *   echo "Add a task called Buy milk to list 5" | node agent.mjs
  *
  * Env (see .env.example):
@@ -79,11 +79,30 @@ async function api(path, options = {}) {
   try { return JSON.parse(text); } catch { return { raw: text }; }
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Strip completed tasks from board data before sending to Gemini.
+ *  Keeps token count low and prevents Gemini acting on already-done work. */
+function stripCompleted(board) {
+  if (!board || !board.columns) return board;
+  return {
+    ...board,
+    columns: board.columns.map(col => ({
+      ...col,
+      lists: (col.lists || []).map(list => ({
+        ...list,
+        tasks: (list.tasks || []).filter(t => !t.completed),
+      })),
+    })),
+  };
+}
+
 // ── Tool implementations ──────────────────────────────────────────────────────
 async function executeTool(name, args) {
   switch (name) {
     case "get_board": {
-      return await api("/api/overview");
+      const board = await api("/api/overview");
+      return stripCompleted(board);
     }
     case "get_column": {
       const board = await api("/api/overview");
@@ -92,7 +111,14 @@ async function executeTool(name, args) {
         const available = (board.columns || []).map(c => c.slug).join(", ");
         return { error: `Column "${args.column}" not found. Available: ${available}` };
       }
-      return col;
+      // Strip completed tasks from the single column too
+      return {
+        ...col,
+        lists: (col.lists || []).map(list => ({
+          ...list,
+          tasks: (list.tasks || []).filter(t => !t.completed),
+        })),
+      };
     }
     case "create_list": {
       return await api(`/api/columns/${args.columnId}/lists`, {
@@ -404,8 +430,8 @@ async function runAgent(userPrompt) {
 async function main() {
   const args = process.argv.slice(2);
 
-  // Interactive REPL mode
-  if (args[0] === "--interactive" || args[0] === "-i") {
+  // Interactive REPL mode (--chat avoids clash with Node's built-in --interactive flag)
+  if (args[0] === "--chat") {
     console.log(`${AGENT_NAME} is ready. Type your message and press Enter. Ctrl+C to exit.\n`);
     const rl = createInterface({ input: process.stdin, output: process.stdout, prompt: "You: " });
     rl.prompt();
@@ -437,7 +463,7 @@ async function main() {
   if (!prompt) {
     console.error(`Usage:
   node agent.mjs "Your message here"
-  node agent.mjs --interactive
+  node agent.mjs --chat
   echo "message" | node agent.mjs`);
     process.exit(1);
   }
