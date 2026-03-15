@@ -135,13 +135,13 @@ async function executeTool(name, args) {
         body: JSON.stringify({ title: args.title }),
       });
     }
-    case "complete_task": {
+    case "mark_done": {
       return await api(`/api/tasks/${args.taskId}`, {
         method: "PATCH",
         body: JSON.stringify({ completed: true }),
       });
     }
-    case "uncomplete_task": {
+    case "reopen_task": {
       return await api(`/api/tasks/${args.taskId}`, {
         method: "PATCH",
         body: JSON.stringify({ completed: false }),
@@ -263,8 +263,8 @@ const tools = [
         },
       },
       {
-        name: "complete_task",
-        description: "Mark a task as completed",
+        name: "mark_done",
+        description: "Flag a task as done on the board (use ONLY after the actual work is finished)",
         parameters: {
           type: "OBJECT",
           properties: {
@@ -274,8 +274,8 @@ const tools = [
         },
       },
       {
-        name: "uncomplete_task",
-        description: "Reinstate a completed task (mark as not completed)",
+        name: "reopen_task",
+        description: "Reopen a task that was previously marked done",
         parameters: {
           type: "OBJECT",
           properties: {
@@ -429,7 +429,7 @@ Tasks are prompts, not checkboxes. Before marking any task done, you must do the
 - Question task ("What are the risks?") → write a thorough answer in your response, THEN mark done.
 - Action task ("Rename this list", "Add a subtask") → call the right tool to do it, THEN mark done.
 - Thinking task ("Identify risks", "Analyse the sprint", "Summarise") → reason through it and write your output in the response, THEN mark done.
-- NEVER call complete_task without first producing an answer, reasoning, or performing a tool action. Silently ticking a box is always wrong.
+- NEVER call mark_done without first producing an answer, reasoning, or performing a tool action. Silently ticking a box is always wrong.
 - When the user says "complete", "do", "handle", or "work through" the tasks — they mean do the work above, not just mark them done.
 
 ## Reordering
@@ -452,7 +452,7 @@ Tasks are prompts, not checkboxes. Before marking any task done, you must do the
 ## Responses
 - Be concise. Summarise what you did rather than dumping raw JSON.
 - When creating tasks, confirm: task title + which list it went into.
-- When completing tasks, say what action you performed (e.g. "renamed list to X, then marked the task complete").
+- When finishing tasks, say what work you did (e.g. "identified 3 risks and wrote them up, then marked the task done").
 - If asked to do something requiring multiple steps, do them all before responding.
 - NEVER end with "there are no tasks" or "your board is empty" — that is unhelpful after you have just completed work. Instead, summarise what you accomplished.`;
 

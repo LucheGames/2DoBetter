@@ -114,9 +114,9 @@ async function executeTool(name, args) {
       return api(`/api/columns/${id(args.columnId)}/lists`, { method: "POST", body: JSON.stringify({ name: args.name }) });
     case "create_task":
       return api(`/api/lists/${id(args.listId)}/tasks`, { method: "POST", body: JSON.stringify({ title: args.title }) });
-    case "complete_task":
+    case "mark_done":
       return api(`/api/tasks/${id(args.taskId)}`, { method: "PATCH", body: JSON.stringify({ completed: true }) });
-    case "uncomplete_task":
+    case "reopen_task":
       return api(`/api/tasks/${id(args.taskId)}`, { method: "PATCH", body: JSON.stringify({ completed: false }) });
     case "update_task":
       return api(`/api/tasks/${id(args.taskId)}`, { method: "PATCH", body: JSON.stringify({ title: args.title }) });
@@ -163,8 +163,8 @@ const tools = [
   { type: "function", function: { name: "get_column",      description: "Get a specific column's lists and tasks by slug", parameters: { type: "object", properties: { column: { type: "string", description: "Column slug" } }, required: ["column"] } } },
   { type: "function", function: { name: "create_list",     description: "Create a new list in a column", parameters: { type: "object", properties: { columnId: { type: "integer" }, name: { type: "string" } }, required: ["columnId", "name"] } } },
   { type: "function", function: { name: "create_task",     description: "Create a new task in a list", parameters: { type: "object", properties: { listId: { type: "integer" }, title: { type: "string" } }, required: ["listId", "title"] } } },
-  { type: "function", function: { name: "complete_task",   description: "Mark a task as completed", parameters: { type: "object", properties: { taskId: { type: "integer" } }, required: ["taskId"] } } },
-  { type: "function", function: { name: "uncomplete_task", description: "Reinstate a completed task", parameters: { type: "object", properties: { taskId: { type: "integer" } }, required: ["taskId"] } } },
+  { type: "function", function: { name: "mark_done",    description: "Flag a task as done on the board (use ONLY after the actual work is finished)", parameters: { type: "object", properties: { taskId: { type: "integer" } }, required: ["taskId"] } } },
+  { type: "function", function: { name: "reopen_task",  description: "Reopen a task that was previously marked done", parameters: { type: "object", properties: { taskId: { type: "integer" } }, required: ["taskId"] } } },
   { type: "function", function: { name: "update_task",     description: "Update a task's title", parameters: { type: "object", properties: { taskId: { type: "integer" }, title: { type: "string" } }, required: ["taskId", "title"] } } },
   { type: "function", function: { name: "delete_task",     description: "Delete a task permanently", parameters: { type: "object", properties: { taskId: { type: "integer" } }, required: ["taskId"] } } },
   { type: "function", function: { name: "move_task",       description: "Move a task to a different list.", parameters: { type: "object", properties: { taskId: { type: "integer" }, targetListId: { type: "integer" } }, required: ["taskId", "targetListId"] } } },
@@ -217,7 +217,7 @@ Tasks are prompts, not checkboxes. Before marking any task done, you must do the
 ## Responses
 - Be concise. Summarise what you did rather than dumping raw JSON.
 - When creating tasks, confirm: task title + which list it went into.
-- When completing tasks, say what action you performed (e.g. "renamed list to X, then marked the task complete").
+- When finishing tasks, say what work you did (e.g. "identified 3 risks and wrote them up, then marked the task done").
 - If asked to do something requiring multiple steps, do them all before responding.
 - NEVER end with "there are no tasks" or "your board is empty" — that is unhelpful after you have just completed work. Instead, summarise what you accomplished.`;
 
