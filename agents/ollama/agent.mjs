@@ -44,7 +44,9 @@ const OLLAMA_HOST  = (process.env.OLLAMA_HOST || "http://localhost:11434").repla
 const API_BASE     = (process.env.API_BASE_URL || "https://localhost:3000").replace(/\/$/, "");
 const AGENT_TOKEN  = process.env.AGENT_TOKEN || "";
 const AGENT_NAME   = process.env.AGENT_NAME || "Ollama";
-const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "qwen2.5:7b";
+// "qwen2.5-32k" is the custom variant created in setup with num_ctx=32768.
+// The bare qwen2.5:7b defaults to 4096 tokens — too small for our board context (~8k tokens).
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "qwen2.5-32k";
 
 if (!AGENT_TOKEN) { console.error("❌  AGENT_TOKEN is not set. See .env.example."); process.exit(1); }
 

@@ -35,9 +35,13 @@ Great for a home server, air-gapped environments, or if you just don't want to s
 curl -fsSL https://ollama.com/install.sh | sh
 ```
 
-**2. Pull the default model:**
+**2. Pull the model and create a 32k context variant:**
 ```bash
 ollama pull qwen2.5:7b
+
+# The board context JSON exceeds qwen's default 4096-token limit.
+# Create a variant with a larger context window:
+printf "FROM qwen2.5:7b\nPARAMETER num_ctx 32768\n" | ollama create qwen2.5-32k -f -
 ```
 
 **3. Get an agent token** from your board:
@@ -67,7 +71,7 @@ npm start "Check my column and summarise what needs doing"
 | `API_BASE_URL` | ✅ | Your 2Do Better server, e.g. `https://localhost:3000` |
 | `AGENT_TOKEN` | ✅ | From the board **+ Agent** button |
 | `OLLAMA_HOST` | optional | Ollama server address (default: `http://localhost:11434`) |
-| `OLLAMA_MODEL` | optional | Override model (default: `qwen2.5:7b`) |
+| `OLLAMA_MODEL` | optional | Override model (default: `qwen2.5-32k`) |
 | `AGENT_NAME` | optional | Name shown in prompts (default: `Ollama`) |
 | `DEBUG` | optional | Set to `1` to log every tool call |
 
@@ -78,14 +82,16 @@ npm start "Check my column and summarise what needs doing"
 Ollama supports many models. Set `OLLAMA_MODEL` in `.env` to switch.
 Pull a model first with `ollama pull <model>`.
 
-| Model | Size | Best for |
-|-------|------|----------|
-| `qwen2.5:7b` | ~4.7GB | **Default** — best CPU tool-use, fast, reliable function calling |
-| `qwen2.5:14b` | ~9GB | More reasoning depth if you have RAM to spare |
-| `llama3.2:3b` | ~2GB | Very fast on limited hardware, simpler tasks only |
-| `mistral:7b` | ~4.1GB | Alternative 7b option |
+| Model | Size | Context | Best for |
+|-------|------|---------|----------|
+| `qwen2.5-32k` | ~4.7GB + 1.8GB KV | 32768 | **Default** — the 32k variant you create in setup. Works with full board contexts |
+| `qwen2.5:7b` | ~4.7GB | 4096 | Bare model — too small for full board context without the variant above |
+| `qwen2.5:14b` | ~9GB | 4096 | Larger weights; also needs a 32k variant: `printf "FROM qwen2.5:14b\nPARAMETER num_ctx 32768\n" \| ollama create qwen2.5-14b-32k -f -` |
+| `llama3.2:3b` | ~2GB | 4096 | Very fast on limited hardware, simpler tasks only |
 
-**Tip:** On CPU-only hardware `qwen2.5:7b` is the sweet spot — good tool-use accuracy at ~8 tok/s.
+**Why the 32k variant?** The board sends its full JSON state to the model at the start of each request (~7000–8000 tokens). The default `qwen2.5:7b` context window is only 4096 — it truncates the prompt and returns 500 errors. The `qwen2.5-32k` variant uses the same weights but reserves 32768 tokens of KV cache (~1.8GB extra RAM).
+
+**Tip:** On CPU-only hardware `qwen2.5-32k` uses ~7GB total RAM and runs at ~8 tok/s.
 If you have a GPU, any of these will run much faster. Check `ollama list` to see what's already pulled.
 
 ---
@@ -94,14 +100,14 @@ If you have a GPU, any of these will run much faster. Check `ollama list` to see
 
 Ollama runs on CPU if no GPU is detected (warning shown on install).
 
-| Hardware | Expected speed (7b model) |
-|----------|--------------------------|
-| CPU-only (modern desktop) | ~8–15 tok/s |
-| CPU-only (laptop) | ~4–8 tok/s |
-| NVIDIA GPU (8GB VRAM) | ~40–80 tok/s |
-| Apple Silicon | ~30–60 tok/s |
+| Hardware | Expected speed (7b model) | Time per response |
+|----------|--------------------------|-------------------|
+| CPU-only (modern desktop) | ~8–15 tok/s | ~1–3 min |
+| CPU-only (laptop) | ~4–8 tok/s | ~2–5 min |
+| NVIDIA GPU (8GB VRAM) | ~40–80 tok/s | ~5–15 sec |
+| Apple Silicon | ~30–60 tok/s | ~5–15 sec |
 
-For board task management, ~8 tok/s is perfectly usable — most operations finish in 10–20 seconds.
+**CPU users:** Responses take 1–3 minutes with a modern CPU at 32k context. This is working normally — qwen is prefilling the full board context on every request. Subsequent turns in `--chat` mode are faster once the KV cache is warm.
 
 ---
 
