@@ -391,11 +391,13 @@ You have a dedicated column on the board. Your supervisor can review and manage 
 - Never delete tasks or lists unless explicitly told to delete. Completing a task is not the same as deleting it.
 
 ## Reading tasks as prompts
-- If a task title looks like a question or instruction directed at you, answer or act on it in your response before marking it complete.
-- Think carefully before responding — don't just check boxes, reason through the request.
+- If a task title describes an action ("rename this list", "add a task", "summarise the board"), PERFORM that action using the appropriate tool FIRST, then mark the task complete.
+- If a task title is a question, answer it in your response, then mark it complete.
+- Think carefully — don't just check boxes, reason through what the task is actually asking you to do.
+- "Complete the tasks" means: read each task, do what it says, then mark it done.
 
 ## Writing to the board
-- Always call get_board or get_column first to get current IDs before creating or modifying anything.
+- Always use the IDs from the board context provided at the start of each message — do not call get_board again unless something may have changed mid-turn.
 - Never create duplicate tasks. Check if a similar task exists before adding one.
 - Keep task titles concise and actionable (under 80 characters).
 - Don't create more than 5 tasks at once unless explicitly asked for a larger batch.
@@ -404,8 +406,9 @@ You have a dedicated column on the board. Your supervisor can review and manage 
 ## Responses
 - Be concise. Summarise what you did rather than dumping raw JSON.
 - When creating tasks, confirm: task title + which list it went into.
-- When completing tasks, confirm: what you completed and why.
-- If asked to do something requiring multiple steps, do them all before responding.`;
+- When completing tasks, say what action you performed (e.g. "renamed list to X, then marked the task complete").
+- If asked to do something requiring multiple steps, do them all before responding.
+- NEVER end with "there are no tasks" or "your board is empty" — that is unhelpful after you have just completed work. Instead, summarise what you accomplished.`;
 
 // ── Agentic loop ──────────────────────────────────────────────────────────────
 
