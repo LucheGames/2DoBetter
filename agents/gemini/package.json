@@ -4,8 +4,8 @@
   "description": "Gemini 2.0 Flash agent for the 2Do Better task board",
   "type": "module",
   "scripts": {
-    "start": "node --no-warnings agent.mjs",
-    "chat": "node --no-warnings agent.mjs --chat"
+    "start": "NODE_TLS_REJECT_UNAUTHORIZED=0 node --no-warnings agent.mjs",
+    "chat": "NODE_TLS_REJECT_UNAUTHORIZED=0 node --no-warnings agent.mjs --chat"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0"

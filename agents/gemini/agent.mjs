@@ -50,8 +50,11 @@ if (!AGENT_TOKEN) {
   process.exit(1);
 }
 
-// Trust self-signed certs (same as MCP server)
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+// NODE_TLS_REJECT_UNAUTHORIZED=0 is set by npm scripts before Node starts.
+// Setting it here as a fallback for direct node invocation.
+if (!process.env.NODE_TLS_REJECT_UNAUTHORIZED) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+}
 
 // ── SDK import (dynamic — works after npm install) ────────────────────────────
 const require = createRequire(import.meta.url);
@@ -420,10 +423,30 @@ function extractText(response) {
   return textPart?.text || "(no response)";
 }
 
+/** Send a message with automatic retry on rate limit (429). */
+async function sendWithRetry(chat, message, maxRetries = 3) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await chat.sendMessage(message);
+    } catch (err) {
+      const is429 = err.message?.includes("429") || err.message?.includes("quota") || err.message?.includes("rate");
+      if (is429 && attempt < maxRetries) {
+        // Extract retry delay from error if present, otherwise back off exponentially
+        const match = err.message?.match(/retry.*?(\d+)s/i);
+        const wait = match ? parseInt(match[1]) * 1000 : (2 ** attempt) * 15000;
+        console.error(`\n⏳ Rate limit hit — waiting ${Math.round(wait/1000)}s…`);
+        await new Promise(r => setTimeout(r, wait));
+      } else {
+        throw err;
+      }
+    }
+  }
+}
+
 /** Run one agentic turn on an existing chat session.
  *  Pass a persistent chat object to maintain conversation context. */
 async function runTurn(chat, userPrompt) {
-  let response = await chat.sendMessage(userPrompt);
+  let response = await sendWithRetry(chat, userPrompt);
 
   // Loop until Gemini stops requesting tool calls
   for (let round = 0; round < 20; round++) {
@@ -445,7 +468,7 @@ async function runTurn(chat, userPrompt) {
       });
     }
 
-    response = await chat.sendMessage(functionResponses);
+    response = await sendWithRetry(chat, functionResponses);
   }
 
   return extractText(response);
