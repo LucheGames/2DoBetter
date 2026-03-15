@@ -41,7 +41,7 @@ const CEREBRAS_API_KEY = process.env.CEREBRAS_API_KEY || "";
 const API_BASE         = (process.env.API_BASE_URL || "https://localhost:3000").replace(/\/$/, "");
 const AGENT_TOKEN      = process.env.AGENT_TOKEN || "";
 const AGENT_NAME       = process.env.AGENT_NAME || "Cerebras";
-const CEREBRAS_MODEL   = process.env.CEREBRAS_MODEL || "llama-3.3-70b";
+const CEREBRAS_MODEL   = process.env.CEREBRAS_MODEL || "llama3.3-70b";
 
 if (!CEREBRAS_API_KEY) { console.error("❌  CEREBRAS_API_KEY is not set. See .env.example."); process.exit(1); }
 if (!AGENT_TOKEN)      { console.error("❌  AGENT_TOKEN is not set. See .env.example.");       process.exit(1); }

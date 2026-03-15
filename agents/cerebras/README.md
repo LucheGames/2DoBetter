@@ -52,7 +52,7 @@ npm start "Check my column and do the first three tasks"
 | `CEREBRAS_API_KEY` | ✅ | From [cloud.cerebras.ai](https://cloud.cerebras.ai) |
 | `API_BASE_URL` | ✅ | Your 2Do Better server, e.g. `https://localhost:3000` |
 | `AGENT_TOKEN` | ✅ | From the board **+ Agent** button |
-| `CEREBRAS_MODEL` | optional | Override model (default: `llama-3.3-70b`) |
+| `CEREBRAS_MODEL` | optional | Override model (default: `llama3.3-70b`) |
 | `AGENT_NAME` | optional | Must match column owner username (default: `Cerebras`) |
 | `DEBUG` | optional | Set to `1` to log every tool call with arguments |
 
