@@ -1,0 +1,16 @@
+{
+  "name": "2dobetter-ollama-agent",
+  "version": "1.0.0",
+  "description": "Local Ollama agent for the 2Do Better task board",
+  "type": "module",
+  "scripts": {
+    "start": "NODE_TLS_REJECT_UNAUTHORIZED=0 node --no-warnings agent.mjs",
+    "chat": "NODE_TLS_REJECT_UNAUTHORIZED=0 node --no-warnings agent.mjs --chat"
+  },
+  "dependencies": {
+    "openai": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
