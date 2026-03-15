@@ -87,10 +87,16 @@ Pull a model first with `ollama pull <model>`.
 
 | Model | Size | Context | Best for |
 |-------|------|---------|----------|
-| `qwen2.5-32k` | ~4.7GB + 1.8GB KV | 32768 | **Default** — same weights as 7b but 32k context window. Needed for long `--chat` sessions. |
-| `qwen2.5:7b` | ~4.7GB | 4096 | Bare model — fine for single-shot commands; context fills up in `--chat` mode |
-| `qwen2.5:14b` | ~9GB | 4096 | Larger weights; create a 32k variant: `printf "FROM qwen2.5:14b\nPARAMETER num_ctx 32768\n" \| ollama create qwen2.5-14b-32k -f -` |
+| `qwen2.5-14b-32k` | ~9GB + ~3GB KV | 32768 | **Recommended** — significantly better instruction-following and tool use than 7b. Needs 16GB+ RAM. |
+| `qwen2.5-32k` | ~4.7GB + 1.8GB KV | 32768 | 7b variant — adequate for simple single-step tasks; unreliable for multi-step tool sequences |
+| `qwen2.5:7b` | ~4.7GB | 4096 | Bare 7b — context too small for `--chat` mode |
 | `llama3.2:3b` | ~2GB | 4096 | Very fast on limited hardware, simpler tasks only |
+
+**Create the 14b variant** (recommended setup):
+```bash
+ollama pull qwen2.5:14b
+printf "FROM qwen2.5:14b\nPARAMETER num_ctx 32768\nPARAMETER num_batch 512\nPARAMETER num_thread 8\n" | ollama create qwen2.5-14b-32k -f -
+```
 
 **Why the 32k variant?** Single-shot requests (`npm start "..."`) use modest context (~2–3k tokens). But in `--chat` mode, conversation history grows with every turn. Without a 32k context window, long sessions hit the 4096-token limit and start truncating early messages — the model forgets what it did earlier in the conversation.
 
