@@ -87,6 +87,9 @@ function stripCompleted(board) {
 }
 
 // ── Tool implementations ──────────────────────────────────────────────────────
+// Coerce any ID fields to integers — belt-and-suspenders in case the model sends strings
+function id(v) { return parseInt(v, 10); }
+
 async function executeTool(name, args) {
   switch (name) {
     case "get_board": {
@@ -108,24 +111,24 @@ async function executeTool(name, args) {
       };
     }
     case "create_list":
-      return api(`/api/columns/${args.columnId}/lists`, { method: "POST", body: JSON.stringify({ name: args.name }) });
+      return api(`/api/columns/${id(args.columnId)}/lists`, { method: "POST", body: JSON.stringify({ name: args.name }) });
     case "create_task":
-      return api(`/api/lists/${args.listId}/tasks`, { method: "POST", body: JSON.stringify({ title: args.title }) });
+      return api(`/api/lists/${id(args.listId)}/tasks`, { method: "POST", body: JSON.stringify({ title: args.title }) });
     case "complete_task":
-      return api(`/api/tasks/${args.taskId}`, { method: "PATCH", body: JSON.stringify({ completed: true }) });
+      return api(`/api/tasks/${id(args.taskId)}`, { method: "PATCH", body: JSON.stringify({ completed: true }) });
     case "uncomplete_task":
-      return api(`/api/tasks/${args.taskId}`, { method: "PATCH", body: JSON.stringify({ completed: false }) });
+      return api(`/api/tasks/${id(args.taskId)}`, { method: "PATCH", body: JSON.stringify({ completed: false }) });
     case "update_task":
-      return api(`/api/tasks/${args.taskId}`, { method: "PATCH", body: JSON.stringify({ title: args.title }) });
+      return api(`/api/tasks/${id(args.taskId)}`, { method: "PATCH", body: JSON.stringify({ title: args.title }) });
     case "delete_task":
-      await api(`/api/tasks/${args.taskId}`, { method: "DELETE" });
-      return { success: true, taskId: args.taskId };
+      await api(`/api/tasks/${id(args.taskId)}`, { method: "DELETE" });
+      return { success: true, taskId: id(args.taskId) };
     case "move_task":
-      return api(`/api/tasks/${args.taskId}`, { method: "PATCH", body: JSON.stringify({ listId: args.targetListId }) });
+      return api(`/api/tasks/${id(args.taskId)}`, { method: "PATCH", body: JSON.stringify({ listId: id(args.targetListId) }) });
     case "rename_list":
-      return api(`/api/lists/${args.listId}`, { method: "PATCH", body: JSON.stringify({ name: args.name }) });
+      return api(`/api/lists/${id(args.listId)}`, { method: "PATCH", body: JSON.stringify({ name: args.name }) });
     case "move_list":
-      return api(`/api/lists/${args.listId}`, { method: "PATCH", body: JSON.stringify({ columnId: args.targetColumnId }) });
+      return api(`/api/lists/${id(args.listId)}`, { method: "PATCH", body: JSON.stringify({ columnId: id(args.targetColumnId) }) });
     case "search_tasks": {
       const board = await api("/api/overview");
       const q = args.query.toLowerCase();
@@ -138,34 +141,35 @@ async function executeTool(name, args) {
       return results.length ? results : { message: `No tasks found matching "${args.query}"` };
     }
     case "archive_list":
-      await api(`/api/lists/${args.listId}`, { method: "DELETE" });
-      return { success: true, listId: args.listId };
+      await api(`/api/lists/${id(args.listId)}`, { method: "DELETE" });
+      return { success: true, listId: id(args.listId) };
     case "restore_list":
-      return api(`/api/graveyard/${args.listId}/resurrect`, { method: "POST" });
+      return api(`/api/graveyard/${id(args.listId)}/resurrect`, { method: "POST" });
     case "get_graveyard":
-      return api(args.columnId ? `/api/graveyard?columnId=${args.columnId}` : "/api/graveyard");
+      return api(args.columnId ? `/api/graveyard?columnId=${id(args.columnId)}` : "/api/graveyard");
     default:
       return { error: `Unknown tool: ${name}` };
   }
 }
 
 // ── Tool definitions (OpenAI format) ─────────────────────────────────────────
+// Use "integer" not "number" — Groq's validator rejects Llama's integer output against "number" type
 const tools = [
-  { type: "function", function: { name: "get_board",     description: "Get the full board state — all columns, lists, and incomplete tasks", parameters: { type: "object", properties: {}, required: [] } } },
-  { type: "function", function: { name: "get_column",    description: "Get a specific column's lists and tasks by slug", parameters: { type: "object", properties: { column: { type: "string", description: "Column slug" } }, required: ["column"] } } },
-  { type: "function", function: { name: "create_list",   description: "Create a new list in a column", parameters: { type: "object", properties: { columnId: { type: "number" }, name: { type: "string" } }, required: ["columnId", "name"] } } },
-  { type: "function", function: { name: "create_task",   description: "Create a new task in a list", parameters: { type: "object", properties: { listId: { type: "number" }, title: { type: "string" } }, required: ["listId", "title"] } } },
-  { type: "function", function: { name: "complete_task", description: "Mark a task as completed", parameters: { type: "object", properties: { taskId: { type: "number" } }, required: ["taskId"] } } },
-  { type: "function", function: { name: "uncomplete_task", description: "Reinstate a completed task", parameters: { type: "object", properties: { taskId: { type: "number" } }, required: ["taskId"] } } },
-  { type: "function", function: { name: "update_task",   description: "Update a task's title", parameters: { type: "object", properties: { taskId: { type: "number" }, title: { type: "string" } }, required: ["taskId", "title"] } } },
-  { type: "function", function: { name: "delete_task",   description: "Delete a task permanently", parameters: { type: "object", properties: { taskId: { type: "number" } }, required: ["taskId"] } } },
-  { type: "function", function: { name: "move_task",     description: "Move a task to a different list", parameters: { type: "object", properties: { taskId: { type: "number" }, targetListId: { type: "number" } }, required: ["taskId", "targetListId"] } } },
-  { type: "function", function: { name: "rename_list",   description: "Rename a list", parameters: { type: "object", properties: { listId: { type: "number" }, name: { type: "string" } }, required: ["listId", "name"] } } },
-  { type: "function", function: { name: "move_list",     description: "Move a list to a different column", parameters: { type: "object", properties: { listId: { type: "number" }, targetColumnId: { type: "number" } }, required: ["listId", "targetColumnId"] } } },
-  { type: "function", function: { name: "search_tasks",  description: "Search tasks by title", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } },
-  { type: "function", function: { name: "archive_list",  description: "Archive a list to the graveyard", parameters: { type: "object", properties: { listId: { type: "number" } }, required: ["listId"] } } },
-  { type: "function", function: { name: "restore_list",  description: "Restore an archived list", parameters: { type: "object", properties: { listId: { type: "number" } }, required: ["listId"] } } },
-  { type: "function", function: { name: "get_graveyard", description: "List archived lists, optionally filtered by column", parameters: { type: "object", properties: { columnId: { type: "number" } }, required: [] } } },
+  { type: "function", function: { name: "get_board",       description: "Get the full board state — all columns, lists, and incomplete tasks", parameters: { type: "object", properties: {}, required: [] } } },
+  { type: "function", function: { name: "get_column",      description: "Get a specific column's lists and tasks by slug", parameters: { type: "object", properties: { column: { type: "string", description: "Column slug" } }, required: ["column"] } } },
+  { type: "function", function: { name: "create_list",     description: "Create a new list in a column", parameters: { type: "object", properties: { columnId: { type: "integer" }, name: { type: "string" } }, required: ["columnId", "name"] } } },
+  { type: "function", function: { name: "create_task",     description: "Create a new task in a list", parameters: { type: "object", properties: { listId: { type: "integer" }, title: { type: "string" } }, required: ["listId", "title"] } } },
+  { type: "function", function: { name: "complete_task",   description: "Mark a task as completed", parameters: { type: "object", properties: { taskId: { type: "integer" } }, required: ["taskId"] } } },
+  { type: "function", function: { name: "uncomplete_task", description: "Reinstate a completed task", parameters: { type: "object", properties: { taskId: { type: "integer" } }, required: ["taskId"] } } },
+  { type: "function", function: { name: "update_task",     description: "Update a task's title", parameters: { type: "object", properties: { taskId: { type: "integer" }, title: { type: "string" } }, required: ["taskId", "title"] } } },
+  { type: "function", function: { name: "delete_task",     description: "Delete a task permanently", parameters: { type: "object", properties: { taskId: { type: "integer" } }, required: ["taskId"] } } },
+  { type: "function", function: { name: "move_task",       description: "Move a task to a different list", parameters: { type: "object", properties: { taskId: { type: "integer" }, targetListId: { type: "integer" } }, required: ["taskId", "targetListId"] } } },
+  { type: "function", function: { name: "rename_list",     description: "Rename a list", parameters: { type: "object", properties: { listId: { type: "integer" }, name: { type: "string" } }, required: ["listId", "name"] } } },
+  { type: "function", function: { name: "move_list",       description: "Move a list to a different column", parameters: { type: "object", properties: { listId: { type: "integer" }, targetColumnId: { type: "integer" } }, required: ["listId", "targetColumnId"] } } },
+  { type: "function", function: { name: "search_tasks",    description: "Search tasks by title", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } },
+  { type: "function", function: { name: "archive_list",    description: "Archive a list to the graveyard", parameters: { type: "object", properties: { listId: { type: "integer" } }, required: ["listId"] } } },
+  { type: "function", function: { name: "restore_list",    description: "Restore an archived list", parameters: { type: "object", properties: { listId: { type: "integer" } }, required: ["listId"] } } },
+  { type: "function", function: { name: "get_graveyard",   description: "List archived lists, optionally filtered by column", parameters: { type: "object", properties: { columnId: { type: "integer" } }, required: [] } } },
 ];
 
 // ── System prompt ─────────────────────────────────────────────────────────────
