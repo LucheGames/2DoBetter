@@ -145,3 +145,31 @@ column on the board. It is **not** the same as an invite code.
 If Google's rate limits are too restrictive, see `../groq/` for a
 drop-in alternative using Llama 4 via Groq — free tier, no credit
 card, 30 RPM.
+
+---
+
+## Integration Notes
+
+### Google AI SDK — not OpenAI-compatible
+Gemini uses Google's own `@google/generative-ai` SDK, not the OpenAI format. Key differences if you're porting from another agent:
+- Tool definitions use `functionDeclarations` inside a `tools` array
+- Tool results are sent back as `functionResponse` parts, paired with the preceding model turn
+- The agentic loop checks `response.functionCalls()` rather than `response.choices[0].message.tool_calls`
+
+### Board pre-fetch saves precious API calls
+At 5 RPM, every saved round-trip matters. The board state is fetched directly from your server (a free REST call, not a Gemini API call) and injected into each message context. Read-only questions about the board cost 1 Gemini call instead of 2.
+
+### Rate limit response contains bogus retry-after values
+Google's 429 responses sometimes embed a `retry-after` header with a value in the millions of seconds (looks like a quota resource ID was accidentally included as the delay). The agent caps all waits at 90 seconds — if you see `retrying in 90s`, this is why. It won't actually wait for the heat death of the universe.
+
+### API key setup — use AI Studio, not Cloud Console
+Creating an API key through Google Cloud Console directly often results in `limit: 0` on all models, even with billing enabled. The Generative Language API must be explicitly enabled on the linked project.
+
+**Correct path:** [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) → Create API key → Create in new project. AI Studio enables the API automatically.
+
+### Model to use (March 2026)
+| Model | Free quota | Notes |
+|-------|-----------|-------|
+| `gemini-2.5-flash` | ✅ 5 RPM | Use this |
+| `gemini-2.0-flash` | ❌ Quota: 0 | Not available on free tier |
+| `gemini-1.5-flash` | ⚠️ Deprecated | May stop working without warning |

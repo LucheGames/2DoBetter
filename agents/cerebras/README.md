@@ -84,3 +84,45 @@ The `AGENT_TOKEN` is a permanent bearer token — not the same as an invite code
 - Created when you click **+ Agent** in the board header
 - Shown **once** at creation — copy it immediately
 - If lost: Admin panel ⚙ → find the agent column → hold **Rotate token** (1.5s) → copy new token → update `.env`
+
+---
+
+## Integration Notes
+
+### Model naming — the free-tier gotcha
+Cerebras updates model names frequently. The most common confusion:
+
+| Model string | Status |
+|---|---|
+| `llama3.3-70b` | ❌ Does not exist (missing hyphen after `llama`) |
+| `llama-3.3-70b` | ❌ Not available on free tier |
+| `qwen-3-235b-a22b-instruct-2507` | ✅ Free tier preview — use this |
+| `llama3.1-8b` | ✅ Free tier production — lightweight fallback |
+
+If you get a `404 (no body)` error, the model name is wrong. Always verify at [cloud.cerebras.ai/platform](https://cloud.cerebras.ai/platform).
+
+### Qwen 3 235B MoE — confirmed capabilities
+Tested against a live board (March 2026):
+- **Multi-task chaining**: executes 3+ board tasks in a single shot without stopping to report
+- **Abstract reasoning**: task categorisation, project planning, risk analysis — near-instant
+- **Tool use**: parallel tool calls, correct argument types, no hallucinated task IDs
+- Context: 65k tokens — the full board JSON fits easily; no truncation issues
+
+The 8b fallback works for simple single-step operations but is unreliable for multi-step chaining.
+
+### Rate limit recovery
+The agent uses `callWithRetry` — on a 429 response it reads the `retry-after` header, waits the specified seconds, then resumes automatically. During testing the agent was mid-task when it hit a rate limit, waited ~60 seconds, and continued without any user input.
+
+The `💡 type 'continue'` hint only appears when all retries are exhausted — a rare edge case in `--chat` mode. Session history is preserved in the `messages` array, so typing `continue` resumes the task from where it cut off.
+
+### OpenAI-compatible API
+Any code that works with the `openai` npm package works with Cerebras — just set `baseURL`:
+
+```js
+const cerebras = new OpenAI({
+  apiKey: process.env.CEREBRAS_API_KEY,
+  baseURL: "https://api.cerebras.ai/v1",
+});
+```
+
+No SDK changes, no different tool format — it's a drop-in swap from Groq.

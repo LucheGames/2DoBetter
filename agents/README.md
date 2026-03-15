@@ -42,3 +42,17 @@ The board's REST API is documented in [`openapi.yaml`](../openapi.yaml) at the r
 **Use Groq** as a solid free alternative (30 RPM, Llama 4 Scout). Good for interactive sessions; slightly slower than Cerebras.
 
 **Use Ollama** if you want 100% local inference with zero rate limits, zero cloud, and zero API keys. Requires Ollama installed on the same machine as your server. Best for a home server or air-gapped environments. See [ollama/README.md](ollama/) for the Linux CPU governor tip that gives a 3–5× speed boost.
+
+---
+
+## Integration Notes
+
+Each agent README has a dedicated **Integration Notes** section — API quirks, model selection gotchas, and lessons learned from building and testing each agent against a live board.
+
+| Agent | Key learnings |
+|-------|--------------|
+| [Claude MCP](claude/README.md#integration-notes) | Token types (`agentToken` vs session token), MCP vs standalone, TLS note |
+| [Cerebras](cerebras/README.md#integration-notes) | Model naming gotcha (free-tier models), confirmed multi-task chaining, rate limit auto-recovery |
+| [Groq](groq/README.md#integration-notes) | Full vendor-path model IDs, multi-task chaining, OpenAI-compat swap |
+| [Gemini](gemini/README.md#integration-notes) | Google AI SDK differences, board pre-fetch strategy, bogus retry-after values, API key setup maze |
+| [Ollama](ollama/README.md#integration-notes) | Context window gotcha, CPU governor, theatrical narration bug, language drift, XML leakage |

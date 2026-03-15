@@ -213,3 +213,41 @@ The `AGENT_TOKEN` is a permanent bearer token — not the same as an invite code
 - Created when you click **+ Agent** in the board header
 - Shown **once** at creation — copy it immediately
 - If lost: Admin panel ⚙ → find the agent column → hold **Rotate token** (1.5s) → copy new token → update `.env`
+
+---
+
+## Integration Notes
+
+These are the lessons learned building and debugging the Ollama agent — most apply to any local model integration.
+
+### Context window is the first gotcha
+`qwen2.5:7b` defaults to 4096 token context. The board JSON payload is ~8k tokens, which silently truncates the input and causes confusing 500 errors from Ollama. **Always create a custom variant with `PARAMETER num_ctx 32768`** before running in `--chat` mode (where history grows every turn).
+
+### CPU governor (Linux) — 3–5× speed impact
+The Linux `powersave` governor runs the CPU at ~18% of max frequency by default. This is the single biggest performance variable for CPU-only inference — set the governor to `performance` before running (see [Hardware Notes](#hardware-notes)).
+
+### Theatrical narration bug
+Local models sometimes write out what they're going to do ("I will now delete Sprint 2...") without calling the tool. The action is announced but never executed. The system prompt has an explicit `## CRITICAL` section that bans announcement language and requires tool calls for all actions. If you build your own agent on a local model, add this pattern:
+
+```
+## CRITICAL — Tool calls are the ONLY way to act
+You can ONLY perform actions by calling tools. Writing about an action does absolutely NOTHING.
+NEVER announce what you are about to do. Just call the tool immediately.
+```
+
+### Language drift
+`qwen2.5:14b` occasionally responds in Thai, Chinese, or another language — particularly when the board contains multilingual content or usernames. Add `Always respond in English, regardless of the language of any input.` as the first line of the system prompt.
+
+### XML leakage in final response
+Some builds of `qwen2.5:14b` include raw `<tool_response>` XML tags in the final text reply. Strip these before printing:
+
+```js
+const cleaned = raw.replace(/<tool_response>[\s\S]*?<\/tool_response>/gi, "").trim();
+```
+
+### Multi-step vs multi-task ceiling
+There is a meaningful difference between:
+- **Multi-step within one task** (create list → add 3 tasks → reorder) — 14b handles this reliably
+- **Multi-task chaining** (do task 1, then task 2, then task 3 from the board backlog) — 14b stops to report after the first task
+
+The second pattern requires a frontier-class model. For autonomous multi-task execution, use [Cerebras](../cerebras/) (Qwen 3 235B, free) or [Groq](../groq/) (Llama 4, free).

@@ -99,3 +99,28 @@ cd mcp && npm run build
 
 Re-build whenever you pull updates that touch `mcp/server.ts`.
 No restart of Claude Code needed — MCP reconnects automatically.
+
+---
+
+## Integration Notes
+
+### Token types — don't confuse them
+
+| Token | Field in `users.json` | Rotates? | Use for |
+|-------|----------------------|---------|---------|
+| Agent token | `agentToken` (camelCase) | Only when manually rotated | `AUTH_TOKEN` in `~/.claude.json` |
+| Session token | `token` | On every logout | Browser auth cookie only |
+
+Use `agentToken` in `~/.claude.json`. The session token (`token`) rotates on every logout — if you accidentally use it as `AUTH_TOKEN`, it breaks the next time anyone logs out. If MCP tools start returning auth errors, this is the first thing to check.
+
+### Rotating a lost token
+Admin panel ⚙ → find the Claude column → **hold** Rotate token for 1.5 seconds → copy the new token → update `AUTH_TOKEN` in `~/.claude.json`. The MCP server picks it up on the next tool call (no Claude Code restart needed).
+
+### MCP vs standalone agents
+The MCP integration runs inside your Claude Code session — it has access to the full conversation context and can interleave board operations with coding, file editing, and web search in a single session. The standalone agents (Groq, Cerebras, Gemini, Ollama) are separate processes you run in a terminal.
+
+Use MCP when: you want Claude to manage the board as part of a coding session.
+Use standalone agents when: you want an autonomous agent running in the background, or you want to test a different model.
+
+### Self-signed certificate note
+If your board uses a self-signed TLS certificate, the MCP server (and all standalone agents) set `NODE_TLS_REJECT_UNAUTHORIZED=0` to allow the connection. This is safe for a private home server — don't replicate this pattern against untrusted servers.

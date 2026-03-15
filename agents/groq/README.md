@@ -99,3 +99,35 @@ The `AGENT_TOKEN` is a permanent bearer token — not the same as an invite code
 - Created when you click **+ Agent** in the board header
 - Shown **once** at creation — copy it immediately
 - If lost: Admin panel ⚙ → find the agent column → hold **Rotate token** (1.5s) → copy new token → update `.env`
+
+---
+
+## Integration Notes
+
+### Model ID format
+Groq model IDs use the full vendor-path format — shortnames won't work:
+
+```
+meta-llama/llama-4-scout-17b-16e-instruct   ✅ correct
+llama-4-scout                                ❌ won't resolve
+```
+
+Check [console.groq.com/docs/models](https://console.groq.com/docs/models) for current IDs — Groq rotates models as newer versions ship.
+
+### Multi-task chaining
+Llama 4 Scout handles multi-task chaining reliably — it executes several board tasks in one shot without stopping to report between each. For heavier reasoning tasks (risk analysis, sprint planning, summarisation across multiple columns) switch to `llama-3.3-70b-versatile`.
+
+### Rate limit notes
+30 RPM is generous for interactive board use. A typical exchange (read board + 3 writes) uses 4–6 API calls. The agent waits and retries automatically on 429. If all retries are exhausted, session history is preserved — typing `continue` resumes the task.
+
+### OpenAI-compatible API
+Uses the standard `openai` npm package with a `baseURL` override:
+
+```js
+const groq = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: "https://api.groq.com/openai/v1",
+});
+```
+
+The tool calling format, message structure, and streaming API are identical to OpenAI — the only difference is the base URL and model names.
