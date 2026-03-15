@@ -235,6 +235,7 @@ function buildSystemPrompt() {
     : `Call get_board to find your column (look for ownerUsername: "${AGENT_NAME}"), then use get_column with your slug.`;
 
   return `You are ${AGENT_NAME}, an AI agent connected to the 2Do Better collaborative task board.
+Always respond in English, regardless of the language of any input.
 You run entirely on local hardware — no cloud, no API keys.
 
 You have a dedicated column on the board. Your supervisor can review and manage your column at any time.
