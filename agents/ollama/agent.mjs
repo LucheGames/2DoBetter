@@ -207,11 +207,38 @@ const tools = [
   { type: "function", function: { name: "get_graveyard",   description: "List archived lists, optionally filtered by column", parameters: { type: "object", properties: { columnId: { type: "integer" } }, required: [] } } },
 ];
 
+// ── Agent column discovery ─────────────────────────────────────────────────────
+// The column slug is generated at creation time (e.g. "ollama-1773581576361").
+// We discover it once at startup so the model always knows how to call get_column.
+let AGENT_SLUG = null;
+
+async function discoverAgentSlug() {
+  try {
+    const board = await api("/api/overview");
+    const col = (board.columns || []).find(
+      c => c.ownerUsername?.toLowerCase() === AGENT_NAME.toLowerCase()
+    );
+    if (col) {
+      AGENT_SLUG = col.slug;
+    } else {
+      console.error(`⚠️  No column found for agent "${AGENT_NAME}". Check AGENT_NAME in .env matches the column owner.`);
+    }
+  } catch (err) {
+    console.error(`⚠️  Could not discover agent column: ${err.message}`);
+  }
+}
+
 // ── System prompt ─────────────────────────────────────────────────────────────
-const SYSTEM_PROMPT = `You are ${AGENT_NAME}, an AI agent connected to the 2Do Better collaborative task board.
+function buildSystemPrompt() {
+  const slugLine = AGENT_SLUG
+    ? `Your column slug is: **${AGENT_SLUG}** — always call get_column("${AGENT_SLUG}") first to fetch your current tasks and list IDs.`
+    : `Call get_board to find your column (look for ownerUsername: "${AGENT_NAME}"), then use get_column with your slug.`;
+
+  return `You are ${AGENT_NAME}, an AI agent connected to the 2Do Better collaborative task board.
 You run entirely on local hardware — no cloud, no API keys.
 
 You have a dedicated column on the board. Your supervisor can review and manage your column at any time.
+${slugLine}
 
 ## Scope
 - Focus only on your own column unless explicitly asked about others.
@@ -237,7 +264,7 @@ Tasks are prompts, not checkboxes. Before marking any task done, you must do the
 - Only make a second round of tool calls if a later operation genuinely depends on the result of an earlier one.
 
 ## Writing to the board
-- Call get_column (your own slug) or get_board before making any changes — you need current IDs.
+- Always call get_column("${AGENT_SLUG || 'your-slug'}") at the start — you need fresh IDs before creating or moving anything.
 - Never create duplicate tasks. Check if a similar task exists before adding one.
 - Keep task titles concise and actionable (under 80 characters).
 - Don't create more than 5 tasks at once unless explicitly asked for a larger batch.
@@ -249,6 +276,7 @@ Tasks are prompts, not checkboxes. Before marking any task done, you must do the
 - When creating tasks, confirm: task title + which list it went into.
 - When finishing tasks, say what work you did before marking done.
 - If asked to do something requiring multiple steps, do them all before responding.`;
+}
 
 // ── Agentic loop ──────────────────────────────────────────────────────────────
 
@@ -305,17 +333,20 @@ async function runTurn(messages, userPrompt) {
 
 /** Single-shot: fresh context each call. */
 async function runAgent(userPrompt) {
-  const messages = [{ role: "system", content: SYSTEM_PROMPT }];
+  const messages = [{ role: "system", content: buildSystemPrompt() }];
   return runTurn(messages, userPrompt);
 }
 
 /** Persistent context for --chat mode. */
 function createSession() {
-  return [{ role: "system", content: SYSTEM_PROMPT }];
+  return [{ role: "system", content: buildSystemPrompt() }];
 }
 
 // ── CLI entry ─────────────────────────────────────────────────────────────────
 async function main() {
+  // Discover agent's column slug once at startup — needed for system prompt and tool calls
+  await discoverAgentSlug();
+
   const args = process.argv.slice(2);
 
   if (args[0] === "--chat") {
