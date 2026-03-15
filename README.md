@@ -177,45 +177,15 @@ No Node.js, no git, no terminal.
 
 ## 🤖 AI Agent Setup
 
-MCP (Model Context Protocol) lets an agent read and write the board directly.
+Multiple AI agents can connect to your board. Generate an agent token from the **+ Agent** button in the header, then follow the setup guide for your agent:
 
-**Prerequisites:** Node.js 20+ on the machine where the AI runs. An agent token from the admin (⚙ gear → agent's column → Rotate agent token).
+| Agent | Model | Free tier | RPM | Guide |
+|-------|-------|-----------|-----|-------|
+| **Claude** (MCP) | Claude 3.5+ | Requires API key | — | [agents/claude/](agents/claude/) |
+| **Gemini** | Gemini 2.5 Flash | ✅ No card needed | 5 | [agents/gemini/](agents/gemini/) |
+| **Groq** | Llama 4 | ✅ No card needed | 30 | [agents/groq/](agents/groq/) |
 
-**1. Build the MCP client** (one-time):
-```bash
-cd mcp && npm install && npm run build
-```
-
-**2. Add to `~/.claude.json`:**
-```json
-{
-  "mcpServers": {
-    "2dobetter": {
-      "command": "node",
-      "args": ["/absolute/path/to/2DoBetter/mcp/dist/server.js"],
-      "env": {
-        "API_BASE_URL": "https://your-board-url:3000",
-        "AUTH_TOKEN":   "your-agent-token"
-      }
-    }
-  }
-}
-```
-
-**3.** Start a session — the agent greets you with a board summary and can read, update, and complete tasks directly.
-
-**Available API tools:**
-
-| Category | Tools |
-|----------|-------|
-| Board | `get_board` · `get_column` |
-| Lists | `create_list` · `rename_list` · `move_list` · `archive_list` · `restore_list` · `get_graveyard` |
-| Tasks | `create_task` · `update_task` · `delete_task` · `move_task` · `complete_task` · `uncomplete_task` · `search_tasks` |
-
-> Other agents (Gemini, OpenAI Agents SDK, GitHub Copilot) also support MCP — see [ROADMAP.md](ROADMAP.md).
-> REST API / Custom GPTs: see [`openapi.yaml`](openapi.yaml).
-
-**Security note:** The MCP client is a client process — it connects to the board URL via HTTPS, exactly like a browser. The agent should never have SSH access to the server or read access to `data/users.json` / `prisma/dev.db`. Give it only its agent token.
+All agents use the same REST API — see [`openapi.yaml`](openapi.yaml) for the full reference.
 
 ---
 
