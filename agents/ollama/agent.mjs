@@ -214,7 +214,7 @@ Tasks are prompts, not checkboxes. Before marking any task done, you must do the
 - Only make a second round of tool calls if a later operation genuinely depends on the result of an earlier one.
 
 ## Writing to the board
-- Always use the IDs from the board context provided at the start of each message — do not call get_board again unless something may have changed mid-turn.
+- Call get_column (your own slug) or get_board before making any changes — you need current IDs.
 - Never create duplicate tasks. Check if a similar task exists before adding one.
 - Keep task titles concise and actionable (under 80 characters).
 - Don't create more than 5 tasks at once unless explicitly asked for a larger batch.
@@ -231,14 +231,7 @@ Tasks are prompts, not checkboxes. Before marking any task done, you must do the
 
 /** Run one turn. Pass a persistent messages array for --chat memory. */
 async function runTurn(messages, userPrompt) {
-  // Pre-fetch board state so the model rarely needs to call get_board
-  let boardContext = "";
-  try {
-    const board = stripCompleted(await api("/api/overview"));
-    boardContext = `[Current board state — do not call get_board, this is already fresh]\n${JSON.stringify(board, null, 2)}\n\n`;
-  } catch { /* non-fatal */ }
-
-  messages.push({ role: "user", content: boardContext + userPrompt });
+  messages.push({ role: "user", content: userPrompt });
 
   // Agentic loop — keep going until no more tool calls
   for (let round = 0; round < 20; round++) {
