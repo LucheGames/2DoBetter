@@ -163,6 +163,18 @@ async function executeTool(name, args) {
         body: JSON.stringify({ listId: args.targetListId }),
       });
     }
+    case "reorder_tasks": {
+      return await api("/api/tasks/reorder", {
+        method: "POST",
+        body: JSON.stringify({ ids: args.orderedIds }),
+      });
+    }
+    case "reorder_lists": {
+      return await api("/api/lists/reorder", {
+        method: "POST",
+        body: JSON.stringify({ ids: args.orderedIds }),
+      });
+    }
     case "rename_list": {
       return await api(`/api/lists/${args.listId}`, {
         method: "PATCH",
@@ -308,6 +320,28 @@ const tools = [
         },
       },
       {
+        name: "reorder_tasks",
+        description: "Reorder tasks within a list. Provide ALL task IDs from that list in the desired order.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            orderedIds: { type: "ARRAY", items: { type: "NUMBER" }, description: "All task IDs in the list, in the desired order" },
+          },
+          required: ["orderedIds"],
+        },
+      },
+      {
+        name: "reorder_lists",
+        description: "Reorder lists within a column. Provide ALL list IDs from that column in the desired order.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            orderedIds: { type: "ARRAY", items: { type: "NUMBER" }, description: "All list IDs in the column, in the desired order" },
+          },
+          required: ["orderedIds"],
+        },
+      },
+      {
         name: "rename_list",
         description: "Rename a list",
         parameters: {
@@ -395,6 +429,11 @@ You have a dedicated column on the board. Your supervisor can review and manage 
 - If a task title is a question, answer it in your response, then mark it complete.
 - Think carefully — don't just check boxes, reason through what the task is actually asking you to do.
 - "Complete the tasks" means: read each task, do what it says, then mark it done.
+
+## Reordering
+- To reorder tasks within a list, use reorder_tasks with ALL task IDs from that list in the desired order.
+- To reorder lists within a column, use reorder_lists with ALL list IDs from that column in the desired order.
+- You must include every ID — omitting one removes it from the order.
 
 ## Writing to the board
 - Always use the IDs from the board context provided at the start of each message — do not call get_board again unless something may have changed mid-turn.

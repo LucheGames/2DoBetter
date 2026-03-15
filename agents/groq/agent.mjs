@@ -125,6 +125,10 @@ async function executeTool(name, args) {
       return { success: true, taskId: id(args.taskId) };
     case "move_task":
       return api(`/api/tasks/${id(args.taskId)}`, { method: "PATCH", body: JSON.stringify({ listId: id(args.targetListId) }) });
+    case "reorder_tasks":
+      return api("/api/tasks/reorder", { method: "POST", body: JSON.stringify({ ids: args.orderedIds.map(id) }) });
+    case "reorder_lists":
+      return api("/api/lists/reorder", { method: "POST", body: JSON.stringify({ ids: args.orderedIds.map(id) }) });
     case "rename_list":
       return api(`/api/lists/${id(args.listId)}`, { method: "PATCH", body: JSON.stringify({ name: args.name }) });
     case "move_list":
@@ -163,7 +167,9 @@ const tools = [
   { type: "function", function: { name: "uncomplete_task", description: "Reinstate a completed task", parameters: { type: "object", properties: { taskId: { type: "integer" } }, required: ["taskId"] } } },
   { type: "function", function: { name: "update_task",     description: "Update a task's title", parameters: { type: "object", properties: { taskId: { type: "integer" }, title: { type: "string" } }, required: ["taskId", "title"] } } },
   { type: "function", function: { name: "delete_task",     description: "Delete a task permanently", parameters: { type: "object", properties: { taskId: { type: "integer" } }, required: ["taskId"] } } },
-  { type: "function", function: { name: "move_task",       description: "Move a task to a DIFFERENT list. Cannot reorder tasks within the same list — within-list ordering is not supported.", parameters: { type: "object", properties: { taskId: { type: "integer" }, targetListId: { type: "integer" } }, required: ["taskId", "targetListId"] } } },
+  { type: "function", function: { name: "move_task",       description: "Move a task to a different list.", parameters: { type: "object", properties: { taskId: { type: "integer" }, targetListId: { type: "integer" } }, required: ["taskId", "targetListId"] } } },
+  { type: "function", function: { name: "reorder_tasks",   description: "Reorder tasks within a list. Provide ALL task IDs from that list in the desired order.", parameters: { type: "object", properties: { orderedIds: { type: "array", items: { type: "integer" }, description: "All task IDs in the list, in the desired order" } }, required: ["orderedIds"] } } },
+  { type: "function", function: { name: "reorder_lists",   description: "Reorder lists within a column. Provide ALL list IDs from that column in the desired order.", parameters: { type: "object", properties: { orderedIds: { type: "array", items: { type: "integer" }, description: "All list IDs in the column, in the desired order" } }, required: ["orderedIds"] } } },
   { type: "function", function: { name: "rename_list",     description: "Rename a list", parameters: { type: "object", properties: { listId: { type: "integer" }, name: { type: "string" } }, required: ["listId", "name"] } } },
   { type: "function", function: { name: "move_list",       description: "Move a list to a different column", parameters: { type: "object", properties: { listId: { type: "integer" }, targetColumnId: { type: "integer" } }, required: ["listId", "targetColumnId"] } } },
   { type: "function", function: { name: "search_tasks",    description: "Search tasks by title", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } },
@@ -189,8 +195,10 @@ You have a dedicated column on the board. Your supervisor can review and manage 
 - Think carefully — don't just check boxes, reason through what the task is actually asking you to do.
 - "Complete the tasks" means: read each task, do what it says, then mark it done.
 
-## Limitations
-- You cannot reorder tasks within a list — only move them to a different list. If asked to reorder, say so honestly rather than pretending it worked.
+## Reordering
+- To reorder tasks within a list, use reorder_tasks with ALL task IDs from that list in the desired order.
+- To reorder lists within a column, use reorder_lists with ALL list IDs from that column in the desired order.
+- You must include every ID — omitting one removes it from the order.
 
 ## Writing to the board
 - Always use the IDs from the board context provided at the start of each message — do not call get_board again unless something may have changed mid-turn.
