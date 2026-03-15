@@ -57,6 +57,29 @@ try {
 }
 const groq = new Groq({ apiKey: GROQ_API_KEY });
 
+// ── CLI spinner ───────────────────────────────────────────────────────────────
+const SPIN_FRAMES = ['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏'];
+const IS_TTY = process.stderr.isTTY;
+let _spinTimer = null;
+let _spinStart = 0;
+
+function spinStart(label = 'Thinking') {
+  if (!IS_TTY) return;
+  _spinStart = Date.now();
+  let i = 0;
+  _spinTimer = setInterval(() => {
+    const s = Math.floor((Date.now() - _spinStart) / 1000);
+    process.stderr.write(`\r${SPIN_FRAMES[i++ % SPIN_FRAMES.length]} ${label}... ${s}s `);
+  }, 100);
+}
+
+function spinStop(note = '') {
+  if (!IS_TTY) return;
+  if (_spinTimer) { clearInterval(_spinTimer); _spinTimer = null; }
+  process.stderr.write('\r\x1b[K');
+  if (note) process.stderr.write(note + '\n');
+}
+
 // ── REST helper ───────────────────────────────────────────────────────────────
 async function api(path, options = {}) {
   const headers = {
@@ -219,6 +242,13 @@ Tasks are prompts, not checkboxes. Before marking any task done, you must do the
 - When creating tasks, confirm: task title + which list it went into.
 - When finishing tasks, say what work you did (e.g. "identified 3 risks and wrote them up, then marked the task done").
 - If asked to do something requiring multiple steps, do them all before responding.
+
+## Multi-step sequences — never stop early
+When a request requires multiple sequential rounds (e.g. create a list, then add tasks):
+- Round 1: call create_list → the response gives you the new list's ID
+- Round 2: immediately call create_task × N in parallel using that ID
+- Round 3: if reordering was requested, call reorder_tasks with all new task IDs in order
+Never reply mid-sequence. Only respond to the user after every step is complete.
 - NEVER end with "there are no tasks" or "your board is empty" — that is unhelpful after you have just completed work. Instead, summarise what you accomplished.`;
 
 // ── Retry helper ──────────────────────────────────────────────────────────────
@@ -245,6 +275,7 @@ async function callWithRetry(fn, maxRetries = 4) {
 
       if (attempt < maxRetries) {
         const retryAt = new Date(Date.now() + secs * 1000).toLocaleTimeString();
+        spinStop();
         console.error(`\n⏳ Rate limit — waiting ${Math.ceil(secs)}s, retrying around ${retryAt}…`);
         await new Promise(r => setTimeout(r, secs * 1000));
       } else {
@@ -270,6 +301,7 @@ async function runTurn(messages, userPrompt) {
 
   // Agentic loop — keep going until no more tool calls
   for (let round = 0; round < 20; round++) {
+    spinStart('Thinking');
     const response = await callWithRetry(() =>
       groq.chat.completions.create({ model: GROQ_MODEL, messages, tools, tool_choice: "auto" })
     );
@@ -277,12 +309,15 @@ async function runTurn(messages, userPrompt) {
     const msg = response.choices[0].message;
     messages.push(msg);
 
-    if (!msg.tool_calls?.length) break;
+    if (!msg.tool_calls?.length) { spinStop(); break; }
+
+    const toolNames = msg.tool_calls.map(c => c.function.name).join(' + ');
+    spinStop(`  🔧 ${toolNames}`);
 
     // Execute all tool calls in parallel, then push results in order
     const toolResults = await Promise.all(
       msg.tool_calls.map(async (call) => {
-        if (process.env.DEBUG) console.error(`  🔧 ${call.function.name}(${call.function.arguments})`);
+        if (process.env.DEBUG) console.error(`     ${call.function.name}(${call.function.arguments})`);
         let args = {};
         try { args = JSON.parse(call.function.arguments); } catch { /* malformed args */ }
         const result = await executeTool(call.function.name, args);
@@ -320,9 +355,8 @@ async function main() {
       const input = line.trim();
       if (!input) { rl.prompt(); return; }
       try {
-        process.stdout.write(`${AGENT_NAME}: `);
         const reply = await runTurn(messages, input);
-        console.log(reply + "\n");
+        console.log(`${AGENT_NAME}: ${reply}\n`);
       } catch (err) {
         console.error(`Error: ${err.message}\n`);
       }

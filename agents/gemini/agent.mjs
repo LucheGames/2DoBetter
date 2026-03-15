@@ -68,6 +68,29 @@ try {
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
+// ── CLI spinner ───────────────────────────────────────────────────────────────
+const SPIN_FRAMES = ['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏'];
+const IS_TTY = process.stderr.isTTY;
+let _spinTimer = null;
+let _spinStart = 0;
+
+function spinStart(label = 'Thinking') {
+  if (!IS_TTY) return;
+  _spinStart = Date.now();
+  let i = 0;
+  _spinTimer = setInterval(() => {
+    const s = Math.floor((Date.now() - _spinStart) / 1000);
+    process.stderr.write(`\r${SPIN_FRAMES[i++ % SPIN_FRAMES.length]} ${label}... ${s}s `);
+  }, 100);
+}
+
+function spinStop(note = '') {
+  if (!IS_TTY) return;
+  if (_spinTimer) { clearInterval(_spinTimer); _spinTimer = null; }
+  process.stderr.write('\r\x1b[K');
+  if (note) process.stderr.write(note + '\n');
+}
+
 // ── REST helper ───────────────────────────────────────────────────────────────
 async function api(path, options = {}) {
   const headers = {
@@ -454,6 +477,13 @@ Tasks are prompts, not checkboxes. Before marking any task done, you must do the
 - When creating tasks, confirm: task title + which list it went into.
 - When finishing tasks, say what work you did (e.g. "identified 3 risks and wrote them up, then marked the task done").
 - If asked to do something requiring multiple steps, do them all before responding.
+
+## Multi-step sequences — never stop early
+When a request requires multiple sequential rounds (e.g. create a list, then add tasks):
+- Round 1: call create_list → the response gives you the new list's ID
+- Round 2: immediately call create_task × N in parallel using that ID
+- Round 3: if reordering was requested, call reorder_tasks with all new task IDs in order
+Never reply mid-sequence. Only respond to the user after every step is complete.
 - NEVER end with "there are no tasks" or "your board is empty" — that is unhelpful after you have just completed work. Instead, summarise what you accomplished.`;
 
 // ── Agentic loop ──────────────────────────────────────────────────────────────
@@ -486,6 +516,7 @@ async function sendWithRetry(chat, message, maxRetries = 3) {
         const match = err.message?.match(/"retryDelay":"(\d+)s"/) || err.message?.match(/retry in (\d+(?:\.\d+)?)s/i);
         const raw = match ? parseFloat(match[1]) * 1000 : (2 ** attempt) * 15000;
         const wait = Math.min(raw, 90000);
+        spinStop();
         console.error(`\n⏳ Rate limit hit — waiting ${Math.round(wait/1000)}s…`);
         await new Promise(r => setTimeout(r, wait));
       } else {
@@ -507,24 +538,29 @@ async function runTurn(chat, userPrompt) {
     boardContext = `[Current board state — do not call get_board, this is already fresh]\n${JSON.stringify(board, null, 2)}\n\n`;
   } catch { /* non-fatal — Gemini can still use tools if pre-fetch fails */ }
 
+  spinStart('Thinking');
   let response = await sendWithRetry(chat, boardContext + userPrompt);
 
   // Loop until Gemini stops requesting tool calls
   for (let round = 0; round < 20; round++) {
     const calls = response.response.functionCalls();
-    if (!calls || calls.length === 0) break;
+    if (!calls || calls.length === 0) { spinStop(); break; }
+
+    const toolNames = calls.map(c => c.name).join(' + ');
+    spinStop(`  🔧 ${toolNames}`);
 
     // Execute all tool calls in parallel (Gemini may batch multiple)
     const functionResponses = await Promise.all(
       calls.map(async (call) => {
         if (process.env.DEBUG) {
-          console.error(`  🔧 ${call.name}(${JSON.stringify(call.args)})`);
+          console.error(`     ${call.name}(${JSON.stringify(call.args)})`);
         }
         const result = await executeTool(call.name, call.args || {});
         return { functionResponse: { name: call.name, response: { result } } };
       })
     );
 
+    spinStart('Thinking');
     response = await sendWithRetry(chat, functionResponses);
   }
 
@@ -566,9 +602,8 @@ async function main() {
       const input = line.trim();
       if (!input) { rl.prompt(); return; }
       try {
-        process.stdout.write(`${AGENT_NAME}: `);
         const reply = await runTurn(chat, input);
-        console.log(reply + "\n");
+        console.log(`${AGENT_NAME}: ${reply}\n`);
       } catch (err) {
         console.error(`Error: ${err.message}\n`);
       }

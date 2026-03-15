@@ -45,7 +45,7 @@ const API_BASE     = (process.env.API_BASE_URL || "https://localhost:3000").repl
 const AGENT_TOKEN  = process.env.AGENT_TOKEN || "";
 const AGENT_NAME   = process.env.AGENT_NAME || "Ollama";
 // "qwen2.5-32k" is the custom variant created in setup with num_ctx=32768.
-// The bare qwen2.5:7b defaults to 4096 tokens — too small for our board context (~8k tokens).
+// The bare qwen2.5:7b defaults to 4096 tokens — too small for long --chat sessions.
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "qwen2.5-32k";
 
 if (!AGENT_TOKEN) { console.error("❌  AGENT_TOKEN is not set. See .env.example."); process.exit(1); }
@@ -275,7 +275,14 @@ Tasks are prompts, not checkboxes. Before marking any task done, you must do the
 - Be concise. Summarise what you did rather than dumping raw JSON.
 - When creating tasks, confirm: task title + which list it went into.
 - When finishing tasks, say what work you did before marking done.
-- If asked to do something requiring multiple steps, do them all before responding.`;
+
+## Multi-step sequences — never stop early
+When a request requires multiple sequential rounds (e.g. create a list, then add tasks):
+- Round 1: call create_list → the response gives you the new list's ID
+- Round 2: immediately call create_task × N in parallel using that ID
+- Round 3: if reordering was requested, call reorder_tasks with all new task IDs in order
+Never reply mid-sequence. Only respond to the user after every step is complete.
+- NEVER end with "there are no tasks" or "your board is empty" — that is unhelpful after you have just completed work. Instead, summarise what you accomplished.`;
 }
 
 // ── Agentic loop ──────────────────────────────────────────────────────────────
