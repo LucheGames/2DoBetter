@@ -256,18 +256,17 @@ async function runTurn(messages, userPrompt) {
 
     if (!msg.tool_calls?.length) break;
 
-    // Execute all tool calls and collect results
-    for (const call of msg.tool_calls) {
-      if (process.env.DEBUG) console.error(`  🔧 ${call.function.name}(${call.function.arguments})`);
-      let args = {};
-      try { args = JSON.parse(call.function.arguments); } catch { /* malformed args */ }
-      const result = await executeTool(call.function.name, args);
-      messages.push({
-        role: "tool",
-        tool_call_id: call.id,
-        content: JSON.stringify(result),
-      });
-    }
+    // Execute all tool calls in parallel, then push results in order
+    const toolResults = await Promise.all(
+      msg.tool_calls.map(async (call) => {
+        if (process.env.DEBUG) console.error(`  🔧 ${call.function.name}(${call.function.arguments})`);
+        let args = {};
+        try { args = JSON.parse(call.function.arguments); } catch { /* malformed args */ }
+        const result = await executeTool(call.function.name, args);
+        return { role: "tool", tool_call_id: call.id, content: JSON.stringify(result) };
+      })
+    );
+    for (const r of toolResults) messages.push(r);
   }
 
   const last = messages.findLast(m => m.role === "assistant" && m.content);

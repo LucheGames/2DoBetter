@@ -507,20 +507,16 @@ async function runTurn(chat, userPrompt) {
     const calls = response.response.functionCalls();
     if (!calls || calls.length === 0) break;
 
-    // Execute all tool calls (Gemini may batch multiple)
-    const functionResponses = [];
-    for (const call of calls) {
-      if (process.env.DEBUG) {
-        console.error(`  🔧 ${call.name}(${JSON.stringify(call.args)})`);
-      }
-      const result = await executeTool(call.name, call.args || {});
-      functionResponses.push({
-        functionResponse: {
-          name: call.name,
-          response: { result },
-        },
-      });
-    }
+    // Execute all tool calls in parallel (Gemini may batch multiple)
+    const functionResponses = await Promise.all(
+      calls.map(async (call) => {
+        if (process.env.DEBUG) {
+          console.error(`  🔧 ${call.name}(${JSON.stringify(call.args)})`);
+        }
+        const result = await executeTool(call.name, call.args || {});
+        return { functionResponse: { name: call.name, response: { result } } };
+      })
+    );
 
     response = await sendWithRetry(chat, functionResponses);
   }
