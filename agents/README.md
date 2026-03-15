@@ -6,12 +6,13 @@ Multiple AI agents can connect to your board. Each lives in its own folder with 
 
 ## Available Agents
 
-| Agent | Model | Free tier | RPM | Status | Setup |
-|-------|-------|-----------|-----|--------|-------|
-| **Claude** (MCP) | Claude 3.5+ | Requires API key | — | ✅ Ready | [agents/claude/](claude/) |
-| **Gemini** | Gemini 2.5 Flash | ✅ No card | 5 | ✅ Ready | [agents/gemini/](gemini/) |
-| **Groq** | Llama 3.3 70b | ✅ No card | 30 | ✅ Ready | [agents/groq/](groq/) |
-| **Ollama** | qwen2.5:7b (local) | ✅ Free forever | None | ✅ Ready | [agents/ollama/](ollama/) |
+| Agent | Model | Free tier | Speed | Status | Setup |
+|-------|-------|-----------|-------|--------|-------|
+| **Claude** (MCP) | Claude 3.5+ | Requires API key | Fast | ✅ Ready | [agents/claude/](claude/) |
+| **Cerebras** | Llama 3.3 70b | ✅ No card | 🚀 ~2000 tok/s | ✅ Ready | [agents/cerebras/](cerebras/) |
+| **Groq** | Llama 4 Scout 17b | ✅ No card | 🚀 ~400 tok/s | ✅ Ready | [agents/groq/](groq/) |
+| **Gemini** | Gemini 2.5 Flash | ✅ No card | Fast | ✅ Ready | [agents/gemini/](gemini/) |
+| **Ollama** | qwen2.5:14b (local) | ✅ Free forever | ~30 tok/s CPU | ✅ Ready | [agents/ollama/](ollama/) |
 
 ---
 
@@ -36,6 +37,8 @@ The board's REST API is documented in [`openapi.yaml`](../openapi.yaml) at the r
 
 **Use Gemini** if you want a free standalone agent and don't mind slower rate limits (5 RPM). Good for batch tasks, not rapid chat.
 
-**Use Groq** for free-tier chat that actually feels responsive (30 RPM). Best choice for interactive sessions without an API subscription.
+**Use Cerebras** for the fastest free-tier experience — Llama 3.3 70b at ~2000 tok/s. Responses feel near-instant even for multi-step board operations. Best overall free choice.
+
+**Use Groq** as a solid free alternative (30 RPM, Llama 4 Scout). Good for interactive sessions; slightly slower than Cerebras.
 
 **Use Ollama** if you want 100% local inference with zero rate limits, zero cloud, and zero API keys. Requires Ollama installed on the same machine as your server. Best for a home server or air-gapped environments. See [ollama/README.md](ollama/) for the Linux CPU governor tip that gives a 3–5× speed boost.
