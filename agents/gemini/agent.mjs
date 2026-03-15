@@ -435,6 +435,10 @@ You have a dedicated column on the board. Your supervisor can review and manage 
 - To reorder lists within a column, use reorder_lists with ALL list IDs from that column in the desired order.
 - You must include every ID — omitting one removes it from the order.
 
+## Speed — batch your tool calls
+- When multiple independent operations are needed (e.g. moving several tasks, completing several tasks), issue ALL of them in a single response as parallel tool calls — do not wait for each result before issuing the next.
+- Only make a second round of tool calls if a later operation genuinely depends on the result of an earlier one (e.g. you need a newly-created list's ID before moving tasks into it).
+
 ## Writing to the board
 - Always use the IDs from the board context provided at the start of each message — do not call get_board again unless something may have changed mid-turn.
 - Never create duplicate tasks. Check if a similar task exists before adding one.
