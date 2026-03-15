@@ -163,7 +163,7 @@ const tools = [
   { type: "function", function: { name: "uncomplete_task", description: "Reinstate a completed task", parameters: { type: "object", properties: { taskId: { type: "integer" } }, required: ["taskId"] } } },
   { type: "function", function: { name: "update_task",     description: "Update a task's title", parameters: { type: "object", properties: { taskId: { type: "integer" }, title: { type: "string" } }, required: ["taskId", "title"] } } },
   { type: "function", function: { name: "delete_task",     description: "Delete a task permanently", parameters: { type: "object", properties: { taskId: { type: "integer" } }, required: ["taskId"] } } },
-  { type: "function", function: { name: "move_task",       description: "Move a task to a different list", parameters: { type: "object", properties: { taskId: { type: "integer" }, targetListId: { type: "integer" } }, required: ["taskId", "targetListId"] } } },
+  { type: "function", function: { name: "move_task",       description: "Move a task to a DIFFERENT list. Cannot reorder tasks within the same list — within-list ordering is not supported.", parameters: { type: "object", properties: { taskId: { type: "integer" }, targetListId: { type: "integer" } }, required: ["taskId", "targetListId"] } } },
   { type: "function", function: { name: "rename_list",     description: "Rename a list", parameters: { type: "object", properties: { listId: { type: "integer" }, name: { type: "string" } }, required: ["listId", "name"] } } },
   { type: "function", function: { name: "move_list",       description: "Move a list to a different column", parameters: { type: "object", properties: { listId: { type: "integer" }, targetColumnId: { type: "integer" } }, required: ["listId", "targetColumnId"] } } },
   { type: "function", function: { name: "search_tasks",    description: "Search tasks by title", parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] } } },
@@ -188,6 +188,9 @@ You have a dedicated column on the board. Your supervisor can review and manage 
 - If a task title is a question, answer it in your response, then mark it complete.
 - Think carefully — don't just check boxes, reason through what the task is actually asking you to do.
 - "Complete the tasks" means: read each task, do what it says, then mark it done.
+
+## Limitations
+- You cannot reorder tasks within a list — only move them to a different list. If asked to reorder, say so honestly rather than pretending it worked.
 
 ## Writing to the board
 - Always use the IDs from the board context provided at the start of each message — do not call get_board again unless something may have changed mid-turn.
