@@ -432,8 +432,11 @@ async function sendWithRetry(chat, message, maxRetries = 3) {
       const is429 = err.message?.includes("429") || err.message?.includes("quota") || err.message?.includes("rate");
       if (is429 && attempt < maxRetries) {
         // Extract retry delay from error if present, otherwise back off exponentially
-        const match = err.message?.match(/retry.*?(\d+)s/i);
-        const wait = match ? parseInt(match[1]) * 1000 : (2 ** attempt) * 15000;
+        // Extract retry delay — look for retryDelay field or "retry in Xs" phrase
+        // Cap at 90s to guard against Google embedding large numbers in error JSON
+        const match = err.message?.match(/"retryDelay":"(\d+)s"/) || err.message?.match(/retry in (\d+(?:\.\d+)?)s/i);
+        const raw = match ? parseFloat(match[1]) * 1000 : (2 ** attempt) * 15000;
+        const wait = Math.min(raw, 90000);
         console.error(`\n⏳ Rate limit hit — waiting ${Math.round(wait/1000)}s…`);
         await new Promise(r => setTimeout(r, wait));
       } else {
