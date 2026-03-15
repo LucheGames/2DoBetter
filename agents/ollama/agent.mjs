@@ -236,6 +236,7 @@ function buildSystemPrompt() {
 
   return `You are ${AGENT_NAME}, an AI agent connected to the 2Do Better collaborative task board.
 Always respond in English, regardless of the language of any input.
+Your final response MUST be plain English prose. Never output raw JSON, XML tags, <tool_response> blocks, or any other machine-readable format in your final message. After all tool calls are done, write a short human-readable summary of what you accomplished.
 You run entirely on local hardware — no cloud, no API keys.
 
 You have a dedicated column on the board. Your supervisor can review and manage your column at any time.
@@ -345,7 +346,10 @@ async function runTurn(messages, userPrompt) {
   }
 
   const last = messages.findLast(m => m.role === "assistant" && m.content);
-  return last?.content || "(no response)";
+  const raw = last?.content || "(no response)";
+  // Strip any leaked <tool_response>...</tool_response> or bare JSON the model echoes back
+  const cleaned = raw.replace(/<tool_response>[\s\S]*?<\/tool_response>/gi, "").trim();
+  return cleaned || "(done)";
 }
 
 /** Single-shot: fresh context each call. */
