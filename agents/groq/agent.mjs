@@ -189,11 +189,13 @@ You have a dedicated column on the board. Your supervisor can review and manage 
 - Never look in the graveyard (archived lists) unless explicitly asked to.
 - Never delete tasks or lists unless explicitly told to delete. Completing a task is not the same as deleting it.
 
-## Reading tasks as prompts
-- If a task title describes an action ("rename this list", "add a task", "summarise the board"), PERFORM that action using the appropriate tool FIRST, then mark the task complete.
-- If a task title is a question, answer it in your response, then mark it complete.
-- Think carefully — don't just check boxes, reason through what the task is actually asking you to do.
-- "Complete the tasks" means: read each task, do what it says, then mark it done.
+## Acting on tasks
+Tasks are prompts, not checkboxes. Before marking any task done, you must do the actual work it describes:
+- Question task ("What are the risks?") → write a thorough answer in your response, THEN mark done.
+- Action task ("Rename this list", "Add a subtask") → call the right tool to do it, THEN mark done.
+- Thinking task ("Identify risks", "Analyse the sprint", "Summarise") → reason through it and write your output in the response, THEN mark done.
+- NEVER call complete_task without first producing an answer, reasoning, or performing a tool action. Silently ticking a box is always wrong.
+- When the user says "complete", "do", "handle", or "work through" the tasks — they mean do the work above, not just mark them done.
 
 ## Reordering
 - To reorder tasks within a list, use reorder_tasks with ALL task IDs from that list in the desired order.
@@ -220,18 +222,34 @@ You have a dedicated column on the board. Your supervisor can review and manage 
 - NEVER end with "there are no tasks" or "your board is empty" — that is unhelpful after you have just completed work. Instead, summarise what you accomplished.`;
 
 // ── Retry helper ──────────────────────────────────────────────────────────────
-async function callWithRetry(fn, maxRetries = 3) {
+
+// Extract seconds until rate limit resets from Groq error headers or message.
+function retryAfterSecs(err) {
+  const h = err.headers?.["retry-after"];
+  if (h) { const n = parseInt(h, 10); if (!isNaN(n)) return n; }
+  // Groq messages: "Please try again in 2.5s" or "try again in 1m30s"
+  const m = err.message?.match(/try again in (\d+(?:\.\d+)?)(m(?:in)?|s)/i);
+  if (m) return m[2].startsWith("m") ? parseFloat(m[1]) * 60 : parseFloat(m[1]);
+  return null;
+}
+
+async function callWithRetry(fn, maxRetries = 4) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
     } catch (err) {
-      const is429 = err.status === 429 || err.message?.includes("429") || err.message?.includes("rate");
-      if (is429 && attempt < maxRetries) {
-        const wait = Math.min((2 ** attempt) * 5000, 60000);
-        console.error(`\n⏳ Rate limit — waiting ${wait / 1000}s…`);
-        await new Promise(r => setTimeout(r, wait));
+      const is429 = err.status === 429 || err.message?.includes("429") || err.message?.toLowerCase().includes("rate limit");
+      if (!is429) throw err;
+
+      const secs = retryAfterSecs(err) ?? Math.min((2 ** attempt) * 10, 90);
+
+      if (attempt < maxRetries) {
+        const retryAt = new Date(Date.now() + secs * 1000).toLocaleTimeString();
+        console.error(`\n⏳ Rate limit — waiting ${Math.ceil(secs)}s, retrying around ${retryAt}…`);
+        await new Promise(r => setTimeout(r, secs * 1000));
       } else {
-        throw err;
+        const retryAt = new Date(Date.now() + secs * 1000).toLocaleTimeString();
+        throw new Error(`Rate limit reached. Try again in ~${Math.ceil(secs)}s (around ${retryAt}).`);
       }
     }
   }
