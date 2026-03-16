@@ -33,6 +33,9 @@ export async function POST(
   if (!title?.trim()) {
     return NextResponse.json({ error: "Title required" }, { status: 400 });
   }
+  if (title.trim().length > 500) {
+    return NextResponse.json({ error: "Title too long (max 500 characters)" }, { status: 400 });
+  }
 
   // Cross-column push is allowed for normal users even on locked columns.
   // Exception: ownColumnOnly tokens may only write to their own column.

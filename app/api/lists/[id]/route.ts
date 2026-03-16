@@ -21,6 +21,7 @@ export async function PATCH(
 
   if (body.name !== undefined) {
     if (!body.name.trim()) return NextResponse.json({ error: "Name required" }, { status: 400 });
+    if (body.name.trim().length > 200) return NextResponse.json({ error: "Name too long (max 200 characters)" }, { status: 400 });
     data.name = body.name.trim();
   }
   if (body.columnId !== undefined) data.columnId = body.columnId;

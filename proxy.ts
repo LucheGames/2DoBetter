@@ -22,6 +22,8 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Public routes — no auth required
+  // Security: strip any client-supplied x-auth-user to prevent header spoofing
+  // on unauthenticated pass-through routes (only the proxy should set this header).
   if (
     pathname === '/login' ||
     pathname.startsWith('/join') ||
@@ -33,7 +35,9 @@ export function proxy(request: NextRequest) {
     pathname === '/favicon.ico' ||
     pathname === '/ca.crt'
   ) {
-    return NextResponse.next();
+    const headers = new Headers(request.headers);
+    headers.delete('x-auth-user');
+    return NextResponse.next({ request: { headers } });
   }
 
   // Accept token from cookie (browser) or Authorization: Bearer header (API/agent clients)

@@ -19,8 +19,9 @@ export async function POST(req: NextRequest) {
   if (idx === -1) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
   users[idx].hash = await hashPassword(newPassword);
-  // Invalidate existing session so they must log in with the new password
-  users[idx].session = '';
+  // Invalidate ALL existing sessions so every device must log in with the new password
+  users[idx].sessions = [];
+  delete users[idx].session;   // legacy single-session field
   saveUsers(users);
 
   return NextResponse.json({ ok: true });

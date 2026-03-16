@@ -1,7 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isAdminUser } from "@/lib/lane-guard";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const authUser = req.headers.get('x-auth-user');
+  if (!authUser || !isAdminUser(authUser)) {
+    return NextResponse.json({ error: 'Admin only' }, { status: 403 });
+  }
+
   // Export everything — including archived lists and completed tasks
   const columns = await prisma.column.findMany({
     orderBy: { order: "asc" },

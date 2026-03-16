@@ -31,8 +31,9 @@ export async function POST(req: NextRequest) {
     isAgent         = false,
   } = await req.json().catch(() => ({}));
 
-  // 4-digit numeric PIN (1000–9998), cryptographically random
-  const code      = String(1000 + (randomBytes(2).readUInt16BE(0) % 9000));
+  // 6-digit numeric PIN (100000–999999), cryptographically random
+  // ~900,000 possibilities — impractical to brute-force within the time window
+  const code      = String(100000 + (randomBytes(4).readUInt32BE(0) % 900000));
   const now       = new Date();
   const expiresAt = new Date(now.getTime() + Number(expiresInMinutes) * 60 * 1000);
 

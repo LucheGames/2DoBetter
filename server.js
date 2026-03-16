@@ -99,6 +99,7 @@ function sseHandler(req, res) {
   const authHeader = req.headers['authorization'] || '';
   const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
   const token = bearerToken || cookies['auth_token'];
+  const userCookie = cookies['auth_user'];
 
   // Read fresh from disk so newly-logged-in sessions are always valid.
   // Falls back to the startup env snapshot if the file can't be read.
@@ -108,7 +109,17 @@ function sseHandler(req, res) {
     try {
       const users = JSON.parse(usersJson);
       // Accept session token, legacy plaintext token, or permanent agentToken.
-      if (!users.some(u => (u.sessions && u.sessions.includes(token)) || u.session === token || u.token === token || u.agentToken === token)) {
+      // Validate username+token pair (consistent with proxy.ts) to prevent
+      // a stolen token from being used with a different username.
+      const matchesSession = (u) =>
+        (token && u.sessions && u.sessions.includes(token)) ||
+        u.session === token ||
+        u.token === token ||
+        u.agentToken === token;
+      const authedUser = userCookie
+        ? users.find(u => u.username === userCookie && matchesSession(u))
+        : users.find(u => matchesSession(u));
+      if (!authedUser) {
         res.writeHead(401);
         res.end('Unauthorized');
         return;
@@ -395,9 +406,10 @@ app.prepare().then(() => {
         await serveSetupPage(req, res, { useTLS: true, port, hostname, lanAddresses });
         return;
       }
-      // Redirect everything else to HTTPS
-      const host = (req.headers.host || `localhost:${httpPort}`).replace(`:${httpPort}`, `:${port}`);
-      res.writeHead(301, { Location: `https://${host}${req.url}` });
+      // Redirect everything else to HTTPS.
+      // Pin to known hostname — do NOT trust the client-supplied Host header
+      // (prevents open-redirect / host-header injection attacks).
+      res.writeHead(301, { Location: `https://${hostname}:${port}${req.url}` });
       res.end();
     });
 

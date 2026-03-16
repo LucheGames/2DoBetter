@@ -17,13 +17,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "ids must be a non-empty array of positive integers" }, { status: 400 });
   }
 
-  // Lane guard — check the column via task → list → column
-  const firstTask = await prisma.task.findUnique({
-    where: { id: ids[0] },
-    include: { list: { include: { column: true } } },
+  // Lane guard — verify ALL tasks belong to the same column, then check access.
+  // This prevents a crafted request from reordering tasks in another user's column
+  // by including one of their own tasks first.
+  const tasks = await prisma.task.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, list: { select: { columnId: true, column: true } } },
   });
-  if (firstTask?.list?.column) {
-    const deny = checkLane(firstTask.list.column, authUser);
+  if (tasks.length !== ids.length) {
+    return NextResponse.json({ error: "One or more task IDs not found" }, { status: 404 });
+  }
+  const columnIds = new Set(tasks.map(t => t.list.columnId));
+  if (columnIds.size !== 1) {
+    return NextResponse.json({ error: "All tasks must belong to the same column" }, { status: 400 });
+  }
+  const column = tasks[0].list.column;
+  if (column) {
+    const deny = checkLane(column, authUser);
     if (deny) return deny;
   }
 

@@ -122,7 +122,7 @@ export default function JoinPage() {
               {!code ? "No setup code provided." : "This setup code is invalid or has expired."}
             </p>
           </div>
-          <p className="text-gray-500 text-sm">Ask your admin to generate a new 4-digit code.</p>
+          <p className="text-gray-500 text-sm">Ask your admin to generate a new 6-digit code.</p>
           <a href="/login" className="inline-block text-sm text-blue-400 hover:text-blue-300 transition-colors">
             ← Back to sign in
           </a>

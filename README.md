@@ -156,7 +156,7 @@ Open `https://localhost:3000`. Accept the cert warning on first visit, or [insta
 
 ### After first run
 
-- **Add users** — ⚙ gear icon → admin panel → Generate setup code. Give the 4-digit code to the new user — they enter it on the sign-in page, set their username and password, then log in.
+- **Add users** — ⚙ gear icon → admin panel → Generate setup code. Give the 6-digit code to the new user — they enter it on the sign-in page, set their username and password, then log in.
 - **Remote access** — set up [Tailscale](#remote-access) on the server; clients join your tailnet.
 - **Auto-start** — [run as a background service](#background-service).
 - **Remove cert warnings** — [install the CA cert](#install-ca-cert) on each device.
@@ -168,7 +168,7 @@ Open `https://localhost:3000`. Accept the cert warning on first visit, or [insta
 No Node.js, no git, no terminal.
 
 1. **Get the server address** — ask the admin. On the same Wi-Fi as the server? Use the LAN IP (e.g. `https://192.168.x.x:3000`). Connecting remotely? You need the Tailscale IP or DuckDNS domain instead — [see Remote access](#remote-access).
-2. **Setup code** — the admin generates a 4-digit code from the ⚙ gear menu (10-minute lifespan). Enter it on the sign-in page → choose username + password → sign in.
+2. **Setup code** — the admin generates a 6-digit code from the ⚙ gear menu (10-minute lifespan). Enter it on the sign-in page → choose username + password → sign in.
 3. **Install as PWA** — iOS: Share → Add to Home Screen · Android: browser menu → Install app · Desktop: install icon in address bar.
 
 > **Tailscale** — only needed for access outside the home/office network. [Download](https://tailscale.com/download) and join the server admin's tailnet.

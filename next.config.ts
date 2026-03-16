@@ -14,10 +14,10 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           // HSTS — enforce HTTPS for 1 year
           { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
-          // CSP — focused on high-value directives that don't require nonce plumbing
-          // Intentionally omits script-src/style-src to avoid breaking Next.js/Tailwind inline styles
+          // CSP — blocks remote script injection and eval() while allowing Next.js inline scripts.
+          // 'unsafe-inline' is needed for Next.js/React hydration scripts.
           { key: "Content-Security-Policy",
-            value: "base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none';" },
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none';" },
           // Disable browser features the app doesn't need
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
         ],

@@ -64,7 +64,12 @@ export async function PATCH(
     }
   }
 
-  if (body.title !== undefined) data.title = body.title.trim();
+  if (body.title !== undefined) {
+    if (body.title.trim().length > 500) {
+      return NextResponse.json({ error: "Title too long (max 500 characters)" }, { status: 400 });
+    }
+    data.title = body.title.trim();
+  }
   if (body.order !== undefined) data.order = body.order;
   if (body.listId !== undefined) data.listId = body.listId;
 

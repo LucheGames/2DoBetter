@@ -41,6 +41,9 @@ export async function POST(
   if (!name?.trim()) {
     return NextResponse.json({ error: "Name required" }, { status: 400 });
   }
+  if (name.trim().length > 200) {
+    return NextResponse.json({ error: "Name too long (max 200 characters)" }, { status: 400 });
+  }
   const maxOrder = await prisma.list.aggregate({
     where: { columnId: Number(columnId), parentId: null },
     _max: { order: true },
