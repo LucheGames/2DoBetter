@@ -529,38 +529,12 @@ ${C.bold}${C.cyan}  ╔═══════════════════
 
   // ── [2/4] Backups ────────────────────────────────────────────────
   step(2, 4, 'Database Backups');
-  info('Daily snapshots protect you if the server dies or data gets corrupted.\n');
+  info('Daily snapshots of your database will be saved automatically.');
+  info(`Backup folder: ${path.join(ROOT, 'backups')}  (14-day retention)\n`);
+  info('You can point backups to Google Drive or another cloud destination later');
+  info('by editing the generated script at scripts/backup-db.sh.\n');
 
-  const backupChoice = await askChoice(
-    'Where should backups be saved?',
-    ['Google Drive  (via rclone)', 'Local folder only', 'Skip for now']
-  );
-  const backupDest = ['gdrive', 'local', 'none'][backupChoice];
-
-  let effectiveDest = backupDest;
-
-  if (backupDest === 'gdrive') {
-    const rcloneOk = spawnSync('which', ['rclone']).status === 0;
-    if (!rcloneOk) {
-      warn('rclone is not installed.');
-      info('Install it: curl https://rclone.org/install.sh | sudo bash');
-      info('Then re-run: npm run setup');
-      effectiveDest = 'local';
-      ok('Falling back to local-only backups.');
-    } else {
-      const remotes = spawnSync('rclone', ['listremotes']).stdout?.toString() || '';
-      if (!remotes.includes('gdrive:')) {
-        warn('No rclone "gdrive" remote found.');
-        info('On a machine with a browser, run:  rclone authorize "drive"');
-        info('Copy the token to this server:     rclone config  →  name: gdrive, type: drive');
-        info('Then re-run:                       npm run setup');
-        effectiveDest = 'local';
-        ok('Falling back to local-only backups.');
-      } else {
-        ok('rclone gdrive remote found — backups will go to Google Drive.');
-      }
-    }
-  }
+  let effectiveDest = 'local';
 
   // ── [4/5] Encryption ─────────────────────────────────────────────
   step(3, 4, 'Backup Encryption');
@@ -645,7 +619,7 @@ ${C.bold}${C.green}  ✓ Setup complete!${C.reset}
 
   Users     :
 ${userList}
-  Backups   : ${C.bold}${effectiveDest}${encrypt ? ' + AES-256 encryption' : ''}${C.reset}
+  Backups   : ${C.bold}${path.join(ROOT, 'backups')}${encrypt ? ' — AES-256 encrypted' : ''}${C.reset}
   Tailscale : ${C.bold}${tsInstalled ? 'installed' : 'not installed'}${C.reset}
   Invites   : ${C.dim}generate 6-digit codes from the ⚙ admin panel${C.reset}
 
