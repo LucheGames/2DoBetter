@@ -175,6 +175,7 @@ async function collectToken(existing) {
     token = parts.join('-');
     console.log(`\n  ${C.bold}${C.yellow}Generated password — share this with the new user:${C.reset}`);
     console.log(`\n  ${C.bold}${C.cyan}  ${token}  ${C.reset}\n`);
+    info('(right-click → Copy to copy the token — Ctrl+C will exit the wizard)');
     info('They type this into the Password field on the login screen.');
     info('They can change it later (currently: ask admin to run npm run reset-password).');
     await ask('Press Enter once you\'ve shared it');
