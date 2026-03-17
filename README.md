@@ -122,6 +122,8 @@ Windows: use [nvm-windows](https://github.com/coreybutler/nvm-windows).
 **2. Clone and start**
 ```bash
 rm -rf 2DoBetter    # remove any previous install first
+# Linux Mint: if you deleted the old folder via the file manager it went to Trash, not disk.
+# Make sure you are NOT inside ~/.local/share/Trash — run: cd ~ first.
 git clone https://github.com/LucheGames/2DoBetter.git
 cd 2DoBetter
 npm install
