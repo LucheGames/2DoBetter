@@ -488,7 +488,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   }
 
   // ── [1/5] Identity & Access ──────────────────────────────────────
-  step(1, 5, 'Identity & Access');
+  step(1, 4, 'Identity & Access');
   info('Set up the first user — this will be your admin account.\n');
 
   const firstUsername = await ask('Username', existing.AUTH_USERNAME || os.userInfo().username);
@@ -527,40 +527,8 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     info(`${users.length} users configured. Each gets their own column on first login.`);
   }
 
-  // ── [2/5] Self-Registration ──────────────────────────────────────
-  step(2, 5, 'Self-Registration (Invite Code)');
-  info('An invite code lets new users create accounts directly from the login page.');
-  info('Anyone with the code can register — share it only with people you trust.\n');
-
-  const inviteChoice = await askChoice(
-    'Enable self-registration on the login page?',
-    ['Generate a random invite code', 'I\'ll set my own invite code', 'Disable — admin-only user creation']
-  );
-
-  let inviteCode = '';
-  if (inviteChoice === 0) {
-    inviteCode = crypto.randomBytes(8).toString('hex');
-    cfg.INVITE_CODE = inviteCode;
-    console.log(`\n  ${C.bold}${C.yellow}Invite code — share this with new users:${C.reset}`);
-    console.log(`\n  ${C.bold}  ${inviteCode}  ${C.reset}\n`);
-    info('They enter it in the "Invite code" field on the login page → Create account.');
-    ok('Invite code generated.');
-  } else if (inviteChoice === 1) {
-    const code = (await ask('Invite code')).trim();
-    if (code.length >= 4) {
-      inviteCode = code;
-      cfg.INVITE_CODE = inviteCode;
-      ok('Invite code set.');
-    } else {
-      warn('Invite code must be at least 4 characters — self-registration disabled.');
-    }
-  } else {
-    info('Self-registration disabled. Add users with: npm run setup add-user');
-    cfg.INVITE_CODE = ''; // explicit disable (overwrites any existing value)
-  }
-
-  // ── [3/5] Backups ────────────────────────────────────────────────
-  step(3, 5, 'Database Backups');
+  // ── [2/4] Backups ────────────────────────────────────────────────
+  step(2, 4, 'Database Backups');
   info('Daily snapshots protect you if the server dies or data gets corrupted.\n');
 
   const backupChoice = await askChoice(
@@ -595,7 +563,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   }
 
   // ── [4/5] Encryption ─────────────────────────────────────────────
-  step(4, 5, 'Backup Encryption');
+  step(3, 4, 'Backup Encryption');
   let encrypt = false;
 
   if (effectiveDest !== 'none') {
@@ -632,7 +600,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   }
 
   // ── [5/5] External Access ─────────────────────────────────────────
-  step(5, 5, 'External Access (Tailscale)');
+  step(4, 4, 'External Access (Tailscale)');
   info('Tailscale lets you reach 2Do Better from any device — no firewall ports needed.\n');
 
   const tsInstalled = spawnSync('which', ['tailscale']).status === 0;
@@ -663,8 +631,8 @@ ${C.bold}${C.cyan}  ╔═══════════════════
 
   // Write .env.local (preserves legacy AUTH_TOKEN for backward compat)
   const final = { ...existing, ...cfg };
-  // Remove INVITE_CODE key entirely if explicitly disabled (empty string)
-  if (final.INVITE_CODE === '') delete final.INVITE_CODE;
+  // Remove legacy INVITE_CODE if present (replaced by per-invite admin panel flow)
+  delete final.INVITE_CODE;
   writeEnv(ENV_LOCAL, final);
   ok('.env.local written (chmod 600)');
 
@@ -672,10 +640,6 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   const port = final.PORT || '3000';
   const userList = users.map(u => `    • ${u.username}`).join('\n');
   const restartCmd = getRestartCommand();
-  const inviteCodeLine = inviteCode
-    ? `  ${C.bold}Invite code${C.reset}       : ${C.yellow}${inviteCode}${C.reset}  ${C.dim}(share to allow self-registration)${C.reset}`
-    : `  ${C.dim}Self-registration  : disabled  (use npm run setup add-user)${C.reset}`;
-
   console.log(`
 ${C.bold}${C.green}  ✓ Setup complete!${C.reset}
 
@@ -683,7 +647,7 @@ ${C.bold}${C.green}  ✓ Setup complete!${C.reset}
 ${userList}
   Backups   : ${C.bold}${effectiveDest}${encrypt ? ' + AES-256 encryption' : ''}${C.reset}
   Tailscale : ${C.bold}${tsInstalled ? 'installed' : 'not installed'}${C.reset}
-${inviteCodeLine}
+  Invites   : ${C.dim}generate 6-digit codes from the ⚙ admin panel${C.reset}
 
   ${C.bold}Add more users (CLI):${C.reset}
     npm run setup add-user
