@@ -249,9 +249,24 @@ export default function Home() {
       {/* Top bar */}
       <header className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-gray-800">
         <div className="flex items-center gap-2">
-          <span className="app-logo app-ui-text font-semibold uppercase tracking-widest select-none relative top-[2px]">
+          <a
+            href="https://www.buymeacoffee.com/luchegames"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Support development ☕"
+            className="app-logo app-ui-text font-semibold uppercase tracking-widest hover:text-gray-300 transition-colors select-none relative top-[2px]"
+          >
             2Do Better
-          </span>
+          </a>
+          <a
+            href="https://www.buymeacoffee.com/luchegames"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Support development ☕"
+            className="text-base leading-none text-gray-700 hover:text-yellow-400 transition-colors duration-200 select-none"
+          >
+            ☕
+          </a>
         </div>
 
         <div className="flex items-center gap-4">

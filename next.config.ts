@@ -4,6 +4,8 @@ import type { NextConfig } from "next";
 process.env.NEXT_TELEMETRY_DISABLED = "1";
 
 const nextConfig: NextConfig = {
+  // Hide the Next.js dev indicator button — not useful to end users
+  devIndicators: false,
   async headers() {
     return [
       {
