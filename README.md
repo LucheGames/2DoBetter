@@ -110,6 +110,7 @@ docker exec -it 2dobetter node scripts/admin.js reset-password <username>
 
 **1. Install Node.js 20+** via [nvm](https://github.com/nvm-sh/nvm):
 ```bash
+nvm --version    # already installed? skip to nvm install 20 below
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
 ```
 Close and reopen your terminal, then:
@@ -120,6 +121,7 @@ Windows: use [nvm-windows](https://github.com/coreybutler/nvm-windows).
 
 **2. Clone and start**
 ```bash
+rm -rf 2DoBetter    # remove any previous install first
 git clone https://github.com/LucheGames/2DoBetter.git
 cd 2DoBetter
 npm install
