@@ -211,10 +211,18 @@ async function serveSetupPage(req, res, { useTLS, port, hostname, lanAddresses }
       <a href="${certUrl}" class="tap-btn" download="2DoBetter-CA.crt">\u2b07 Download certificate</a>
       <div class="url">${certUrl}</div>
       <div class="tabs">
-        <button class="tab active" data-p="android" onclick="showTab('android')">Android</button>
+        <button class="tab active" data-p="desktop" onclick="showTab('desktop')">Desktop</button>
+        <button class="tab" data-p="android" onclick="showTab('android')">Android</button>
         <button class="tab" data-p="ios" onclick="showTab('ios')">iPhone</button>
       </div>
-      <div id="android" class="platform active">
+      <div id="desktop" class="platform active">
+        <div class="note"><strong>Firefox:</strong><br>
+        Menu \u2192 Settings \u2192 Privacy &amp; Security \u2192 scroll to Certificates \u2192 View Certificates \u2192 Authorities tab \u2192 Import \u2192 select the downloaded file \u2192 tick <em>Trust this CA to identify websites</em> \u2192 OK.<br><br>
+        <strong>Chrome / Edge / Brave:</strong><br>
+        Click <em>Advanced</em> \u2192 <em>Proceed to address (unsafe)</em> for a one-time bypass.<br>
+        Permanent fix: Settings \u2192 Privacy and security \u2192 Security \u2192 Manage certificates \u2192 Authorities \u2192 Import \u2192 select the file \u2192 trust for websites.</div>
+      </div>
+      <div id="android" class="platform">
         <div class="note"><strong>⚠ Chrome on Android 7 won\u2019t work \u2014 use Firefox instead.</strong><br><br>
         After downloading the cert:<br>
         Settings \u2192 Security \u2192 Encryption &amp; credentials \u2192 Install a certificate \u2192 CA certificate \u2192 pick the file.</div>
