@@ -4,8 +4,8 @@
   "description": "2Do Better agent using Cerebras (Llama 3.3 70b — ~2000 tok/s)",
   "type": "module",
   "scripts": {
-    "start": "NODE_TLS_REJECT_UNAUTHORIZED=0 node --no-warnings agent.mjs",
-    "chat":  "NODE_TLS_REJECT_UNAUTHORIZED=0 node --no-warnings agent.mjs --chat"
+    "start": "node --no-warnings agent.mjs",
+    "chat":  "node --no-warnings agent.mjs --chat"
   },
   "dependencies": {
     "openai": "^4.0.0"

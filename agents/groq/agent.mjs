@@ -46,6 +46,14 @@ const GROQ_MODEL   = process.env.GROQ_MODEL || "meta-llama/llama-4-scout-17b-16e
 if (!GROQ_API_KEY) { console.error("❌  GROQ_API_KEY is not set. See .env.example."); process.exit(1); }
 if (!AGENT_TOKEN)  { console.error("❌  AGENT_TOKEN is not set. See .env.example.");  process.exit(1); }
 
+// Only disable TLS for self-signed certs (localhost / bare IP addresses).
+// Proper domains (e.g. DuckDNS + Let's Encrypt) keep TLS verification enabled,
+// protecting API keys sent to external services like Groq.
+const _h = new URL(API_BASE).hostname;
+if (_h === "localhost" || _h === "127.0.0.1" || /^\d+\.\d+\.\d+\.\d+$/.test(_h)) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+}
+
 // ── SDK ───────────────────────────────────────────────────────────────────────
 const require = createRequire(import.meta.url);
 let Groq;

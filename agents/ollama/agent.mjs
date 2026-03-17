@@ -50,6 +50,13 @@ const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "qwen2.5-32k";
 
 if (!AGENT_TOKEN) { console.error("❌  AGENT_TOKEN is not set. See .env.example."); process.exit(1); }
 
+// Only disable TLS for self-signed certs (localhost / bare IP addresses).
+// Proper domains (e.g. DuckDNS + Let's Encrypt) keep TLS verification enabled.
+const _h = new URL(API_BASE).hostname;
+if (_h === "localhost" || _h === "127.0.0.1" || /^\d+\.\d+\.\d+\.\d+$/.test(_h)) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+}
+
 // ── SDK ───────────────────────────────────────────────────────────────────────
 // Ollama exposes an OpenAI-compatible API — we use the openai package pointed at localhost.
 const require = createRequire(import.meta.url);

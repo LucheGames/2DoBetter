@@ -50,9 +50,11 @@ if (!AGENT_TOKEN) {
   process.exit(1);
 }
 
-// NODE_TLS_REJECT_UNAUTHORIZED=0 is set by npm scripts before Node starts.
-// Setting it here as a fallback for direct node invocation.
-if (!process.env.NODE_TLS_REJECT_UNAUTHORIZED) {
+// Only disable TLS for self-signed certs (localhost / bare IP addresses).
+// Proper domains (e.g. DuckDNS + Let's Encrypt) keep TLS verification enabled,
+// protecting API keys sent to external services like Gemini.
+const _h = new URL(API_BASE).hostname;
+if (_h === "localhost" || _h === "127.0.0.1" || /^\d+\.\d+\.\d+\.\d+$/.test(_h)) {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 }
 

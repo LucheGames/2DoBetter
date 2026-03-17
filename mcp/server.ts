@@ -5,9 +5,13 @@ import { z } from "zod";
 const API_BASE = process.env.API_BASE_URL || "https://localhost:3000";
 const AUTH_TOKEN = process.env.AUTH_TOKEN || "";
 
-// Disable TLS verification for self-signed/LAN certs.
-// Remove this line if API_BASE_URL uses a trusted cert (e.g. Let's Encrypt).
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+// Only disable TLS verification for self-signed certs (localhost / bare IP).
+// If using a proper domain with Let's Encrypt (e.g. DuckDNS), TLS stays enabled
+// so that connections to external services remain verified.
+const apiHost = new URL(API_BASE).hostname;
+if (apiHost === "localhost" || apiHost === "127.0.0.1" || /^\d+\.\d+\.\d+\.\d+$/.test(apiHost)) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+}
 
 async function api(path: string, options?: RequestInit) {
   const headers: Record<string, string> = {

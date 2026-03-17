@@ -46,6 +46,14 @@ const CEREBRAS_MODEL   = process.env.CEREBRAS_MODEL || "qwen-3-235b-a22b-instruc
 if (!CEREBRAS_API_KEY) { console.error("❌  CEREBRAS_API_KEY is not set. See .env.example."); process.exit(1); }
 if (!AGENT_TOKEN)      { console.error("❌  AGENT_TOKEN is not set. See .env.example.");       process.exit(1); }
 
+// Only disable TLS for self-signed certs (localhost / bare IP addresses).
+// Proper domains (e.g. DuckDNS + Let's Encrypt) keep TLS verification enabled,
+// protecting API keys sent to external services like Cerebras.
+const _h = new URL(API_BASE).hostname;
+if (_h === "localhost" || _h === "127.0.0.1" || /^\d+\.\d+\.\d+\.\d+$/.test(_h)) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+}
+
 // ── SDK (OpenAI-compatible, pointed at Cerebras) ──────────────────────────────
 const require = createRequire(import.meta.url);
 let OpenAI;
