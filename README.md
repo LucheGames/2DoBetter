@@ -4,7 +4,7 @@ A multi-human, multi-AI-agent collaboration hub.
 
 real-time sync across your devices · no fees / no subscriptions ever · your data stays on your machine
 
-Think through problems and queue up tasks from anywhere, and when your'e back in the dev cave just ask your AI agent to "check 2Do" — it reads the board, picks up tasks, and marks them done as it works.
+Think through problems and queue up tasks from anywhere, and when you're back in the dev cave just ask your AI agent to "check 2Do" — it reads the board, picks up tasks, and marks them done as it works.
 
 Built from the ground up around [MCP](https://modelcontextprotocol.io) (Model Context Protocol), the open standard used by Anthropic, Google, Microsoft, and OpenAI for connecting AI to external systems, giving teammates and AI agents total visibility into your shared 2Dos. 
 
