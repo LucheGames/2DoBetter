@@ -386,12 +386,17 @@ app.prepare().then(() => {
     });
 
     httpsServer.listen(port, '0.0.0.0', () => {
-      console.log(`\n  2 Do Better — HTTPS server ready\n`);
-      console.log(`  Local:    https://localhost:${port}`);
-      console.log(`  Network:  https://${hostname}:${port}`);
-      for (const { address } of lanAddresses) {
-        console.log(`  LAN IP:   https://${address}:${port}`);
-      }
+      const primaryAddr = lanAddresses[0]?.address || 'localhost';
+      const httpPort = port + 1;
+      console.log(`\n  ✓  2 Do Better is running!\n`);
+      console.log(`  ── First time on this device? ──────────────────────`);
+      console.log(`  STEP 1  Open this in your browser to install the cert:`);
+      console.log(`          http://${primaryAddr}:${httpPort}\n`);
+      console.log(`  STEP 2  Follow the on-screen instructions, then open:`);
+      console.log(`          https://${primaryAddr}:${port}`);
+      console.log(`  ────────────────────────────────────────────────────`);
+      console.log(`  Already set up? Go straight to:`);
+      console.log(`          https://${primaryAddr}:${port}\n`);
     });
 
     // HTTP server on port+1 for onboarding page, CA cert download + redirect
