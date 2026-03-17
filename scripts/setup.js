@@ -488,7 +488,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   }
 
   // ── [1/5] Identity & Access ──────────────────────────────────────
-  step(1, 4, 'Identity & Access');
+  step(1, 3, 'Identity & Access');
   info('Set up the first user — this will be your admin account.\n');
 
   const firstUsername = await ask('Username', existing.AUTH_USERNAME || os.userInfo().username);
@@ -524,7 +524,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   }
 
   // ── [2/4] Backups ────────────────────────────────────────────────
-  step(2, 4, 'Database Backups');
+  step(2, 3, 'Database Backups');
   info('Daily snapshots of your database will be saved automatically.');
   info(`Backup folder: ${path.join(ROOT, 'backups')}  (14-day retention)\n`);
   info('You can point backups to Google Drive or another cloud destination later');
@@ -533,7 +533,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   let effectiveDest = 'local';
 
   // ── [4/5] Encryption ─────────────────────────────────────────────
-  step(3, 4, 'Backup Encryption');
+  step(3, 3, 'Backup Encryption');
   let encrypt = false;
 
   if (effectiveDest !== 'none') {
@@ -549,6 +549,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
 
       console.log(`\n  ${C.bold}${C.yellow}⚠  SAVE THIS KEY IN YOUR PASSWORD MANAGER NOW${C.reset}`);
       console.log(`\n  ${C.bold}  ${key}  ${C.reset}\n`);
+      info(`(right-click → Copy to copy the key — Ctrl+C will exit the wizard)`);
       info(`Also written to: ${KEY_FILE}  (chmod 600)`);
       info('Lose this key = lose your backups. There is no recovery path.');
       await ask('Press Enter once the key is safely stored');
@@ -567,26 +568,6 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     }
   } else {
     info('Backups skipped. You can re-run this wizard any time to enable them.');
-  }
-
-  // ── [5/5] External Access ─────────────────────────────────────────
-  step(4, 4, 'External Access (Tailscale)');
-  info('Tailscale lets you reach 2Do Better from any device — no firewall ports needed.\n');
-
-  const tsInstalled = spawnSync('which', ['tailscale']).status === 0;
-  if (tsInstalled) {
-    const tsIp = spawnSync('tailscale', ['ip', '-4']).stdout?.toString().trim();
-    ok(`Tailscale is installed. Your Tailscale IP: ${tsIp || 'unknown'}`);
-    if (tsIp) {
-      const port = existing.PORT || '3000';
-      info(`Access from other Tailscale devices: https://${tsIp}:${port}`);
-      info(`Set APP_DOMAIN=${tsIp} in .env.local for accurate cert generation.`);
-    }
-  } else {
-    info('Tailscale is not installed on this machine.');
-    info('  Install:  https://tailscale.com/download');
-    info('  Enable:   sudo tailscale up');
-    info('  Then set APP_DOMAIN=<tailscale-ip> in .env.local and restart.');
   }
 
   // ── Generate TLS certs (if missing) ──────────────────────────────
@@ -616,11 +597,11 @@ ${C.bold}${C.green}  ✓ Setup complete!${C.reset}
   Users     :
 ${userList}
   Backups   : ${C.bold}${path.join(ROOT, 'backups')}${encrypt ? ' — AES-256 encrypted' : ''}${C.reset}
-  Tailscale : ${C.bold}${tsInstalled ? 'installed' : 'not installed'}${C.reset}
-  Invites   : ${C.dim}generate 6-digit codes from the ⚙ admin panel${C.reset}
 
-  ${C.bold}Add teammates:${C.reset}  ⚙ admin panel → Generate setup code → share 6-digit code
-  ${C.bold}Add AI agents:${C.reset}  ⚙ admin panel → + Agent → copy token → follow agent README
+  ${C.bold}Next steps:${C.reset}
+    • Add teammates  — ⚙ admin panel → Generate setup code
+    • Add AI agents  — ⚙ admin panel → + Agent
+    • Remote access  — install Tailscale + DuckDNS (see README)
 
   ${C.bold}${isDocker() ? 'Restart the container (run this on your host machine):' : 'Start the server:'}${C.reset}
     ${restartCmd}
