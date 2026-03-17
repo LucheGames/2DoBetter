@@ -9,18 +9,20 @@ import {
 
 const USERS_FILE = path.join(process.cwd(), 'data', 'users.json');
 
-// ── Simple in-memory rate limiter ─────────────────────────────────────────────
-// 10 attempts per IP per 15 minutes. Resets on server restart (acceptable for
-// a self-hosted app — persistent storage would be overkill here).
+// ── In-memory rate limiters ───────────────────────────────────────────────────
+// Two layers: per-IP (10 attempts / 15 min) AND per-username (10 attempts / 15 min).
+// Per-IP prevents wide spraying; per-username prevents targeting a single account
+// from multiple IPs. Both reset on server restart (acceptable for self-hosted).
 const RATE_WINDOW_MS = 15 * 60 * 1000;
 const RATE_MAX       = 10;
-const loginAttempts  = new Map<string, { count: number; resetAt: number }>();
+const ipAttempts       = new Map<string, { count: number; resetAt: number }>();
+const usernameAttempts = new Map<string, { count: number; resetAt: number }>();
 
-function checkRateLimit(ip: string): boolean {
+function checkRateLimit(key: string, store: Map<string, { count: number; resetAt: number }>): boolean {
   const now   = Date.now();
-  const entry = loginAttempts.get(ip);
+  const entry = store.get(key);
   if (!entry || now > entry.resetAt) {
-    loginAttempts.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    store.set(key, { count: 1, resetAt: now + RATE_WINDOW_MS });
     return true;
   }
   if (entry.count >= RATE_MAX) return false;
@@ -32,13 +34,22 @@ export async function POST(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
           ?? req.headers.get('x-real-ip')
           ?? 'unknown';
-  if (!checkRateLimit(ip)) {
+  if (!checkRateLimit(ip, ipAttempts)) {
     return NextResponse.json(
       { error: 'Too many login attempts — try again in 15 minutes.' },
       { status: 429 }
     );
   }
   const { username, token } = await req.json();
+
+  // Per-username rate limit — prevents targeting a single account from many IPs
+  const normUsername = String(username ?? '').toLowerCase().trim();
+  if (normUsername && !checkRateLimit(`user:${normUsername}`, usernameAttempts)) {
+    return NextResponse.json(
+      { error: 'Too many login attempts for this account — try again in 15 minutes.' },
+      { status: 429 }
+    );
+  }
 
   // ── Multi-user mode ────────────────────────────────────────────────────────
   const usersFileExists = fs.existsSync(USERS_FILE);

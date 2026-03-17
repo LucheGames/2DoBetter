@@ -65,7 +65,13 @@ export function proxy(request: NextRequest) {
       // Inject authenticated username for API routes to consume
       const headers = new Headers(request.headers);
       headers.set('x-auth-user', user.username);
-      return NextResponse.next({ request: { headers } });
+      const response = NextResponse.next({ request: { headers } });
+      // Prevent browsers and service workers from caching authenticated pages.
+      // Without this, a cached board page could be served to unauthenticated users.
+      if (!pathname.startsWith('/api/') && !pathname.startsWith('/_next/')) {
+        response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+      }
+      return response;
     }
 
     // Token not found in users list
