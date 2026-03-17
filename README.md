@@ -4,127 +4,111 @@ A multi-human, multi-AI-agent collaboration hub.
 
 real-time sync across your devices · no fees / no subscriptions ever · your data stays on your machine
 
-We are entering a new era of human machine colaboration, where the new bottleneck to development is not implemmentation but the speed at which we can articulate our ideas. 2Do Better unlocks your productivity by allowing you to to think through problems and solutions from anywhere, cue up tasks on your mobile device, and when your are back in your dev cave simply ask your agent to "check 2Do" — it reads the board, picks up tasks, and marks them done as it works. 
+Think through problems on your phone, queue up tasks from anywhere, and when you sit down to work just ask your AI agent to "check 2Do" — it reads the board, picks up tasks, and marks them done as it works.
 
-2Do Better was designed to give agents total visibility into your projects, built from the ground up around MCP (Model Context Protocol), an open-source common standard used by Anthropic, Google, Microsoft, and OpenAI for connecting AI applications to external systems. 2Do better's design philosophy is: total visability, allowning your team to see, add, and implement ideas at maximum speed.
-
+Built from the ground up around [MCP](https://modelcontextprotocol.io) (Model Context Protocol), the open standard used by Anthropic, Google, Microsoft, and OpenAI for connecting AI to external systems. Every human and every agent sees the same board in real time.
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Support-Buy%20me%20a%20coffee-yellow?logo=buy-me-a-coffee)](https://www.buymeacoffee.com/luchegames)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
 
-## Common prerequisites
+## Features
 
-You'll need a few standard tools before you start:
+- **Multi-user** — each person gets a column; everyone sees the full board
+- **AI agents** — connect Claude, Gemini, Groq, or any MCP-compatible agent
+- **Real-time sync** — changes appear on every device in ~1 second (SSE push)
+- **PWA** — installs on iOS, Android, and desktop like a native app
+- **Lane Mode** — lock columns so only the owner can edit them
+- **Per-user access** — Full / Own column / Read only
+- **Project Graveyard** — soft-delete lists; restore or purge later
+- **Encrypted backups** — daily cron, AES-256
+- **In-app admin panel** — user management, invites, agent tokens
 
-| Tool | What it's for | How to get it |
-|------|--------------|---------------|
-| **Terminal** | Running commands | Built into Linux and macOS · Windows: search for **cmd** or **PowerShell** in the Start menu |
-| **git** | Downloading the app | Usually pre-installed — check with `git --version` · if missing: `sudo apt install git` (Linux) · [git-scm.com](https://git-scm.com/downloads) (macOS/Windows) |
-| **curl** | Running install scripts | Usually pre-installed — check with `curl --version` · if missing: `sudo apt install curl` |
+---
 
-Before running any commands, navigate to where you want to install the app:
+## Who are you?
+
+| Role | What you need to do | Jump to |
+|------|-------------------|---------|
+| **Admin** | Set up the server, invite users and agents | [Admin Setup](#admin-setup) |
+| **Teammate** | Join an existing board (no terminal needed) | [Teammate Setup](#teammate-setup) |
+| **AI Agent** | Connect Claude / Gemini / Groq to a board | [AI Agent Setup](#ai-agent-setup) |
+
+---
+
+## Admin Setup
+
+One person sets up a server. Everyone else connects to it with a browser.
+
+### Prerequisites
+
+| Tool | How to get it |
+|------|---------------|
+| **git** | Usually pre-installed — `git --version` to check. If missing: `sudo apt install git` (Linux) or [git-scm.com](https://git-scm.com/downloads) (macOS/Windows) |
+| **curl** | Usually pre-installed — `sudo apt install curl` if missing |
+
 ```bash
-cd ~/Documents    # or wherever you keep your projects
+cd ~/Documents    # or wherever you keep projects
 ```
 
----
+### Choose an install method
 
-## Setup
-
-| Role | What you do | Go to |
-|------|------------|-------|
-| **Admin** | Set up the board, invites / manage users and agents | [Admin Setup ↓](#️-admin-setup) |
-| **Teammate** | Join an existing board | [Human Client Setup ↓](#-human-client-setup) |
-| **AI Agent** | Connect Claude / Copilot / etc. to a board | [AI Agent Setup ↓](#-ai-agent-setup) |
-
----
-
-## 🖥️ Admin Setup
-
-> **One person does sets up a server .** Everyone else joins this server as a client.
-
-**Choose your install method:**
-
-| | Option A — Docker | Option B — Node.js direct |
+| | Docker *(recommended)* | Node.js direct |
 |---|---|---|
-| **Best for** | Most users, always-on servers | Developers, or if Docker isn't available |
-| **Requires** | Docker (bundles Node.js — nothing else) | Node.js 20+ installed separately |
+| **Best for** | Most users, always-on servers | Developers, or if Docker is unavailable |
+| **Requires** | Docker only (bundles Node.js) | Node.js 20+ |
 
 ---
 
-### Option A — Docker *(recommended)*
+### Docker install
 
-Docker bundles Node.js and the app into a sealed container — **no separate Node.js install needed.** Your data (DB, users, certs) lives outside and survives rebuilds.
+**1. Install Docker**
 
-**1. Install prerequisites**
-
-Linux Mint / Ubuntu:
+Linux:
 ```bash
-sudo apt install -y git curl               # usually pre-installed — safe to re-run
+sudo apt install -y git curl
 curl -fsSL https://get.docker.com | sh
 sudo usermod -aG docker $USER
-newgrp docker                              # activates Docker group immediately — or log out and back in
+newgrp docker    # apply group now — or log out and back in
 ```
-> ⚠️ If you see **"permission denied while trying to connect to the Docker daemon"** it means the group change hasn't taken effect yet. Run `newgrp docker` in your terminal, or log out and back into your desktop session, then continue.
 
-macOS / Windows: install [Docker Desktop](https://docs.docker.com/get-docker/) (includes Docker Compose). Git for macOS comes with Xcode Command Line Tools — run `git` in the terminal and follow the prompt.
+macOS / Windows: install [Docker Desktop](https://docs.docker.com/get-docker/).
 
-**2. Clone and start:**
+> If you see *"permission denied"* on any `docker` command, run `newgrp docker` or log out and back in.
 
-> No GitHub account needed — the repo is public. If git asks for a username or password, press **Ctrl+C** and use this instead:
-> ```bash
-> git clone --config credential.helper= https://github.com/LucheGames/2DoBetter.git
-> ```
+**2. Clone and start**
 
 ```bash
 git clone https://github.com/LucheGames/2DoBetter.git
 cd 2DoBetter
-mkdir -p data certs prisma                             # pre-create so Docker doesn't own them as root
-docker compose build                                   # ~2–3 min — terminal returns when done
-docker compose up -d                                   # -d runs in background, keeps terminal free
-docker exec -it 2dobetter node scripts/setup.js       # first-run wizard: DB migration, certs, user setup
-docker compose restart                                 # picks up wizard config
+mkdir -p data certs prisma
+docker compose build
+docker compose up -d
+docker exec -it 2dobetter node scripts/setup.js    # first-run wizard
+docker compose restart
 ```
 
-Open `https://localhost:3000`.
+> If git asks for a username/password, press **Ctrl+C** and use:
+> `git clone --config credential.helper= https://github.com/LucheGames/2DoBetter.git`
+
+Open `https://localhost:3000` and log in.
 
 **Updating:**
 ```bash
-git pull && docker compose up -d --build              # pull latest + rebuild image — your data is untouched
-docker compose logs -f                                # live logs
-docker exec -it 2dobetter node scripts/admin.js status
+git pull && docker compose up -d --build
 ```
 
-Data that persists between rebuilds (volume-mounted): `./data/` · `./prisma/` (SQLite DB) · `./certs/`
-
-> **Linux: `sudo` may be required** — if you see *"permission denied"* on any `docker` command, prefix it with `sudo`. This happens until the `docker` group change takes effect (see step 1). All `docker exec` commands below may need `sudo` on Linux Mint / Ubuntu.
-
-**Troubleshooting — locked out / forgot password:**
+**Locked out?**
 ```bash
-# Find the running container name or ID
-sudo docker ps
-
-# List all usernames
-sudo docker exec -it <container_id> node scripts/admin.js list-users
-
-# Reset a user's password (interactive prompt)
-sudo docker exec -it <container_id> node scripts/admin.js reset-password <username>
+docker exec -it 2dobetter node scripts/admin.js reset-password <username>
 ```
-
-**Changing the port** (if 3000 is already in use on your machine):
-1. Edit `docker-compose.yml` — change both `"3000:3000"` → `"4000:4000"` and `"3001:3001"` → `"4001:4001"`
-2. Edit `.env.local` — add `PORT=4000`
-3. `docker compose up -d --build`
-
-The setup wizard will also remind you of this if you choose a non-default port during first-run setup.
 
 ---
 
-### Option B — Node.js direct
+### Node.js install
 
-**1. Install Node.js 20+** via [nvm](https://github.com/nvm-sh/nvm) (Linux / macOS):
+**1. Install Node.js 20+** via [nvm](https://github.com/nvm-sh/nvm):
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash
 ```
@@ -134,211 +118,180 @@ nvm install 20
 ```
 Windows: use [nvm-windows](https://github.com/coreybutler/nvm-windows).
 
-**2. Clone and start:**
-
-> No GitHub account needed — the repo is public. If git asks for a username or password, press **Ctrl+C** and use this instead:
-> ```bash
-> git clone --config credential.helper= https://github.com/LucheGames/2DoBetter.git
-> ```
-
+**2. Clone and start**
 ```bash
 git clone https://github.com/LucheGames/2DoBetter.git
 cd 2DoBetter
 npm install
-npm run setup    # wizard: DB migration, TLS certs, user setup, .env.local
-npm run build    # compile Next.js (~2–3 min first time)
+npm run setup       # wizard: DB, certs, admin account
+npm run build       # ~2-3 min first time
 npm start
 ```
 
-Open `https://localhost:3000`. Accept the cert warning on first visit, or [install the CA cert](#install-ca-cert) to remove it permanently.
+Open `https://localhost:3000`. You will see a certificate warning on first visit — this is normal ([see below](#certificate-warnings)).
+
+**Updating:**
+```bash
+git pull && npm run build && npm run restart
+```
 
 ---
 
 ### After first run
 
-- **Add users** — ⚙ gear icon → admin panel → Generate setup code. Give the 6-digit code to the new user — they enter it on the sign-in page, set their username and password, then log in.
-- **Remote access** — set up [Tailscale](#remote-access) on the server; clients join your tailnet.
-- **Auto-start** — [run as a background service](#background-service).
-- **Remove cert warnings** — [install the CA cert](#install-ca-cert) on each device.
+Once the server is running, these are your next steps in order:
+
+#### 1. Set up remote access (recommended)
+
+By default the board is only reachable on the server itself. To access it from phones, laptops, and other devices — even outside your home network — set up Tailscale + DuckDNS. This also eliminates certificate warnings on all devices.
+
+**Tailscale** — a free mesh VPN. Every device that installs it can reach your server, from anywhere, with no port forwarding.
+
+On the server:
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up
+tailscale ip -4    # note this IP
+```
+
+On every client device: install from [tailscale.com/download](https://tailscale.com/download) and join the same account.
+
+**DuckDNS** — gives you a free hostname (e.g. `yourname.duckdns.org`) that always points to your server. This enables a real Let's Encrypt certificate, removing browser warnings on every device.
+
+1. Go to [duckdns.org](https://duckdns.org), sign in, create a subdomain
+2. Point it at your Tailscale IP
+3. Keep it updated automatically — add to `crontab -e` on the server:
+   ```
+   */5 * * * * curl -s "https://www.duckdns.org/update?domains=YOURNAME&token=YOURTOKEN&ip=$(tailscale ip -4)" > /dev/null
+   ```
+4. Re-run the setup wizard to issue a Let's Encrypt certificate for your domain:
+   ```bash
+   npm run setup          # Node.js
+   docker exec -it 2dobetter node scripts/setup.js   # Docker
+   ```
+
+After this, all devices connect via `https://yourname.duckdns.org:3000` with a valid certificate — no warnings, no manual cert installs.
+
+#### 2. Invite users
+
+Open the ⚙ gear icon (top-right) → **Generate setup code**. Give the 6-digit code to the new user. They enter it on the sign-in page, pick a username and password, and they are in.
+
+Codes expire after 10 minutes.
+
+#### 3. Run as a background service
+
+```bash
+npm run service:install    # auto-detects macOS (launchd) or Linux (systemd)
+```
+
+#### 4. Connect AI agents
+
+See [AI Agent Setup](#ai-agent-setup) below.
 
 ---
 
-## 📱 Human Client Setup
+### Certificate warnings
 
-No Node.js, no git, no terminal.
+**If you set up DuckDNS + Let's Encrypt above, you can skip this section entirely.** All devices will have a valid certificate.
 
-1. **Get the server address** — ask the admin. On the same Wi-Fi as the server? Use the LAN IP (e.g. `https://192.168.x.x:3000`). Connecting remotely? You need the Tailscale IP or DuckDNS domain instead — [see Remote access](#remote-access).
-2. **Setup code** — the admin generates a 6-digit code from the ⚙ gear menu (10-minute lifespan). Enter it on the sign-in page → choose username + password → sign in.
-3. **Install as PWA** — iOS: Share → Add to Home Screen · Android: browser menu → Install app · Desktop: install icon in address bar.
+If you are using the self-signed certificate (LAN-only or Tailscale IP without DuckDNS), browsers will show a security warning on first visit. This is safe — the certificate was generated for your private server.
 
-> **Tailscale** — only needed for access outside the home/office network. [Download](https://tailscale.com/download) and join the server admin's tailnet.
+**Quick bypass (all browsers):** click Advanced → Proceed / Accept Risk.
+
+**Permanent fix — install the CA certificate:**
+
+Download the CA cert by opening this URL on the device:
+- Same machine: `http://localhost:3001/ca.crt`
+- Other device: `http://YOUR-SERVER-IP:3001/ca.crt`
+
+Then install it:
+
+| Platform | Steps |
+|----------|-------|
+| **Chrome / Edge** | Settings → Privacy and security → Security → Manage certificates → Authorities → Import → select `.crt` → trust for websites |
+| **Firefox** | Settings → Privacy & Security → Certificates → View Certificates → Authorities → Import → tick "Trust this CA to identify websites" |
+| **macOS** | Double-click `.crt` → Keychain opens → find "2DoBetter Local CA" → Trust → Always Trust |
+| **Android** | Open the URL in Chrome → download → open notification to install → name it anything |
+| **iOS** | Open the URL in Safari → Allow → Settings → Profile Downloaded → Install → then Settings → General → About → Certificate Trust Settings → enable the CA |
 
 ---
 
-## 🤖 AI Agent Setup
+## Teammate Setup
 
-Multiple AI agents can connect to your board. Generate an agent token from the **+ Agent** button in the header, then follow the setup guide for your agent:
+No terminal, no git, no Node.js required.
 
-| Agent | Model | Free tier | RPM | Guide |
-|-------|-------|-----------|-----|-------|
-| **Claude** (MCP) | Claude 3.5+ | Requires API key | — | [agents/claude/](agents/claude/) |
-| **Gemini** | Gemini 2.5 Flash | ✅ No card needed | 5 | [agents/gemini/](agents/gemini/) |
-| **Groq** | Llama 4 | ✅ No card needed | 30 | [agents/groq/](agents/groq/) |
-
-All agents use the same REST API — see [`openapi.yaml`](openapi.yaml) for the full reference.
+1. **Install Tailscale** — download from [tailscale.com/download](https://tailscale.com/download) and join the same account as the server admin. Skip this if you are on the same Wi-Fi as the server.
+2. **Get the board URL** — ask the admin (e.g. `https://yourname.duckdns.org:3000`). On the same Wi-Fi without Tailscale? Use the LAN IP: `https://192.168.x.x:3000`.
+3. **Enter your setup code** — the admin gives you a 6-digit code. Enter it on the sign-in page, pick a username and password, done.
+4. **Install as an app** — iOS: Share → Add to Home Screen. Android: browser menu → Install app. Desktop: install icon in address bar.
 
 ---
 
-## ⚙️ Admin Reference
+## AI Agent Setup
 
-In-app admin panel: **⚙ gear icon** (top-right). The panel covers all common operations — user management, invites, password resets, agent tokens, and removing users.
+Multiple AI agents can connect to your board simultaneously. Each agent gets its own column.
 
-The CLI is a fallback for scripting or SSH access.
+**Create an agent:** ⚙ gear icon → **+ Agent** → copy the token shown.
+
+| Agent | Model | Free tier | Guide |
+|-------|-------|-----------|-------|
+| **Claude** (MCP) | Claude 3.5+ | Requires API key | [agents/claude/](agents/claude/) |
+| **Gemini** | Gemini 2.5 Flash | No card needed | [agents/gemini/](agents/gemini/) |
+| **Groq** | Llama 4 Scout | No card needed | [agents/groq/](agents/groq/) |
+| **Cerebras** | Qwen 3 235B | No card needed | [agents/cerebras/](agents/cerebras/) |
+| **Ollama** | Any local model | Runs locally | [agents/ollama/](agents/ollama/) |
+
+All agents use the same REST API — see [`openapi.yaml`](openapi.yaml) for the full spec.
+
+---
+
+## Admin Reference
+
+The in-app admin panel (⚙ gear icon, top-right) handles most operations: user management, invites, password resets, agent tokens, and purging completed tasks.
+
+The CLI is available for scripting or SSH access.
 
 ### CLI commands
 
-> **Docker users:** `npm run` commands don't work inside the container. Use `docker exec` instead:
+> **Docker:** prefix with `docker exec -it 2dobetter` instead of `npm run`:
 > ```bash
-> # General pattern
-> docker exec -it 2dobetter node scripts/admin.js <command>
->
-> # Examples
 > docker exec -it 2dobetter node scripts/admin.js status
-> docker exec -it 2dobetter node scripts/admin.js list-users
 > docker exec -it 2dobetter node scripts/admin.js reset-password <username>
 > ```
 
 | Command | What it does |
 |---------|-------------|
-| `npm run status` | Service state, users, task counts, DB size, last backup |
+| `npm run status` | Service state, users, task counts, DB size |
 | `npm run list-users` | All users with access level and type |
-| `npm run context` | Git + status + active invites |
 | `npm run admin` | Full command list |
-| — | — |
+| | |
 | `npm run add-user` | Add a user interactively |
-| `npm run remove-user [name]` | Remove user — column renamed to "Shared" |
-| `npm run remove-user [name] delete` | Remove user + delete their column and all tasks |
+| `npm run remove-user [name]` | Remove user (column becomes "Shared") |
+| `npm run remove-user [name] delete` | Remove user + delete column and tasks |
 | `npm run reset-password [name]` | Reset password |
-| `npm run rename-user [old] [new]` | Rename user and their column |
-| `npm run set-access [name] [full\|own\|readonly]` | Set access level (see below) |
-| `npm run set-type [name] [human\|agent]` | Set display type |
-| `npm run gen-invite` | Generate invite — prompts for expiry, access, type |
-| `npm run gen-agent-token [username]` | Generate/rotate permanent MCP token |
-| — | — |
+| `npm run rename-user [old] [new]` | Rename user and column |
+| `npm run gen-invite` | Generate invite code |
+| `npm run gen-agent-token [name]` | Generate/rotate agent token |
+| | |
 | `npm run purge-completed` | Delete completed tasks (all or older than N days) |
-| `npm run purge-graveyard` | Permanently delete archived lists |
 | `npm run export-data [file]` | Export board to JSON |
-| `npm run import-data <file>` | Import from JSON — **replaces all data** |
-| — | — |
-| `npm run restart` | Restart the server |
-| `npm run service:install` | Install auto-start service |
+| `npm run import-data <file>` | Import from JSON (**replaces all data**) |
+| | |
+| `npm run restart` | Restart server |
+| `npm run service:install` | Install as auto-start service |
 | `npm run service:uninstall` | Remove auto-start service |
-| `npm run uninstall` | Full removal — deletes all app data from this machine |
+| `npm run uninstall` | Full removal |
 
-**Access levels:** `full` = read/write everywhere · `own` = read everywhere, write only own column · `readonly` = no writes. Human users default to `own`. Monitor agents should be `readonly`.
+### Access levels
 
-**Lane mode:** Admin can lock any column (🔒 icon) — only the column owner can then edit it. Anyone can still read and push tasks to a locked column. Lock your column before assigning an agent write access to the board.
+| Level | Permissions |
+|-------|------------|
+| **full** | Read/write all columns |
+| **own** | Read all, write only own column (default for humans) |
+| **readonly** | Read only — good for monitor agents |
 
----
+### Lane Mode
 
-### Remote access
-
-The app works immediately on your local Wi-Fi using the LAN IP shown on the setup page (`http://server-ip:3001`). To reach your board from anywhere:
-
-**Step 1 — Tailscale (free mesh VPN)**
-
-Install Tailscale on the server and on every device that needs remote access. They share a private network — no port forwarding, no public internet exposure.
-
-```bash
-curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up
-tailscale ip -4    # use this to connect: https://<tailscale-ip>:3000
-```
-
-Clients install Tailscale from [tailscale.com/download](https://tailscale.com/download) and join your tailnet. The board is then reachable from any location.
-
-**Step 2 — DuckDNS hostname (optional but recommended)**
-
-A Tailscale IP works but isn't memorable and can change. [DuckDNS](https://duckdns.org) gives you a free subdomain (`yourname.duckdns.org`) that always points at your server's current Tailscale IP. It also enables a proper Let's Encrypt certificate — no browser security warnings on any device.
-
-Add to server `crontab -e` to keep the DNS record current:
-```
-*/5 * * * * curl -s "https://www.duckdns.org/update?domains=YOURNAME&token=YOURTOKEN&ip=$(tailscale ip -4)" > /dev/null
-```
-
-After setting up the domain, re-run `npm run setup` to issue a Let's Encrypt certificate for it.
-
----
-
-### Browser cert warning
-
-When you first open the app you'll see a security warning. **This is normal and safe** — your browser doesn't recognise your self-signed certificate yet. The cert was generated for your private server; no one else can use it.
-
----
-
-#### Step 1 — Find your server's IP address
-
-You'll need this to connect from phones and other devices on the same network.
-
-On the server machine, run:
-```bash
-hostname -I       # Linux / Mac
-ipconfig          # Windows — look for IPv4 Address
-```
-Use that IP (e.g. `192.168.1.42`) wherever you see `YOUR-SERVER-IP` below.
-
----
-
-#### Step 2 — Install the CA cert (removes warnings forever)
-
-Download the CA cert from the server — open this URL on the device you want to trust it on:
-
-| Device | URL |
-|--------|-----|
-| Same machine as server | `http://localhost:3001/ca.crt` |
-| Phone / other device | `http://YOUR-SERVER-IP:3001/ca.crt` |
-
-Then follow the steps for your browser or device:
-
-**Firefox (desktop) — required, Advanced button does nothing without this**
-1. Download the file above
-2. Firefox menu → Settings → Privacy & Security → scroll to **Certificates** → click **View Certificates**
-3. **Authorities** tab → **Import** → select the downloaded `.crt` file
-4. Tick **"Trust this CA to identify websites"** → OK
-5. Reload `https://localhost:3000` — no more warning
-
-**Chrome / Brave / Edge (desktop)**
-One-time bypass (no install needed): click **Advanced** → **Proceed to [address] (unsafe)**
-
-Permanent fix (no warning ever again):
-- **Windows/Linux:** Settings → Privacy and security → Security → **Manage certificates** → Authorities → Import → select the `.crt` file → trust for websites
-- **Mac:** double-click the downloaded `.crt` → Keychain opens → find "2DoBetter Local CA" → double-click → Trust → set "When using this certificate" to **Always Trust**
-
-**Android (Samsung / Chrome mobile)**
-1. In Chrome on the phone, open `http://YOUR-SERVER-IP:3001/ca.crt`
-2. It will download — open the notification to install it
-3. Name it anything (e.g. `2DoBetter`) → OK
-4. If Chrome still warns: Settings → Security → Encryption & credentials → Trusted credentials → User tab — confirm it's listed
-5. Open `https://YOUR-SERVER-IP:3000` in Chrome
-
-> **Samsung Internet browser** has its own cert store. Use Chrome on Android for the smoothest experience.
-
-**iOS (Safari)**
-1. On the iPhone, open `http://YOUR-SERVER-IP:3001/ca.crt`
-2. Safari prompts to download — tap Allow
-3. Go to **Settings** → **Profile Downloaded** → **Install** (top right) → enter passcode → Install again
-4. Then go to **Settings** → **General** → **About** → **Certificate Trust Settings** → toggle on the 2DoBetter CA
-5. Open `https://YOUR-SERVER-IP:3000` in Safari
-
----
-
-### Background service
-
-```bash
-npm run service:install          # macOS (launchd) and Linux (systemd) — installs and starts
-journalctl --user -u 2dobetter -f   # Linux — live logs
-```
-
----
+Lock any column with the lock icon — only the column owner can then edit it. Others can still read it and push tasks to it. Useful for giving an AI agent write access to the board without it touching your column.
 
 ### Backup & recovery
 
@@ -352,56 +305,30 @@ systemctl --user stop 2dobetter
 cp restored.db ~/2DoBetter/prisma/dev.db
 systemctl --user start 2dobetter
 
-# Portable JSON backup (easier for migrations):
+# Portable JSON backup:
 npm run export-data backup.json
-npm run import-data backup.json    # replaces all current data
+npm run import-data backup.json
 ```
 
 ---
 
-### Deploying updates
-
-```bash
-git pull && npm run build && npm run restart    # UI/API changes
-git pull && npm run restart                     # CLI/docs changes only
-```
-
----
-
-## 🔐 Security
+## Security
 
 | Layer | How |
 |-------|-----|
-| Transport | HTTPS everywhere — self-signed cert by default |
-| Passwords | bcrypt-hashed; plaintext never written |
+| Transport | HTTPS everywhere — Let's Encrypt or self-signed |
+| Passwords | bcrypt-hashed; plaintext never stored |
 | Sessions | Random 64-char token; secure cookie |
-| Agent tokens | Separate from sessions; rotate any time from admin panel |
-| API auth | Every request validated before reaching any route handler |
+| Agent tokens | Separate from sessions; rotate from admin panel |
+| API auth | Every request validated before reaching route handlers |
 | Lane mode | Column locks and access flags enforced server-side |
-| Rate limiting | 20 writes/minute per user — throttles runaway agents |
-| Input validation | Parameterised queries — no raw SQL |
-| SQLite backups | Encrypted at rest |
+| Rate limiting | Per-user and per-IP rate limits on login and writes |
+| Input validation | Parameterised queries (no raw SQL); length limits on all inputs |
+| Backups | Encrypted at rest (AES-256) |
 
-**Security Pitfalls:**
-- `users.json` tokens are plaintext at rest — `chmod 600` it and encrypt the disk (LUKS / FileVault).
-- The SQLite DB on server contains all task content in plaintext.
-- All board information is visible to every user — don't store secrets, passwords or API keys.
-
----
-
-## Features
-
-- Multi-user — each person gets a column; everyone sees the full board
-- AI agent reads and writes via MCP — ask it to "check 2Do" and it picks up tasks
-- Real-time sync — changes appear on every device in ~1 second
-- PWA — Progressive Web App client installs on iOS, Android, and desktop
-- Project Graveyard — soft-delete lists; restore or purge later
-- (Stay In Your) Lane Mode — admin can lock columns so only the owner can edit
-- Per-user access control — Full / Own column / Read only
-- In-app admin panel — user management, invite links, agent tokens
-- Task attribution — tasks pushed to another column show who created them
-- Rate limiting — 20 writes/minute per user
-- Encrypted backups — daily cron, AES-256
+**Things to know:**
+- `users.json` tokens are plaintext at rest — run `chmod 600` on it and use disk encryption (LUKS / FileVault).
+- All board content is visible to every logged-in user — do not store secrets or API keys as tasks.
 
 ---
 
@@ -409,12 +336,13 @@ git pull && npm run restart                     # CLI/docs changes only
 
 | Layer | What |
 |-------|------|
-| Next.js | Web framework — UI and API routes in one codebase |
-| SQLite | Database — a single file on disk, no separate server needed |
-| Node.js / server.js | Custom server — adds real-time push (SSE) on top of Next.js |
+| Next.js 16 | Web framework — UI and API in one codebase |
+| SQLite + Prisma | Database — single file, no separate server |
+| Node.js / server.js | Custom HTTPS server with SSE for real-time push |
 | Tailscale | Private VPN — board reachable only by invited devices |
-| PWA | Makes 2Do installable on any device |
-| MCP | Plugin protocol for AI agent access |
+| Let's Encrypt | Free TLS certificates via DuckDNS |
+| PWA | Installable on any device |
+| MCP | Open protocol for AI agent access |
 
 ---
 
