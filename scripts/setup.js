@@ -82,9 +82,12 @@ function askSecret(label) {
 async function askChoice(question, choices) {
   console.log(`  ${question}`);
   choices.forEach((c, i) => console.log(`    ${i + 1}) ${c}`));
-  const a = await ask(`Choice [1–${choices.length}]`, '1');
-  const n = parseInt(a, 10);
-  return (n >= 1 && n <= choices.length) ? n - 1 : 0;
+  while (true) {
+    const a = await ask(`Choice [1–${choices.length}]`);
+    const n = parseInt(a, 10);
+    if (n >= 1 && n <= choices.length) return n - 1;
+    console.log(`  ${C.yellow}Please enter a number between 1 and ${choices.length}.${C.reset}`);
+  }
 }
 
 // ── .env parser / writer ──────────────────────────────────────────────────────
