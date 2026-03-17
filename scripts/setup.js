@@ -499,28 +499,24 @@ ${C.bold}${C.cyan}  ╔═══════════════════
 
   users.push({ username: firstUsername, hash: await bcrypt.hash(firstToken, 12), isAdmin: true });
 
-  // Ask about additional users
+  // Ask about additional human users
   while (true) {
     console.log('');
     const addChoice = await askChoice(
-      'Add another account?',
-      ['Add human user', 'Add AI agent', 'Skip for now (users can be added later)']
+      'Add a teammate account?',
+      ['Add human user', 'Done (add more users later from the admin panel)']
     );
-    if (addChoice === 2) break;
+    if (addChoice === 1) break;
 
-    const isAgent = addChoice === 1;
-    console.log('');
-    const uname = await ask(isAgent ? 'Agent username' : 'Username');
+    const uname = await ask('Username');
     if (!uname) { warn('Username cannot be empty — skipping.'); continue; }
     if (users.some(u => u.username.toLowerCase() === uname.toLowerCase())) {
       warn(`User "${uname}" already exists — skipping.`);
       continue;
     }
     const tok = await collectToken();
-    const userObj = { username: uname, hash: await bcrypt.hash(tok, 12) };
-    if (isAgent) userObj.isAgent = true;
-    users.push(userObj);
-    ok(`${isAgent ? 'AI agent' : 'Human user'} "${uname}" added.`);
+    users.push({ username: uname, hash: await bcrypt.hash(tok, 12) });
+    ok(`User "${uname}" added.`);
   }
 
   if (users.length > 1) {
@@ -623,8 +619,8 @@ ${userList}
   Tailscale : ${C.bold}${tsInstalled ? 'installed' : 'not installed'}${C.reset}
   Invites   : ${C.dim}generate 6-digit codes from the ⚙ admin panel${C.reset}
 
-  ${C.bold}Add more users (CLI):${C.reset}
-    npm run setup add-user
+  ${C.bold}Add teammates:${C.reset}  ⚙ admin panel → Generate setup code → share 6-digit code
+  ${C.bold}Add AI agents:${C.reset}  ⚙ admin panel → + Agent → copy token → follow agent README
 
   ${C.bold}${isDocker() ? 'Restart the container (run this on your host machine):' : 'Start the server:'}${C.reset}
     ${restartCmd}
