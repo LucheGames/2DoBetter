@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
 
+// Disable Next.js telemetry unconditionally — this is a self-hosted app
+process.env.NEXT_TELEMETRY_DISABLED = "1";
+
 const nextConfig: NextConfig = {
   async headers() {
     return [
