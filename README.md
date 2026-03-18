@@ -175,14 +175,16 @@ curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up
 tailscale ip -4    # note this IP — e.g. 100.x.x.x
 ```
 
-**Step 2 — Install Tailscale on every client device:** download from [tailscale.com/download](https://tailscale.com/download) (iOS, Android, Mac, Windows, Linux) and sign in to the same Tailscale account.
+**Step 2 — Create a free Tailscale account:** the `tailscale up` command above will print a URL — open it in a browser, sign up, and authenticate the server. All your devices will join the same private network under this account.
+
+**Step 3 — Install Tailscale on every client device:** download from [tailscale.com/download](https://tailscale.com/download) (iOS, Android, Mac, Windows, Linux) and sign in to the same Tailscale account.
 
 Your board is now reachable at `https://YOUR-TAILSCALE-IP:3000` from any device on your Tailscale network.
 
-**Step 3 — DuckDNS (optional):** gives you a free hostname (e.g. `yourname.duckdns.org`) so you don't have to remember a numeric IP.
+**Step 4 — DuckDNS (optional):** gives you a free hostname (e.g. `yourname.duckdns.org`) so you don't have to remember a numeric IP.
 
 1. Go to [duckdns.org](https://duckdns.org), sign in, create a subdomain
-2. Point it at your Tailscale IP
+2. In the **current ip** field, enter your Tailscale IP (e.g. `100.x.x.x`) and click **update ip**
 3. Keep it updated automatically — add to `crontab -e` on the server:
    ```
    */5 * * * * curl -s "https://www.duckdns.org/update?domains=YOURNAME&token=YOURTOKEN&ip=$(tailscale ip -4)" > /dev/null
