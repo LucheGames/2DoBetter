@@ -143,25 +143,43 @@ git pull && npm run build && npm run restart
 
 ### After first run
 
-Once the server is running, these are your next steps in order:
+#### 1. Invite users
 
-#### 1. Set up remote access (recommended)
+Open the ⚙ gear icon (top-right) → **Generate setup code**. Give the 6-digit code to the new user. They enter it on the sign-in page, pick a username and password, and they are in.
 
-By default the board is only reachable on the server itself. To access it from phones, laptops, and other devices — even outside your home network — set up Tailscale.
+Codes expire after 10 minutes.
 
-**Tailscale** — a free mesh VPN. Every device that installs it can reach your server, from anywhere, with no port forwarding.
+#### 2. Run as a background service
 
-On the server:
+```bash
+npm run service:install    # auto-detects macOS (launchd) or Linux (systemd)
+```
+
+#### 3. Connect AI agents
+
+See [AI Agent Setup](#ai-agent-setup) below.
+
+---
+
+### Setting up anywhere access (optional)
+
+By default your board is reachable on the server machine and any device on the same local network. To reach it from anywhere — your phone on cellular, a laptop elsewhere, or a teammate in another city — you need Tailscale.
+
+**Why Tailscale?** It creates an encrypted private network between your devices with no port forwarding, no public IP, and no cloud middleman. Once installed, your phone and server behave as if they are on the same local network, from anywhere in the world.
+
+**Why a certificate warning?** Your server generates its own TLS certificate rather than using a public authority. This keeps setup free and simple with no renewal headaches, but browsers will flag it as untrusted on first visit. You install the certificate once per device — a 2-minute process — and it never shows again. See [Certificate warnings](#certificate-warnings) below.
+
+**Step 1 — Install Tailscale on the server:**
 ```bash
 curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up
 tailscale ip -4    # note this IP — e.g. 100.x.x.x
 ```
 
-On every client device: install from [tailscale.com/download](https://tailscale.com/download) (iOS, Android, Mac, Windows, Linux) and join the same Tailscale account.
+**Step 2 — Install Tailscale on every client device:** download from [tailscale.com/download](https://tailscale.com/download) (iOS, Android, Mac, Windows, Linux) and sign in to the same Tailscale account.
 
-Once Tailscale is running on both sides, open `https://YOUR-TAILSCALE-IP:3000` on the client device. You will see a certificate warning on the first visit — install the CA certificate once to remove it permanently ([see below](#certificate-warnings)).
+Your board is now reachable at `https://YOUR-TAILSCALE-IP:3000` from any device on your Tailscale network.
 
-**DuckDNS (optional)** — gives you a free hostname (e.g. `yourname.duckdns.org`) so you don't have to remember a numeric IP. It does not change the certificate setup — you still install the CA cert once per device.
+**Step 3 — DuckDNS (optional):** gives you a free hostname (e.g. `yourname.duckdns.org`) so you don't have to remember a numeric IP.
 
 1. Go to [duckdns.org](https://duckdns.org), sign in, create a subdomain
 2. Point it at your Tailscale IP
@@ -170,37 +188,20 @@ Once Tailscale is running on both sides, open `https://YOUR-TAILSCALE-IP:3000` o
    */5 * * * * curl -s "https://www.duckdns.org/update?domains=YOURNAME&token=YOURTOKEN&ip=$(tailscale ip -4)" > /dev/null
    ```
 
-After this, devices can connect via `https://yourname.duckdns.org:3000` instead of the numeric IP.
-
-#### 2. Invite users
-
-Open the ⚙ gear icon (top-right) → **Generate setup code**. Give the 6-digit code to the new user. They enter it on the sign-in page, pick a username and password, and they are in.
-
-Codes expire after 10 minutes.
-
-#### 3. Run as a background service
-
-```bash
-npm run service:install    # auto-detects macOS (launchd) or Linux (systemd)
-```
-
-#### 4. Connect AI agents
-
-See [AI Agent Setup](#ai-agent-setup) below.
+After this, devices connect via `https://yourname.duckdns.org:3000` instead of the numeric IP.
 
 ---
 
 ### Certificate warnings
 
-Browsers will show a security warning on the first visit to your server. This is expected — the certificate was generated locally for your private server. Install the CA certificate once per device to remove the warning permanently.
+Your server uses a locally-generated certificate — free, no expiry headaches, but not trusted by browsers out of the box. Install the CA certificate once per device to remove the warning permanently.
 
 **Quick bypass (all browsers):** click Advanced → Proceed / Accept Risk.
 
 **Permanent fix — install the CA certificate:**
 
-Download the CA cert by opening this URL on the device:
-- Same machine: `http://localhost:3001/ca.crt`
-- Other device: `http://YOUR-SERVER-IP:3001/ca.crt`
+On the device you want to connect from, open this URL in a browser:
+- `http://YOUR-SERVER-IP:3001/ca.crt` (replace with your server's LAN IP or Tailscale IP)
 
 Then install it:
 
