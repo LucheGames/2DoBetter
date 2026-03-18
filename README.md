@@ -122,7 +122,7 @@ Windows: use [nvm-windows](https://github.com/coreybutler/nvm-windows).
 **2. Clone and start**
 ```bash
 rm -rf 2DoBetter    # remove any previous install first
-# Linux Mint: if you deleted the old folder via the file manager it went to Trash, not disk.
+# Linux: if you deleted the old folder via the file manager it went to Trash, not disk.
 # Make sure you are NOT inside ~/.local/share/Trash — run: cd ~ first.
 git clone https://github.com/LucheGames/2DoBetter.git
 cd 2DoBetter
@@ -147,19 +147,21 @@ Once the server is running, these are your next steps in order:
 
 #### 1. Set up remote access (recommended)
 
-By default the board is only reachable on the server itself. To access it from phones, laptops, and other devices — even outside your home network — set up Tailscale + DuckDNS. This also eliminates certificate warnings on all devices.
+By default the board is only reachable on the server itself. To access it from phones, laptops, and other devices — even outside your home network — set up Tailscale.
 
 **Tailscale** — a free mesh VPN. Every device that installs it can reach your server, from anywhere, with no port forwarding.
 
 On the server:
 ```bash
 curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up
-tailscale ip -4    # note this IP
+tailscale ip -4    # note this IP — e.g. 100.x.x.x
 ```
 
-On every client device: install from [tailscale.com/download](https://tailscale.com/download) and join the same account.
+On every client device: install from [tailscale.com/download](https://tailscale.com/download) (iOS, Android, Mac, Windows, Linux) and join the same Tailscale account.
 
-**DuckDNS** — gives you a free hostname (e.g. `yourname.duckdns.org`) that always points to your server. This enables a real Let's Encrypt certificate, removing browser warnings on every device.
+Once Tailscale is running on both sides, open `https://YOUR-TAILSCALE-IP:3000` on the client device. You will see a certificate warning on the first visit — install the CA certificate once to remove it permanently ([see below](#certificate-warnings)).
+
+**DuckDNS (optional)** — gives you a free hostname (e.g. `yourname.duckdns.org`) so you don't have to remember a numeric IP. It does not change the certificate setup — you still install the CA cert once per device.
 
 1. Go to [duckdns.org](https://duckdns.org), sign in, create a subdomain
 2. Point it at your Tailscale IP
@@ -167,13 +169,8 @@ On every client device: install from [tailscale.com/download](https://tailscale.
    ```
    */5 * * * * curl -s "https://www.duckdns.org/update?domains=YOURNAME&token=YOURTOKEN&ip=$(tailscale ip -4)" > /dev/null
    ```
-4. Re-run the setup wizard to issue a Let's Encrypt certificate for your domain:
-   ```bash
-   npm run setup          # Node.js
-   docker exec -it 2dobetter node scripts/setup.js   # Docker
-   ```
 
-After this, all devices connect via `https://yourname.duckdns.org:3000` with a valid certificate — no warnings, no manual cert installs.
+After this, devices can connect via `https://yourname.duckdns.org:3000` instead of the numeric IP.
 
 #### 2. Invite users
 
@@ -195,9 +192,7 @@ See [AI Agent Setup](#ai-agent-setup) below.
 
 ### Certificate warnings
 
-**If you set up DuckDNS + Let's Encrypt above, you can skip this section entirely.** All devices will have a valid certificate.
-
-If you are using the self-signed certificate (LAN-only or Tailscale IP without DuckDNS), browsers will show a security warning on first visit. This is safe — the certificate was generated for your private server.
+Browsers will show a security warning on the first visit to your server. This is expected — the certificate was generated locally for your private server. Install the CA certificate once per device to remove the warning permanently.
 
 **Quick bypass (all browsers):** click Advanced → Proceed / Accept Risk.
 
@@ -344,7 +339,7 @@ npm run import-data backup.json
 | SQLite + Prisma | Database — single file, no separate server |
 | Node.js / server.js | Custom HTTPS server with SSE for real-time push |
 | Tailscale | Private VPN — board reachable only by invited devices |
-| Let's Encrypt | Free TLS certificates via DuckDNS |
+| Self-signed TLS | HTTPS everywhere — CA cert installed once per device |
 | PWA | Installable on any device |
 | MCP | Open protocol for AI agent access |
 
