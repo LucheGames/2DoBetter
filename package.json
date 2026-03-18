@@ -26,7 +26,8 @@
     "service:install": "node scripts/admin.js service:install",
     "service:uninstall": "node scripts/admin.js service:uninstall",
     "service:restart": "node scripts/admin.js restart",
-    "uninstall": "node scripts/uninstall.js"
+    "uninstall": "node scripts/uninstall.js",
+    "regen-certs": "bash generate-certs.sh"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

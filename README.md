@@ -192,6 +192,22 @@ Your board is now reachable at `https://YOUR-TAILSCALE-IP:3000` from any device 
 
 After this, devices connect via `https://yourname.duckdns.org:3000` instead of the numeric IP.
 
+**Step 5 — Regenerate the certificate:** your server certificate was created during initial setup, before Tailscale existed. Regenerate it so it covers your Tailscale IP and DuckDNS hostname:
+
+```bash
+# Node.js — include your DuckDNS domain (Tailscale IP is auto-detected):
+CERT_SANS=yourname.duckdns.org npm run regen-certs
+npm run restart
+
+# Docker:
+docker exec -e CERT_SANS=yourname.duckdns.org 2dobetter bash generate-certs.sh
+docker compose restart
+```
+
+Skip `CERT_SANS=` if you are not using DuckDNS — the Tailscale IP is included automatically.
+
+The CA certificate does not change, so any device that already installed it does not need to reinstall.
+
 ---
 
 ### Certificate warnings
@@ -279,6 +295,7 @@ The CLI is available for scripting or SSH access.
 | `npm run import-data <file>` | Import from JSON (**replaces all data**) |
 | | |
 | `npm run restart` | Restart server |
+| `npm run regen-certs` | Regenerate TLS cert (after adding Tailscale/DuckDNS) |
 | `npm run service:install` | Install as auto-start service |
 | `npm run service:uninstall` | Remove auto-start service |
 | `npm run uninstall` | Full removal |

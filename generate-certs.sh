@@ -6,6 +6,8 @@
 # Works on macOS and Ubuntu. No external dependencies (uses openssl).
 #
 # Usage: bash generate-certs.sh
+# Options: CERT_SANS=yourdomain.duckdns.org bash generate-certs.sh
+#          (comma-separated extra DNS names or IPs to include in the cert)
 # =============================================================================
 
 set -e
@@ -54,11 +56,23 @@ else
   MDNS_HOSTNAME="${RAW_HOSTNAME}.local"
 fi
 
-echo -e "  ${YELLOW}Hostname:${NC} ${MDNS_HOSTNAME}"
+# ── Detect Tailscale IP (if installed) ───────────────────────────────────────
+TAILSCALE_IP=""
+if command -v tailscale &>/dev/null; then
+  TAILSCALE_IP=$(tailscale ip -4 2>/dev/null || echo "")
+fi
+
+echo -e "  ${YELLOW}Hostname:${NC}     ${MDNS_HOSTNAME}"
 if [ -n "$LAN_IP" ]; then
-  echo -e "  ${YELLOW}LAN IP:${NC}   ${LAN_IP}"
+  echo -e "  ${YELLOW}LAN IP:${NC}       ${LAN_IP}"
 else
-  echo -e "  ${YELLOW}LAN IP:${NC}   (not detected — only localhost SANs will be used)"
+  echo -e "  ${YELLOW}LAN IP:${NC}       (not detected)"
+fi
+if [ -n "$TAILSCALE_IP" ]; then
+  echo -e "  ${YELLOW}Tailscale IP:${NC} ${TAILSCALE_IP}"
+fi
+if [ -n "$CERT_SANS" ]; then
+  echo -e "  ${YELLOW}Custom SANs:${NC}  ${CERT_SANS}"
 fi
 echo ""
 
@@ -119,9 +133,33 @@ DNS.2 = ${MDNS_HOSTNAME}
 IP.1 = 127.0.0.1
 CNFEOF
 
-# Add LAN IP if detected
+# Add detected and custom SANs
+IP_INDEX=2
+DNS_INDEX=3
+
 if [ -n "$LAN_IP" ]; then
-  echo "IP.2 = ${LAN_IP}" >> "$CERT_DIR/server.cnf"
+  echo "IP.${IP_INDEX} = ${LAN_IP}" >> "$CERT_DIR/server.cnf"
+  IP_INDEX=$((IP_INDEX + 1))
+fi
+
+if [ -n "$TAILSCALE_IP" ] && [ "$TAILSCALE_IP" != "$LAN_IP" ]; then
+  echo "IP.${IP_INDEX} = ${TAILSCALE_IP}" >> "$CERT_DIR/server.cnf"
+  IP_INDEX=$((IP_INDEX + 1))
+fi
+
+# Add custom SANs from CERT_SANS env var (comma-separated DNS names or IPs)
+if [ -n "$CERT_SANS" ]; then
+  IFS=',' read -ra EXTRA <<< "$CERT_SANS"
+  for san in "${EXTRA[@]}"; do
+    san=$(echo "$san" | xargs)  # trim whitespace
+    if [[ "$san" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      echo "IP.${IP_INDEX} = ${san}" >> "$CERT_DIR/server.cnf"
+      IP_INDEX=$((IP_INDEX + 1))
+    elif [ -n "$san" ]; then
+      echo "DNS.${DNS_INDEX} = ${san}" >> "$CERT_DIR/server.cnf"
+      DNS_INDEX=$((DNS_INDEX + 1))
+    fi
+  done
 fi
 
 # ── 3. Generate server key + CSR ──────────────────────────────────────────────
@@ -151,5 +189,9 @@ openssl x509 -in "$CERT_DIR/ca.crt" -outform DER -out "$CERT_DIR/ca.der.crt" 2>/
 rm -f "$CERT_DIR/server.csr" "$CERT_DIR/ca.srl"
 
 echo -e "  ${GREEN}✓ Server certificate created (valid 825 days)${NC}"
-echo -e "  ${GREEN}✓ Done — restart the server to enable HTTPS${NC}"
+echo ""
+echo -e "  ${YELLOW}Certificate covers:${NC}"
+grep -E "^(DNS|IP)\." "$CERT_DIR/server.cnf" | sed 's/^/    /'
+echo ""
+echo -e "  ${GREEN}✓ Done — restart the server to use the new certificate${NC}"
 echo ""
