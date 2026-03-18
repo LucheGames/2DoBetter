@@ -98,7 +98,6 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
       body: JSON.stringify({ name: trimmed }),
     });
     setIsEditingName(false);
-    onRefresh();
   }
 
   async function toggleLock() {
@@ -107,7 +106,6 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ locked: !column.locked }),
     });
-    onRefresh();
   }
 
   const isPrincipal = column.order === 0;
@@ -152,7 +150,6 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ids: newIds }),
     });
-    onRefresh();
   }
 
   const orderedLists = listIds
@@ -169,7 +166,6 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
     });
     setNewListName("");
     setShowNewListInput(false);
-    onRefresh();
   }
 
   function openNewListInput() {
@@ -194,7 +190,6 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
     });
     setNewAgentName("");
     setShowNewAgentInput(false);
-    onRefresh();
   }
 
   function openNewAgentInput() {
@@ -343,7 +338,6 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
               <HoldToDelete
                 onConfirm={async () => {
                   await fetch(`/api/columns/${column.id}`, { method: "DELETE" });
-                  onRefresh();
                 }}
                 label="Delete column?"
               />

@@ -206,20 +206,31 @@ export default function Home() {
     window.location.replace("/login");
   }, []);
 
-  // Real-time sync: listen for server-sent events from other clients
+  // Real-time sync: listen for server-sent events from other clients.
+  // Debounce: rapid-fire SSE broadcasts (e.g. drag-reorder) coalesce into
+  // a single fetchBoard() call, cutting network requests dramatically.
   useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const debouncedFetch = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => { debounceTimer = null; fetchBoard(); }, 200);
+    };
+
     const es = new EventSource("/api/events");
     es.onmessage = (e) => {
       try {
         const msg = JSON.parse(e.data);
         if (msg.event === "reload") { window.location.reload(); return; }
       } catch { /* non-JSON keepalive comments — ignore */ }
-      fetchBoard();
+      debouncedFetch();
     };
     es.onerror = () => {
       // EventSource auto-reconnects — no action needed
     };
-    return () => es.close();
+    return () => {
+      es.close();
+      if (debounceTimer) clearTimeout(debounceTimer);
+    };
   }, [fetchBoard]);
 
   if (offline) {

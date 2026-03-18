@@ -128,7 +128,6 @@ function useTaskDnd(tasks: Task[], onRefresh: () => void) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ids: newIds }),
     });
-    onRefresh();
   }
 
   return { taskIds, sensors, handleDragEnd };
@@ -183,7 +182,6 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
     } finally {
       setOptimisticTasks((prev) => prev.filter((t) => t.id !== tempId));
       submittingRef.current = false;
-      onRefresh();
     }
   }
 
@@ -205,12 +203,10 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ completed: !task.completed }),
     });
-    onRefresh();
   }
 
   async function deleteTask(id: number) {
     await fetch(`/api/tasks/${id}`, { method: "DELETE" });
-    onRefresh();
   }
 
   async function saveTaskTitle(id: number, title: string) {
@@ -219,7 +215,6 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title }),
     });
-    onRefresh();
   }
 
   async function saveListName() {
@@ -230,7 +225,6 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
       body: JSON.stringify({ name: nameValue.trim() }),
     });
     setEditingName(false);
-    onRefresh();
   }
 
   async function moveTask(taskId: number, targetListId: number) {
@@ -239,7 +233,6 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ listId: targetListId }),
     });
-    onRefresh();
   }
 
   async function moveProject(targetColumnId: number) {
@@ -248,12 +241,10 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ columnId: targetColumnId }),
     });
-    onRefresh();
   }
 
   async function deleteList() {
     await fetch(`/api/lists/${list.id}`, { method: "DELETE" });
-    onRefresh();
   }
 
 

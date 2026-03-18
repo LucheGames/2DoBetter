@@ -31,6 +31,9 @@ model List {
   parent   List?  @relation("ListToSubList", fields: [parentId], references: [id], onDelete: Cascade)
   children List[] @relation("ListToSubList")
   tasks    Task[]
+
+  @@index([columnId])
+  @@index([parentId])
 }
 
 model Task {
@@ -45,4 +48,6 @@ model Task {
   createdAt           DateTime  @default(now())
 
   list List @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@index([listId])
 }
