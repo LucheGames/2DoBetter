@@ -45,21 +45,36 @@ export default function HoldToDelete({ onConfirm, className = "", label = "Delet
 
   if (phase === "confirm") {
     return (
-      <span className={`inline-flex items-center gap-1.5 ${className}`}>
-        <span className="text-xs text-red-300 whitespace-nowrap">{label}</span>
-        <button
-          onClick={(e) => { e.stopPropagation(); onConfirm(); setPhase("idle"); }}
-          className="min-w-[36px] min-h-[36px] px-2 rounded bg-red-600 hover:bg-red-500 text-white text-xs font-medium flex items-center justify-center"
-        >
-          Yes
-        </button>
-        <button
+      <>
+        {/* Backdrop — tap outside to cancel */}
+        <div
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
           onClick={(e) => { e.stopPropagation(); setPhase("idle"); }}
-          className="min-w-[36px] min-h-[36px] px-2 rounded bg-gray-700 hover:bg-gray-600 text-gray-300 text-xs font-medium flex items-center justify-center"
-        >
-          No
-        </button>
-      </span>
+        />
+        {/* Centered confirm popup */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+          <div
+            className="pointer-events-auto flex items-center gap-3 bg-gray-900 border border-gray-700 rounded-xl px-5 py-3 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="text-sm text-red-300 whitespace-nowrap">{label}</span>
+            <button
+              onClick={(e) => { e.stopPropagation(); onConfirm(); setPhase("idle"); }}
+              className="min-w-[44px] min-h-[44px] px-4 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-medium flex items-center justify-center"
+              style={{ cursor: "pointer" }}
+            >
+              Yes
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setPhase("idle"); }}
+              className="min-w-[44px] min-h-[44px] px-4 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-300 text-sm font-medium flex items-center justify-center"
+              style={{ cursor: "pointer" }}
+            >
+              No
+            </button>
+          </div>
+        </div>
+      </>
     );
   }
 
