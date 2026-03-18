@@ -508,6 +508,7 @@ function serviceInstall() {
       '[Service]',
       'Type=simple',
       'WorkingDirectory=' + ROOT,
+      'Environment=NODE_ENV=production',
       'ExecStart=' + nodeBin + ' ' + path.join(ROOT, 'server.js'),
       'Restart=on-failure',
       'RestartSec=5',

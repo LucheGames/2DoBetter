@@ -21,7 +21,7 @@
     "restart": "node scripts/admin.js restart",
     "dev": "next dev --webpack",
     "build": "bash scripts/build.sh",
-    "start": "node server.js",
+    "start": "NODE_ENV=production node server.js",
     "seed": "npx tsx prisma/seed.ts",
     "service:install": "node scripts/admin.js service:install",
     "service:uninstall": "node scripts/admin.js service:uninstall",
