@@ -83,6 +83,11 @@ body {
 .app-ui-text      { color: var(--text-ui); font-size: var(--ui-font-size); }
 .app-section-title { color: var(--text-ui); font-size: var(--ui-font-size); }
 
+/* Admin panel — 1pt larger than default board text */
+.admin-xs     { font-size: 0.8125rem; line-height: 1.125rem; }
+.admin-sm     { font-size: 0.9375rem; line-height: 1.375rem; }
+.admin-title  { color: var(--text-ui); font-size: 0.9375rem; }
+
 /* ── Scrollbar — dark theme, native width/layout ─────────────────────────── */
 /* scrollbar-color is a standard CSS property (Chrome 121+, Firefox 64+).     */
 * {
