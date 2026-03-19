@@ -168,7 +168,8 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
   const [createAgentMsg,        setCreateAgentMsg]        = useState<string | null>(null);
 
   async function loadUsers() {
-    setLoadingUsers(true);
+    // loadingUsers starts as true (initial state) — don't re-show "Loading…"
+    // on re-fetches, so toggling agent/access doesn't flash the whole panel.
     try {
       const res = await fetch("/api/admin/users");
       if (res.ok) {
