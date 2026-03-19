@@ -51,18 +51,17 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 // ── Hold-to-confirm button ────────────────────────────────────────────────────
 // User must press-and-hold for `holdMs` ms before the action fires.
-// Safe for fat fingers on mobile.
 function HoldButton({
   label,
   onConfirm,
   holdMs = 1500,
-  color = "red",
+  variant = "destructive",
   disabled = false,
 }: {
   label: string;
   onConfirm: () => void;
   holdMs?: number;
-  color?: "red" | "amber";
+  variant?: "destructive" | "neutral";
   disabled?: boolean;
 }) {
   const [progress, setProgress] = useState(0);
@@ -70,11 +69,9 @@ function HoldButton({
   const startRef  = useRef<number>(0);
   const firedRef  = useRef(false);
 
-  const colorMap = {
-    red:   { bg: "bg-red-900/40",   border: "border-red-700",   fill: "bg-red-500",   text: "text-red-300" },
-    amber: { bg: "bg-amber-900/30", border: "border-amber-700", fill: "bg-amber-500", text: "text-amber-300" },
-  };
-  const c = colorMap[color];
+  const styles = variant === "destructive"
+    ? { bg: "bg-red-900/40",   border: "border-red-700",   fill: "bg-red-500",   text: "text-red-300" }
+    : { bg: "bg-gray-800/60",  border: "border-gray-600",  fill: "bg-gray-500",  text: "text-gray-300" };
 
   function startHold(e: React.MouseEvent | React.TouchEvent) {
     e.preventDefault();
@@ -113,17 +110,17 @@ function HoldButton({
       disabled={disabled}
       className={`relative w-full py-2 mt-1 text-sm rounded-lg border overflow-hidden select-none transition-colors
         ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}
-        ${c.bg} ${c.border} ${c.text}`}
+        ${styles.bg} ${styles.border} ${styles.text}`}
     >
       {/* Fill bar */}
       {progress > 0 && (
         <span
-          className={`absolute inset-y-0 left-0 ${c.fill} opacity-30 transition-none`}
+          className={`absolute inset-y-0 left-0 ${styles.fill} opacity-30 transition-none`}
           style={{ width: `${progress}%` }}
         />
       )}
       <span className="relative">
-        {progress > 0 ? `Hold… ${Math.round(progress)}%` : label}
+        {progress > 0 ? `Hold\u2026 ${Math.round(progress)}%` : label}
       </span>
     </button>
   );
@@ -141,15 +138,15 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
   const [inviteLoading,  setInviteLoading]  = useState(false);
   const [copied,         setCopied]         = useState(false);
 
-  // Rename user
-  const [renameTarget,  setRenameTarget]  = useState("");
+  // Manage user (merged section)
+  const [manageTarget,  setManageTarget]  = useState("");
   const [renameNew,     setRenameNew]     = useState("");
   const [renameMsg,     setRenameMsg]     = useState<string | null>(null);
-
-  // Reset password
-  const [resetTarget,   setResetTarget]   = useState("");
   const [resetPassword, setResetPassword] = useState("");
   const [resetMsg,      setResetMsg]      = useState<string | null>(null);
+  const [tokenValue,    setTokenValue]    = useState<string | null>(null);
+  const [tokenCopied,   setTokenCopied]   = useState(false);
+  const [removeMsg,     setRemoveMsg]     = useState<string | null>(null);
 
   // Purge completed
   const [purgeCount,    setPurgeCount]    = useState<number | null>(null);
@@ -161,16 +158,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
   const [graveDays,     setGraveDays]     = useState<"all" | number>("all");
   const [graveMsg,      setGraveMsg]      = useState<string | null>(null);
 
-  // Agent token
-  const [tokenTarget,   setTokenTarget]   = useState("");
-  const [tokenValue,    setTokenValue]    = useState<string | null>(null);
-  const [tokenCopied,   setTokenCopied]   = useState(false);
-
-  // Remove user
-  const [removeTarget,  setRemoveTarget]  = useState("");
-  const [removeMsg,     setRemoveMsg]     = useState<string | null>(null);
-
-  // Create agent (admin)
+  // Create agent
   const [createAgentName,       setCreateAgentName]       = useState("");
   const [createAgentSupervisor, setCreateAgentSupervisor] = useState("");
   const [createAgentAccess,     setCreateAgentAccess]     = useState<"full" | "ownColumn">("ownColumn");
@@ -186,13 +174,10 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
       if (res.ok) {
         const list: AdminUser[] = await res.json();
         setUsers(list);
-        // Default selects to first non-admin user
+        // Default manage target to first non-admin user
         const first = list.find(u => !u.isAdmin);
-        if (first) {
-          if (!renameTarget)  setRenameTarget(first.username);
-          if (!resetTarget)   setResetTarget(first.username);
-          if (!tokenTarget)   setTokenTarget(first.username);
-          if (!removeTarget)  setRemoveTarget(first.username);
+        if (first && !manageTarget) {
+          setManageTarget(first.username);
         }
       }
     } finally {
@@ -202,11 +187,22 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
 
   useEffect(() => {
     loadUsers();
-    // Fetch purge counts on mount
     fetch("/api/admin/purge-completed").then(r => r.json()).then(d => setPurgeCount(d.count ?? null));
     fetch("/api/admin/purge-graveyard").then(r => r.json()).then(d => setGraveCount(d.count ?? null));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Clear action-specific state when switching manage target
+  function switchManageTarget(username: string) {
+    setManageTarget(username);
+    setRenameNew("");
+    setRenameMsg(null);
+    setResetPassword("");
+    setResetMsg(null);
+    setTokenValue(null);
+    setTokenCopied(false);
+    setRemoveMsg(null);
+  }
 
   // ── User flag helpers ──────────────────────────────────────────────────────
   async function setAccess(username: string, level: AccessLevel) {
@@ -256,18 +252,56 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
     setTimeout(() => setCopied(false), 2500);
   }
 
-  // ── Rename user ────────────────────────────────────────────────────────────
+  // ── Manage user actions ──────────────────────────────────────────────────────
+  async function doGenToken() {
+    setTokenValue(null);
+    setTokenCopied(false);
+    const res = await fetch("/api/admin/agent-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: manageTarget }),
+    });
+    if (res.ok) {
+      const { token } = await res.json();
+      setTokenValue(token);
+    }
+  }
+
+  function copyToken() {
+    if (!tokenValue) return;
+    navigator.clipboard.writeText(tokenValue).catch(() => {});
+    setTokenCopied(true);
+    setTimeout(() => setTokenCopied(false), 2500);
+  }
+
+  async function doResetPassword() {
+    setResetMsg(null);
+    const res = await fetch("/api/admin/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: manageTarget, newPassword: resetPassword }),
+    });
+    if (res.ok) {
+      setResetMsg(`Password reset for ${manageTarget}. Session invalidated.`);
+      setResetPassword("");
+    } else {
+      const d = await res.json();
+      setResetMsg(`Error: ${d.error}`);
+    }
+  }
+
   async function doRenameUser() {
     setRenameMsg(null);
     const res = await fetch("/api/admin/rename-user", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ oldUsername: renameTarget, newUsername: renameNew.trim() }),
+      body: JSON.stringify({ oldUsername: manageTarget, newUsername: renameNew.trim() }),
     });
     const d = await res.json();
     if (res.ok) {
-      setRenameMsg(`Renamed "${renameTarget}" → "${d.newUsername}".`);
+      setRenameMsg(`Renamed to "${d.newUsername}".`);
       setRenameNew("");
+      setManageTarget(d.newUsername);
       loadUsers();
       onDataChanged?.();
     } else {
@@ -275,20 +309,21 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
     }
   }
 
-  // ── Reset password ─────────────────────────────────────────────────────────
-  async function doResetPassword() {
-    setResetMsg(null);
-    const res = await fetch("/api/admin/reset-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: resetTarget, newPassword: resetPassword }),
-    });
+  async function doRemoveUser(deleteData: boolean) {
+    setRemoveMsg(null);
+    const res = await fetch(
+      `/api/admin/users/${encodeURIComponent(manageTarget)}?deleteData=${deleteData}`,
+      { method: "DELETE" },
+    );
     if (res.ok) {
-      setResetMsg(`Password reset for ${resetTarget}. Their session has been invalidated.`);
-      setResetPassword("");
+      const verb = deleteData ? "removed and all data deleted" : "removed (column kept as Shared)";
+      setRemoveMsg(`"${manageTarget}" ${verb}.`);
+      setManageTarget("");
+      loadUsers();
+      onDataChanged?.();
     } else {
-      const d = await res.json();
-      setResetMsg(`Error: ${d.error}`);
+      const d = await res.json().catch(() => ({}));
+      setRemoveMsg(`Error: ${d.error ?? "Unknown error"}`);
     }
   }
 
@@ -330,48 +365,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
     }
   }
 
-  // ── Agent token ────────────────────────────────────────────────────────────
-  async function doGenToken() {
-    setTokenValue(null);
-    setTokenCopied(false);
-    const res = await fetch("/api/admin/agent-token", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: tokenTarget }),
-    });
-    if (res.ok) {
-      const { token } = await res.json();
-      setTokenValue(token);
-    }
-  }
-
-  function copyToken() {
-    if (!tokenValue) return;
-    navigator.clipboard.writeText(tokenValue).catch(() => {});
-    setTokenCopied(true);
-    setTimeout(() => setTokenCopied(false), 2500);
-  }
-
-  // ── Remove user ────────────────────────────────────────────────────────────
-  async function doRemoveUser(deleteData: boolean) {
-    setRemoveMsg(null);
-    const res = await fetch(
-      `/api/admin/users/${encodeURIComponent(removeTarget)}?deleteData=${deleteData}`,
-      { method: "DELETE" },
-    );
-    if (res.ok) {
-      const verb = deleteData ? "removed and all their data deleted" : "removed (column kept as Shared)";
-      setRemoveMsg(`"${removeTarget}" ${verb}.`);
-      setRemoveTarget("");
-      loadUsers();
-      onDataChanged?.();
-    } else {
-      const d = await res.json().catch(() => ({}));
-      setRemoveMsg(`Error: ${d.error ?? "Unknown error"}`);
-    }
-  }
-
-  // ── Create agent (admin) ───────────────────────────────────────────────────
+  // ── Create agent ───────────────────────────────────────────────────────────
   async function doCreateAgent() {
     setCreateAgentMsg(null);
     setCreateAgentToken(null);
@@ -403,6 +397,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
 
   const nonAdmins = users.filter(u => !u.isAdmin);
   const humans    = users.filter(u => !u.isAdmin && !u.isAgent);
+  const manageUser = users.find(u => u.username === manageTarget);
 
   return (
     <div
@@ -426,13 +421,13 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
           </button>
         </div>
 
-        <div className="overflow-y-auto flex-1 p-5 space-y-6">
+        <div className="overflow-y-auto flex-1 p-5 space-y-5">
 
           {/* ── Users ─────────────────────────────────────────────────────── */}
           <section>
             <h3 className="text-xs uppercase tracking-widest text-gray-600 mb-3">Users</h3>
             {loadingUsers ? (
-              <p className="text-xs text-gray-600">Loading…</p>
+              <p className="text-xs text-gray-600">Loading\u2026</p>
             ) : (
               <div className="space-y-2">
                 {users.map(u => (
@@ -455,7 +450,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                           title={u.isAgent ? "Switch to human" : "Switch to agent"}
                           className={`px-2 py-0.5 text-xs rounded border transition-colors ${
                             u.isAgent
-                              ? "border-purple-700 text-purple-400 bg-purple-900/20"
+                              ? "border-blue-600 text-blue-400 bg-blue-900/20"
                               : "border-gray-700 text-gray-500 hover:text-gray-300"
                           }`}
                           style={{ cursor: "pointer" }}
@@ -500,7 +495,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                 className="w-full py-2 mt-1 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white text-sm rounded-lg transition-colors"
                 style={{ cursor: inviteLoading ? "default" : "pointer" }}
               >
-                {inviteLoading ? "Generating…" : "Generate setup code"}
+                {inviteLoading ? "Generating\u2026" : "Generate setup code"}
               </button>
               {inviteResult && (
                 <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700/50 space-y-3 text-center">
@@ -511,10 +506,10 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                     <span>Expires {new Date(inviteResult.expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                     <button
                       onClick={copyInviteCode}
-                      className="text-blue-400 hover:text-blue-300 transition-colors font-medium"
+                      className="text-gray-400 hover:text-gray-200 transition-colors font-medium"
                       style={{ cursor: "pointer" }}
                     >
-                      {copied ? "Copied ✓" : "Copy code"}
+                      {copied ? "Copied \u2713" : "Copy code"}
                     </button>
                   </div>
                   <p className="text-xs text-gray-700">Tell the new user to enter this on the sign-in page.</p>
@@ -526,7 +521,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
           {/* ── Create agent ───────────────────────────────────────────────── */}
           <Section title="Create agent">
             <div className="space-y-3">
-              <p className="text-xs text-gray-600">Create an AI agent directly — no invite needed. The agent token is shown once.</p>
+              <p className="text-xs text-gray-600">Create an AI agent directly — no invite needed. Token shown once.</p>
               <input
                 type="text"
                 placeholder="Agent name"
@@ -542,7 +537,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                   className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200"
                   style={{ cursor: "pointer" }}
                 >
-                  <option value="">— None —</option>
+                  <option value="">{"\u2014"} None {"\u2014"}</option>
                   {humans.map(u => (
                     <option key={u.username} value={u.username}>{u.username}</option>
                   ))}
@@ -561,7 +556,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                 className="w-full py-2 mt-1 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white text-sm rounded-lg transition-colors"
                 style={{ cursor: createAgentLoading || createAgentName.trim().length < 2 ? "default" : "pointer" }}
               >
-                {createAgentLoading ? "Creating…" : "Create agent"}
+                {createAgentLoading ? "Creating\u2026" : "Create agent"}
               </button>
               {createAgentMsg && (
                 <p className="text-xs text-red-400">{createAgentMsg}</p>
@@ -577,10 +572,10 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                         setCreateAgentTokenCopied(true);
                         setTimeout(() => setCreateAgentTokenCopied(false), 2500);
                       }}
-                      className="text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium"
+                      className="text-xs text-gray-400 hover:text-gray-200 transition-colors font-medium"
                       style={{ cursor: "pointer" }}
                     >
-                      {createAgentTokenCopied ? "Copied ✓" : "Copy token"}
+                      {createAgentTokenCopied ? "Copied \u2713" : "Copy token"}
                     </button>
                   </div>
                 </div>
@@ -588,158 +583,131 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
             </div>
           </Section>
 
-          {/* ── Agent token ────────────────────────────────────────────────── */}
-          <Section title="Agent token">
-            <div className="space-y-3">
-              <p className="text-xs text-gray-600">Generate (or rotate) the MCP agent token for a user. Rotates instantly — existing token stops working.</p>
-              <select
-                value={tokenTarget}
-                onChange={e => { setTokenTarget(e.target.value); setTokenValue(null); setTokenCopied(false); }}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200"
-                style={{ cursor: "pointer" }}
-              >
-                {nonAdmins.map(u => (
-                  <option key={u.username} value={u.username}>{u.username}</option>
-                ))}
-              </select>
-              <HoldButton
-                label="Hold to generate token"
-                onConfirm={doGenToken}
-                holdMs={1500}
-                color="amber"
-                disabled={!tokenTarget}
-              />
-              {tokenValue && (
-                <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50 space-y-2">
-                  <p className="text-xs text-gray-300 break-all font-mono leading-relaxed">{tokenValue}</p>
-                  <div className="flex justify-end">
-                    <button
-                      onClick={copyToken}
-                      className="text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium"
-                      style={{ cursor: "pointer" }}
-                    >
-                      {tokenCopied ? "Copied ✓" : "Copy token"}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </Section>
+          {/* ── Manage user (merged: token, password, rename, remove) ────── */}
+          {nonAdmins.length > 0 && (
+            <Section title="Manage user">
+              <div className="space-y-4">
+                {/* User selector */}
+                <select
+                  value={manageTarget}
+                  onChange={e => switchManageTarget(e.target.value)}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200"
+                  style={{ cursor: "pointer" }}
+                >
+                  {nonAdmins.map(u => (
+                    <option key={u.username} value={u.username}>{u.username}</option>
+                  ))}
+                </select>
 
-          {/* ── Reset password ─────────────────────────────────────────────── */}
-          <Section title="Reset password">
-            <div className="space-y-3">
-              <select
-                value={resetTarget}
-                onChange={e => { setResetTarget(e.target.value); setResetMsg(null); }}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200"
-                style={{ cursor: "pointer" }}
-              >
-                {nonAdmins.map(u => (
-                  <option key={u.username} value={u.username}>{u.username}</option>
-                ))}
-              </select>
-              <input
-                type="password"
-                placeholder="New password (min 6 chars)"
-                value={resetPassword}
-                onChange={e => { setResetPassword(e.target.value); setResetMsg(null); }}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600"
-              />
-              <HoldButton
-                label="Hold to reset password"
-                onConfirm={doResetPassword}
-                holdMs={2000}
-                color="red"
-                disabled={resetPassword.length < 6 || !resetTarget}
-              />
-              {resetMsg && (
-                <p className={`text-xs ${resetMsg.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>
-                  {resetMsg}
-                </p>
-              )}
-            </div>
-          </Section>
+                {manageUser && (
+                  <>
+                    {/* ─ Agent token ─ */}
+                    <div className="space-y-2">
+                      <p className="text-xs text-gray-500">Rotate agent token — existing token stops working instantly.</p>
+                      <HoldButton
+                        label="Hold to generate token"
+                        onConfirm={doGenToken}
+                        holdMs={1500}
+                        variant="neutral"
+                        disabled={!manageTarget}
+                      />
+                      {tokenValue && (
+                        <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50 space-y-2">
+                          <p className="text-xs text-gray-300 break-all font-mono leading-relaxed">{tokenValue}</p>
+                          <div className="flex justify-end">
+                            <button
+                              onClick={copyToken}
+                              className="text-xs text-gray-400 hover:text-gray-200 transition-colors font-medium"
+                              style={{ cursor: "pointer" }}
+                            >
+                              {tokenCopied ? "Copied \u2713" : "Copy token"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
 
-          {/* ── Rename user ────────────────────────────────────────────────── */}
-          <Section title="Rename user">
-            <div className="space-y-3">
-              <select
-                value={renameTarget}
-                onChange={e => { setRenameTarget(e.target.value); setRenameMsg(null); }}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200"
-                style={{ cursor: "pointer" }}
-              >
-                {users.map(u => (
-                  <option key={u.username} value={u.username}>{u.username}{u.isAdmin ? " (admin)" : ""}</option>
-                ))}
-              </select>
-              <input
-                type="text"
-                placeholder="New username"
-                value={renameNew}
-                onChange={e => { setRenameNew(e.target.value); setRenameMsg(null); }}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600"
-              />
-              <HoldButton
-                label="Hold to rename"
-                onConfirm={doRenameUser}
-                holdMs={1500}
-                color="amber"
-                disabled={renameNew.trim().length < 2 || !renameTarget || renameNew.trim() === renameTarget}
-              />
-              {renameMsg && (
-                <p className={`text-xs ${renameMsg.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>
-                  {renameMsg}
-                </p>
-              )}
-            </div>
-          </Section>
+                    {/* ─ Reset password ─ */}
+                    <div className="space-y-2">
+                      <input
+                        type="password"
+                        placeholder="New password (min 6 chars)"
+                        value={resetPassword}
+                        onChange={e => { setResetPassword(e.target.value); setResetMsg(null); }}
+                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600"
+                      />
+                      <HoldButton
+                        label="Hold to reset password"
+                        onConfirm={doResetPassword}
+                        holdMs={2000}
+                        variant="destructive"
+                        disabled={resetPassword.length < 6 || !manageTarget}
+                      />
+                      {resetMsg && (
+                        <p className={`text-xs ${resetMsg.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>
+                          {resetMsg}
+                        </p>
+                      )}
+                    </div>
 
-          {/* ── Remove user ────────────────────────────────────────────────── */}
-          <Section title="Remove user">
-            <div className="space-y-3">
-              <p className="text-xs text-gray-600">
-                Keep tasks — column becomes a shared team column. Delete tasks — removes column and all its contents permanently.
-              </p>
-              <select
-                value={removeTarget}
-                onChange={e => { setRemoveTarget(e.target.value); setRemoveMsg(null); }}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200"
-                style={{ cursor: "pointer" }}
-              >
-                {nonAdmins.map(u => (
-                  <option key={u.username} value={u.username}>{u.username}</option>
-                ))}
-              </select>
-              <HoldButton
-                label="Hold to remove (keep tasks as Shared)"
-                onConfirm={() => doRemoveUser(false)}
-                holdMs={2000}
-                color="amber"
-                disabled={!removeTarget}
-              />
-              <HoldButton
-                label="Hold to remove + delete all their tasks"
-                onConfirm={() => doRemoveUser(true)}
-                holdMs={2000}
-                color="red"
-                disabled={!removeTarget}
-              />
-              {removeMsg && (
-                <p className={`text-xs ${removeMsg.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>
-                  {removeMsg}
-                </p>
-              )}
-            </div>
-          </Section>
+                    {/* ─ Rename ─ */}
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        placeholder="New username"
+                        value={renameNew}
+                        onChange={e => { setRenameNew(e.target.value); setRenameMsg(null); }}
+                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-200 placeholder-gray-600"
+                      />
+                      <HoldButton
+                        label="Hold to rename"
+                        onConfirm={doRenameUser}
+                        holdMs={1500}
+                        variant="neutral"
+                        disabled={renameNew.trim().length < 2 || !manageTarget || renameNew.trim() === manageTarget}
+                      />
+                      {renameMsg && (
+                        <p className={`text-xs ${renameMsg.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>
+                          {renameMsg}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* ─ Remove ─ */}
+                    <div className="space-y-2">
+                      <p className="text-xs text-gray-500">Remove user — keep tasks as shared column, or delete everything.</p>
+                      <HoldButton
+                        label="Hold to remove (keep tasks)"
+                        onConfirm={() => doRemoveUser(false)}
+                        holdMs={2000}
+                        variant="neutral"
+                        disabled={!manageTarget}
+                      />
+                      <HoldButton
+                        label="Hold to remove + delete all data"
+                        onConfirm={() => doRemoveUser(true)}
+                        holdMs={2000}
+                        variant="destructive"
+                        disabled={!manageTarget}
+                      />
+                      {removeMsg && (
+                        <p className={`text-xs ${removeMsg.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>
+                          {removeMsg}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            </Section>
+          )}
 
           {/* ── Purge completed tasks ──────────────────────────────────────── */}
           <Section title="Purge completed tasks">
             <div className="space-y-3">
               <p className="text-xs text-gray-500">
                 {purgeCount === null
-                  ? "Counting…"
+                  ? "Counting\u2026"
                   : purgeCount === 0
                   ? "No completed tasks in database."
                   : <><span className="text-gray-300 font-semibold">{purgeCount}</span> completed task{purgeCount !== 1 ? "s" : ""} in database.</>
@@ -757,7 +725,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                 label={`Hold to delete ${purgeDays === "all" ? "all" : `tasks older than ${purgeDays}d`}`}
                 onConfirm={doPurge}
                 holdMs={2000}
-                color="red"
+                variant="destructive"
                 disabled={purgeCount === 0}
               />
               {purgeMsg && (
@@ -768,15 +736,15 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
             </div>
           </Section>
 
-          {/* ── Purge graveyard ────────────────────────────────────────────────── */}
+          {/* ── Purge graveyard ────────────────────────────────────────────── */}
           <Section title="Purge graveyard">
             <div className="space-y-3">
               <p className="text-xs text-gray-500">
                 {graveCount === null
-                  ? "Counting…"
+                  ? "Counting\u2026"
                   : graveCount === 0
                   ? "Graveyard is empty."
-                  : <><span className="text-gray-300 font-semibold">{graveCount}</span> archived list{graveCount !== 1 ? "s" : ""} in graveyard. All their tasks will be deleted too.</>
+                  : <><span className="text-gray-300 font-semibold">{graveCount}</span> archived list{graveCount !== 1 ? "s" : ""} in graveyard. All tasks deleted too.</>
                 }
               </p>
               <div className="flex items-center gap-3">
@@ -791,7 +759,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                 label={`Hold to delete ${graveDays === "all" ? "all" : `lists older than ${graveDays}d`}`}
                 onConfirm={doPurgeGrave}
                 holdMs={2000}
-                color="red"
+                variant="destructive"
                 disabled={graveCount === 0}
               />
               {graveMsg && (
