@@ -70,8 +70,8 @@ body {
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 9px;  /* 7px visible thumb + 2px gap from container wall */
+  height: 9px; /* 7px visible thumb + 2px gap from bottom edge   */
 }
 
 ::-webkit-scrollbar-track {
@@ -81,10 +81,22 @@ body {
 ::-webkit-scrollbar-thumb {
   background: #374151; /* gray-700 */
   border-radius: 3px;
+  background-clip: padding-box; /* required — keeps bg out of the transparent border area */
+}
+
+/* Vertical scrollbars: 2px breathing room from the right container wall */
+::-webkit-scrollbar-thumb:vertical {
+  border-right: 2px solid transparent;
+}
+
+/* Horizontal scrollbar: 2px up from the bottom of its track */
+::-webkit-scrollbar-thumb:horizontal {
+  border-bottom: 2px solid transparent;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: #4b5563; /* gray-600 */
+  background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-corner {
