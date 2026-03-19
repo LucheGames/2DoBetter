@@ -79,9 +79,10 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #374151; /* gray-700 */
+  background: transparent; /* hidden until container is hovered */
   border-radius: 3px;
   background-clip: padding-box; /* required — keeps bg out of the transparent border area */
+  transition: background 0.3s ease;
 }
 
 /* Vertical scrollbars: 2px breathing room from the right container wall */
@@ -94,9 +95,13 @@ body {
   border-bottom: 2px solid transparent;
 }
 
-::-webkit-scrollbar-thumb:hover {
+/* Fade in when hovering the scrollable container */
+*:hover::-webkit-scrollbar-thumb {
+  background: #374151; /* gray-700 */
+}
+
+*:hover::-webkit-scrollbar-thumb:hover {
   background: #4b5563; /* gray-600 */
-  background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-corner {
