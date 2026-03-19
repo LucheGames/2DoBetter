@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { BoardData, ColumnData } from "./types";
 import ColumnPanel from "./components/ColumnPanel";
 import AdminPanel from "./components/AdminPanel";
+import { useScrollbarFade } from "@/lib/useScrollbarFade";
 
 /** Sort columns: own column → agent/unowned → teammates (by order). */
 function sortColumns(columns: ColumnData[], currentUser: string | null): ColumnData[] {
@@ -34,6 +35,8 @@ function CreateAgentModal({
   const [token, setToken]       = useState<string | null>(null);
   const [copied, setCopied]     = useState(false);
   const inputRef                = useRef<HTMLInputElement>(null);
+  const boardScrollRef          = useRef<HTMLDivElement>(null);
+  useScrollbarFade(boardScrollRef);
 
   useEffect(() => { setTimeout(() => inputRef.current?.focus(), 0); }, []);
 
@@ -339,7 +342,7 @@ export default function Home() {
           1–3 visible columns: min-w-[33vw] fills screen evenly.
           4+ visible columns: min-w-[30vw] so the 4th peeks ~10% on the right,
           hinting that horizontal scroll is available. */}
-      <div className="flex-1 flex flex-col md:flex-row md:min-h-0 overflow-y-auto md:overflow-x-auto md:overflow-y-hidden">
+      <div ref={boardScrollRef} className="flex-1 flex flex-col md:flex-row md:min-h-0 overflow-y-auto md:overflow-x-auto md:overflow-y-hidden">
         {(() => {
           const visibleCount = board.columns.filter(c => !collapsedCols.has(c.id)).length;
           const colMinW = visibleCount >= 4 ? "md:min-w-[30vw]" : "md:min-w-[33vw]";

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useScrollbarFade } from "@/lib/useScrollbarFade";
 import {
   DndContext,
   closestCenter,
@@ -74,6 +75,8 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
   const [newListName, setNewListName] = useState("");
   const [showNewListInput, setShowNewListInput] = useState(false);
   const listInputRef = useRef<HTMLInputElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useScrollbarFade(scrollRef);
 
   // New agent column — only the principal (first column) can create these
   const [newAgentName, setNewAgentName] = useState("");
@@ -347,7 +350,7 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
       </div>
 
       {/* Column content — scrollable on desktop, natural height on mobile */}
-      <div className="md:flex-1 md:overflow-y-auto pl-4 pr-3 py-3 space-y-3 md:mr-1">
+      <div ref={scrollRef} className="md:flex-1 md:overflow-y-auto pl-4 pr-3 py-3 space-y-3 md:mr-1">
         {column.lists.length === 0 && (
           <button
             onClick={openNewListInput}
