@@ -92,7 +92,7 @@ function CreateAgentModal({
               <div className="flex justify-end">
                 <button
                   onClick={copyToken}
-                  className="text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium"
+                  className="text-xs text-accent-400 hover:text-accent-500 transition-colors font-medium"
                   style={{ cursor: "pointer" }}
                 >
                   {copied ? "Copied ✓" : "Copy token"}
@@ -116,13 +116,13 @@ function CreateAgentModal({
               placeholder="Agent name (e.g. Jarvis)"
               value={name}
               onChange={e => { setName(e.target.value); setError(""); }}
-              className="w-full px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 text-sm placeholder-gray-600 focus:outline-none focus:border-blue-500"
+              className="w-full px-3 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-gray-100 text-sm placeholder-gray-600 focus:outline-none focus:border-accent-500"
             />
             {error && <p className="text-xs text-red-400">{error}</p>}
             <button
               type="submit"
               disabled={loading || !name.trim()}
-              className="w-full py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white text-sm rounded-lg transition-colors"
+              className="w-full py-2 bg-accent-600 hover:bg-accent-500 disabled:bg-gray-800 disabled:text-gray-600 text-white text-sm rounded-lg transition-colors"
               style={{ cursor: loading || !name.trim() ? "default" : "pointer" }}
             >
               {loading ? "Creating…" : "Create agent"}

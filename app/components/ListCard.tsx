@@ -286,7 +286,7 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
 
         {editingName ? (
           <input
-            className="flex-1 bg-transparent outline-none app-list-name font-medium text-gray-100 border-b border-blue-500"
+            className="flex-1 bg-transparent outline-none app-list-name font-medium text-gray-100 border-b border-accent-500"
             value={nameValue}
             autoFocus
             onChange={(e) => setNameValue(e.target.value)}
@@ -365,7 +365,7 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
               <textarea
                 ref={taskInputRef}
                 rows={1}
-                className="w-full rounded px-2 py-1 bg-gray-800/50 app-input text-gray-200 placeholder-gray-600 outline-none focus:ring-1 focus:ring-blue-500/50 transition-colors resize-none overflow-hidden"
+                className="w-full rounded px-2 py-1 bg-gray-800/50 app-input text-gray-200 placeholder-gray-600 outline-none focus:ring-1 focus:ring-accent-500/50 transition-colors resize-none overflow-hidden"
                 placeholder="Task name..."
                 value={newTaskTitle}
                 onChange={(e) => {

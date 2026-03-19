@@ -123,7 +123,7 @@ export default function JoinPage() {
             </p>
           </div>
           <p className="text-gray-500 text-sm">Ask your admin to generate a new 6-digit code.</p>
-          <a href="/login" className="inline-block text-sm text-blue-400 hover:text-blue-300 transition-colors">
+          <a href="/login" className="inline-block text-sm text-accent-400 hover:text-accent-500 transition-colors">
             ← Back to sign in
           </a>
         </div>
@@ -158,7 +158,7 @@ export default function JoinPage() {
             minLength={2}
             autoFocus
             autoComplete="username"
-            className="w-full px-3 py-2.5 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-base placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="w-full px-3 py-2.5 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-base placeholder-gray-500 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500"
           />
 
           <div className="relative">
@@ -170,7 +170,7 @@ export default function JoinPage() {
               required
               minLength={8}
               autoComplete="new-password"
-              className="w-full px-3 py-2.5 pr-16 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-base placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 pr-16 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-base placeholder-gray-500 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500"
             />
             <button type="button" onClick={() => setShowPass(v => !v)}
               className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-sm text-gray-400 hover:text-gray-200"
@@ -187,7 +187,7 @@ export default function JoinPage() {
               placeholder="Confirm password"
               required
               autoComplete="new-password"
-              className="w-full px-3 py-2.5 pr-16 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-base placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 pr-16 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-base placeholder-gray-500 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500"
             />
             <button type="button" onClick={() => setShowConf(v => !v)}
               className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-sm text-gray-400 hover:text-gray-200"
@@ -206,7 +206,7 @@ export default function JoinPage() {
             <div className="flex items-center gap-2 p-3 bg-gray-900 border border-gray-700 rounded-lg">
               <span className="flex-1 font-mono text-sm text-gray-200 break-all leading-relaxed">{autoPass}</span>
               <button type="button" onClick={copyPassword}
-                className="flex-shrink-0 text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium"
+                className="flex-shrink-0 text-xs text-accent-400 hover:text-accent-500 transition-colors font-medium"
                 style={{ cursor: "pointer" }}>
                 {copied ? "Copied ✓" : "Copy"}
               </button>
@@ -226,7 +226,7 @@ export default function JoinPage() {
               value={agentName}
               onChange={e => setAgentName(e.target.value)}
               autoComplete="off"
-              className="w-full px-3 py-2.5 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-base placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-base placeholder-gray-500 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500"
             />
             {agentName.trim() && (
               <p className="text-xs text-gray-600 text-center">Creates an AI agent column supervised by you</p>
@@ -236,7 +236,7 @@ export default function JoinPage() {
           {error && <p className="text-red-400 text-sm text-center">{error}</p>}
 
           <button type="submit" disabled={loading}
-            className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white text-base font-medium rounded-lg transition-colors"
+            className="w-full py-2.5 bg-accent-600 hover:bg-accent-500 disabled:bg-gray-800 disabled:text-gray-600 text-white text-base font-medium rounded-lg transition-colors"
             style={{ cursor: loading ? "default" : "pointer" }}>
             {loading ? "Creating account…" : "Create account"}
           </button>

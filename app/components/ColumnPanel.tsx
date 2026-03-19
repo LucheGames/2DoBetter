@@ -127,7 +127,7 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
     ? 'Principal'
     : 'Agent';
   const badgeClass = isOwnColumn
-    ? 'text-xs text-blue-500 uppercase tracking-wider font-semibold'
+    ? 'text-xs text-accent-500 uppercase tracking-wider font-semibold'
     : 'text-xs app-ui-text uppercase tracking-wider';
 
   // Local list order state — synced from props, updated optimistically on drag
@@ -262,7 +262,7 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
           {isEditingName ? (
             <input
               ref={nameInputRef}
-              className="flex-1 bg-transparent outline-none text-base font-semibold text-gray-200 border-b border-blue-500 mr-2"
+              className="flex-1 bg-transparent outline-none text-base font-semibold text-gray-200 border-b border-accent-500 mr-2"
               value={nameValue}
               autoFocus
               onChange={(e) => setNameValue(e.target.value)}
@@ -393,7 +393,7 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
           <form onSubmit={createList}>
             <input
               ref={listInputRef}
-              className="w-full rounded-lg px-3 py-2 bg-gray-900/50 border border-gray-700 text-sm text-gray-200 placeholder-gray-600 outline-none focus:border-blue-500 transition-all"
+              className="w-full rounded-lg px-3 py-2 bg-gray-900/50 border border-gray-700 text-sm text-gray-200 placeholder-gray-600 outline-none focus:border-accent-500 transition-all"
               placeholder="Project name..."
               value={newListName}
               onChange={(e) => setNewListName(e.target.value)}
@@ -423,7 +423,7 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
             <form onSubmit={createColumn}>
               <input
                 ref={agentInputRef}
-                className="w-full rounded-lg px-3 py-2 bg-gray-900/50 border border-gray-700 text-sm text-gray-200 placeholder-gray-600 outline-none focus:border-blue-500 transition-all"
+                className="w-full rounded-lg px-3 py-2 bg-gray-900/50 border border-gray-700 text-sm text-gray-200 placeholder-gray-600 outline-none focus:border-accent-500 transition-all"
                 placeholder="Column name..."
                 value={newAgentName}
                 onChange={(e) => setNewAgentName(e.target.value)}

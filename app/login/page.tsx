@@ -87,7 +87,7 @@ export default function LoginPage() {
             required
             autoFocus
             autoComplete="username"
-            className="w-full px-3 py-2.5 mb-3 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-base placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="w-full px-3 py-2.5 mb-3 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-base placeholder-gray-500 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500"
           />
 
           <div className="relative mb-4">
@@ -98,7 +98,7 @@ export default function LoginPage() {
               placeholder="Password"
               required
               autoComplete="current-password"
-              className="w-full px-3 py-2.5 pr-16 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-base placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full px-3 py-2.5 pr-16 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-base placeholder-gray-500 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500"
             />
             <button
               type="button"
@@ -115,7 +115,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white text-base font-medium rounded-lg transition-colors"
+            className="w-full py-2.5 bg-accent-600 hover:bg-accent-500 disabled:bg-gray-800 disabled:text-gray-600 text-white text-base font-medium rounded-lg transition-colors"
             style={{ cursor: loading ? "default" : "pointer" }}
           >
             {loading ? "Signing in…" : "Sign in"}
@@ -132,7 +132,7 @@ export default function LoginPage() {
               maxLength={6}
               placeholder="6-digit code"
               onKeyDown={(e) => { if (e.key === 'Enter') handleCodeGo(); }}
-              className="flex-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-base placeholder-gray-500 text-center tracking-widest focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 text-base placeholder-gray-500 text-center tracking-widest focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500"
             />
             <button
               type="button"

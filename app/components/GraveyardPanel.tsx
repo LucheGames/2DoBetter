@@ -157,10 +157,10 @@ export default function GraveyardPanel({ columnId, onResurrect }: GraveyardPanel
                   <div key={task.id} className="group flex items-center gap-2 py-0.5 pl-1">
                     <button
                       onClick={() => uncompleteTask(task)}
-                      className="w-3 h-3 rounded border border-blue-700 bg-blue-800/50 flex-shrink-0 flex items-center justify-center hover:bg-blue-600 transition-colors"
+                      className="w-3 h-3 rounded border border-accent-700 bg-accent-800/50 flex-shrink-0 flex items-center justify-center hover:bg-accent-600 transition-colors"
                       title="Uncheck to resurrect project"
                     >
-                      <svg viewBox="0 0 10 10" className="w-2.5 h-2.5 text-blue-300" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <svg viewBox="0 0 10 10" className="w-2.5 h-2.5 text-accent-400" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M1.5 5 L4 7.5 L8.5 2.5" />
                       </svg>
                     </button>

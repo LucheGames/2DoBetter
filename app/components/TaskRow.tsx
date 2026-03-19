@@ -49,8 +49,8 @@ export default function TaskRow({
       >
         <span className={`w-4 h-4 rounded border transition-all duration-200 flex items-center justify-center ${
           task.completed
-            ? "bg-blue-500 border-blue-500"
-            : "border-gray-600 hover:border-blue-400 hover:bg-blue-400/10"
+            ? "bg-accent-500 border-accent-500"
+            : "border-gray-600 hover:border-accent-400 hover:bg-accent-400/10"
         }`}>
           <svg
             viewBox="0 0 10 10"
@@ -71,7 +71,7 @@ export default function TaskRow({
       <div className="flex-1 min-w-0">
         {isEditing ? (
           <textarea
-            className="w-full bg-transparent outline-none app-task-text text-gray-100 border-b border-blue-500 resize-none overflow-hidden"
+            className="w-full bg-transparent outline-none app-task-text text-gray-100 border-b border-accent-500 resize-none overflow-hidden"
             value={editValue}
             rows={1}
             autoFocus

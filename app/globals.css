@@ -20,9 +20,18 @@
   --logo-font-size:       1.25rem;    /* logo                                          */
   --ui-font-size:         0.875rem;   /* header UI chrome: username, sign out          */
 
-  /* ── Accent colour ── */
-  --accent:               #3b82f6;   /* blue-500 — checkboxes, focus rings, borders   */
-  --accent-hover:         #60a5fa;   /* blue-400 — hover state                        */
+  /* ── Accent colour palette ──────────────────────────────────────
+     Change these 6 values to re-skin the entire app.
+     Current: blue (Tailwind blue-400 … blue-900).
+     Try teal:  #2dd4bf / #14b8a6 / #0d9488 / #0f766e / #115e59 / #134e4a
+     Try violet: #a78bfa / #8b5cf6 / #7c3aed / #6d28d9 / #5b21b6 / #4c1d95
+     ──────────────────────────────────────────────────────────────── */
+  --accent-400:           #60a5fa;   /* lightest — hover text, active indicator        */
+  --accent-500:           #3b82f6;   /* default  — checkboxes, focus rings, borders    */
+  --accent-600:           #2563eb;   /* primary buttons, active pills                  */
+  --accent-700:           #1d4ed8;   /* borders on active elements                     */
+  --accent-800:           #1e3a5f;   /* subtle tinted backgrounds                      */
+  --accent-900:           #1e2a4a;   /* very subtle tinted backgrounds                 */
 
   /* ── Surfaces ── */
   --app-bg:               #030712;   /* gray-950  page background                     */
@@ -40,6 +49,14 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Accent palette → Tailwind utilities: bg-accent-600, text-accent-400, etc. */
+  --color-accent-400: var(--accent-400);
+  --color-accent-500: var(--accent-500);
+  --color-accent-600: var(--accent-600);
+  --color-accent-700: var(--accent-700);
+  --color-accent-800: var(--accent-800);
+  --color-accent-900: var(--accent-900);
 }
 
 :root {
@@ -62,6 +79,7 @@ body {
 .app-header       { font-size: var(--header-font-size);  }
 .app-logo         { font-size: var(--logo-font-size);    }
 .app-ui-text      { color: var(--text-ui); font-size: var(--ui-font-size); }
+.app-section-title { color: var(--text-ui); font-size: var(--ui-font-size); }
 
 /* ── Scrollbar — dark theme, native width/layout ─────────────────────────── */
 /* scrollbar-color is a standard CSS property (Chrome 121+, Firefox 64+).     */

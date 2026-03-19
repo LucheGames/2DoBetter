@@ -71,7 +71,7 @@ export function MoveTaskButton({ currentListId, onMove }: MoveTaskMenuProps) {
     <span className="relative inline-flex">
       <button
         onClick={toggle}
-        className="min-w-[36px] min-h-[36px] flex items-center justify-center text-gray-500 hover:text-blue-400 transition-colors rounded"
+        className="min-w-[36px] min-h-[36px] flex items-center justify-center text-gray-500 hover:text-accent-400 transition-colors rounded"
         title="Move to…"
       >
         <ArrowIcon />
@@ -142,7 +142,7 @@ export function MoveProjectButton({ currentColumnId, onMove }: MoveProjectMenuPr
     <span className="relative inline-flex">
       <button
         onClick={toggle}
-        className="min-w-[36px] min-h-[36px] flex items-center justify-center text-gray-500 hover:text-blue-400 transition-colors rounded"
+        className="min-w-[36px] min-h-[36px] flex items-center justify-center text-gray-500 hover:text-accent-400 transition-colors rounded"
         title="Move project to…"
       >
         <ArrowIcon />
