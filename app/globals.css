@@ -63,13 +63,10 @@ body {
 .app-logo         { font-size: var(--logo-font-size);    }
 .app-ui-text      { color: var(--text-ui); font-size: var(--ui-font-size); }
 
-/* ── Scrollbar — colour only, native width/layout ────────────────────────── */
-/* No width, padding, or margin overrides — browsers use their native         */
-/* scrollbar size and overlay/classic behaviour untouched.                     */
-
-/* Firefox: dark thumb on transparent track */
-@supports (-moz-appearance: none) {
-  * {
-    scrollbar-color: #374151 transparent;
-  }
+/* ── Scrollbar — dark theme, native width/layout ─────────────────────────── */
+/* scrollbar-color is a standard CSS property (Chrome 121+, Firefox 64+).     */
+/* It themes the native scrollbar without replacing it — overlay behaviour,   */
+/* width, and layout are untouched. No webkit pseudo-elements needed.         */
+* {
+  scrollbar-color: #374151 transparent;    /* gray-700 thumb, clear track */
 }
