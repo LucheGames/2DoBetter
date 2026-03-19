@@ -63,12 +63,16 @@ body {
 .app-logo         { font-size: var(--logo-font-size);    }
 .app-ui-text      { color: var(--text-ui); font-size: var(--ui-font-size); }
 
-/* Dark scrollbars — match gray-950 theme */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #374151 transparent; /* thumb: gray-700, track: transparent */
+/* ── Firefox: fatter scrollbar, custom colour ─────────────────────────────── */
+/* scrollbar-color fights Chrome's webkit rules so it lives in a Firefox-only block */
+@supports (-moz-appearance: none) {
+  * {
+    scrollbar-width: auto;            /* fatter than 'thin' — Firefox only */
+    scrollbar-color: #374151 transparent;
+  }
 }
 
+/* ── Chrome / Safari: fully custom scrollbar with fade ────────────────────── */
 ::-webkit-scrollbar {
   width: 9px;  /* 7px visible thumb + 2px gap from container wall */
   height: 9px; /* 7px visible thumb + 2px gap from bottom edge   */
@@ -79,10 +83,11 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: transparent; /* hidden at rest — shown by .is-scrolling class via JS */
+  /* rgba lets the browser interpolate alpha cleanly — named 'transparent' breaks transitions */
+  background: rgba(55, 65, 81, 0);
   border-radius: 3px;
-  background-clip: padding-box; /* required — keeps bg out of the transparent border area */
-  transition: background 0.6s ease;
+  background-clip: padding-box;
+  transition: background 0.5s ease;
 }
 
 /* Vertical scrollbars: 2px breathing room from the right container wall */
@@ -95,13 +100,13 @@ body {
   border-bottom: 2px solid transparent;
 }
 
-/* Shown while JS scroll listener is active */
+/* JS adds .is-scrolling while scrolling, removes 500ms after stop */
 .is-scrolling::-webkit-scrollbar-thumb {
-  background: #374151; /* gray-700 */
+  background: rgba(55, 65, 81, 1);   /* gray-700 */
 }
 
 .is-scrolling::-webkit-scrollbar-thumb:hover {
-  background: #4b5563; /* gray-600 */
+  background: rgba(75, 85, 99, 1);   /* gray-600 */
   background-clip: padding-box;
 }
 

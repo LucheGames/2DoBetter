@@ -9,7 +9,7 @@ import { useEffect, RefObject } from "react";
  */
 export function useScrollbarFade(
   ref: RefObject<HTMLElement | null>,
-  fadeDelay = 900,
+  fadeDelay = 500,
 ) {
   useEffect(() => {
     const el = ref.current;
