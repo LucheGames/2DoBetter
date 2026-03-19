@@ -42,7 +42,7 @@ export async function PATCH(
   }
 
   saveUsers(users);
-  broadcastReload();
+  broadcast();   // data refresh only — broadcastReload() was nuking the admin panel
   return NextResponse.json({ ok: true });
 }
 
