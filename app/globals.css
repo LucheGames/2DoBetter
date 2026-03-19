@@ -65,8 +65,15 @@ body {
 
 /* ── Scrollbar — dark theme, native width/layout ─────────────────────────── */
 /* scrollbar-color is a standard CSS property (Chrome 121+, Firefox 64+).     */
-/* It themes the native scrollbar without replacing it — overlay behaviour,   */
-/* width, and layout are untouched. No webkit pseudo-elements needed.         */
 * {
   scrollbar-color: #374151 transparent;    /* gray-700 thumb, clear track */
+}
+
+/* Chrome/Safari: scrollbar-color triggers a visible scrollbar that eats      */
+/* right-side space. Reduce right padding on column scroll areas to           */
+/* compensate so left and right gaps look equal.                              */
+@supports not (-moz-appearance: none) {
+  .column-scroll {
+    padding-right: 8px;                    /* 8px pad + ~8px scrollbar ≈ 16px (matches pl-4) */
+  }
 }
