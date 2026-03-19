@@ -347,7 +347,7 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
       </div>
 
       {/* Column content — scrollable on desktop, natural height on mobile */}
-      <div className="md:flex-1 md:overflow-y-auto px-4 py-3 space-y-3 md:mr-0.5">
+      <div className="md:flex-1 md:overflow-y-auto pl-4 pr-3 py-3 space-y-3 md:mr-1">
         {column.lists.length === 0 && (
           <button
             onClick={openNewListInput}
