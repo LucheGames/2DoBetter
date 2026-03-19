@@ -299,7 +299,7 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
                 title={column.locked
                   ? "Currently: view-only for teammates · Click to: allow editing"
                   : "Currently: open to teammates · Click to: make view-only"}
-                className={`transition-colors ${column.locked ? "text-amber-500 hover:text-amber-400" : "text-gray-700 hover:text-gray-500"}`}
+                className={`transition-colors ${column.locked ? "text-accent-500 hover:text-accent-400" : "text-gray-700 hover:text-gray-500"}`}
                 style={{ cursor: "pointer" }}
               >
                 {column.locked ? (
@@ -315,7 +315,7 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
                 )}
               </button>
             ) : column.locked ? (
-              <span title="Currently: view-only — owner has restricted editing" className="text-amber-600">
+              <span title="Currently: view-only — owner has restricted editing" className="text-accent-600">
                 <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
                   <rect x="3" y="7" width="10" height="8" rx="1.5" />
                   <path d="M5 7V5a3 3 0 0 1 6 0v2" />

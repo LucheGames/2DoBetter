@@ -442,7 +442,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                       )}
                     </div>
                     {u.isAdmin ? (
-                      <span className="text-xs text-amber-500 font-semibold uppercase tracking-wider px-1">Admin</span>
+                      <span className="text-xs text-accent-500 font-semibold uppercase tracking-wider px-1">Admin</span>
                     ) : (
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         <button

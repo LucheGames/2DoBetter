@@ -22,17 +22,18 @@
 
   /* ── Accent colour palette ──────────────────────────────────────
      Change these 6 values to re-skin the entire app.
-     Current: emerald (Tailwind emerald-400 … emerald-900).
-     Try blue:   #60a5fa / #3b82f6 / #2563eb / #1d4ed8 / #1e3a5f / #1e2a4a
-     Try teal:   #2dd4bf / #14b8a6 / #0d9488 / #0f766e / #115e59 / #134e4a
+     Current: WYF green (built around #4CAF50).
+     Try blue:    #60a5fa / #3b82f6 / #2563eb / #1d4ed8 / #1e3a5f / #1e2a4a
+     Try teal:    #2dd4bf / #14b8a6 / #0d9488 / #0f766e / #115e59 / #134e4a
+     Try emerald: #34d399 / #10b981 / #059669 / #047857 / #1a3a2a / #132a1e
      Try violet:  #a78bfa / #8b5cf6 / #7c3aed / #6d28d9 / #5b21b6 / #4c1d95
      ──────────────────────────────────────────────────────────────── */
-  --accent-400:           #34d399;   /* lightest — hover text, active indicator        */
-  --accent-500:           #10b981;   /* default  — checkboxes, focus rings, borders    */
-  --accent-600:           #059669;   /* primary buttons, active pills                  */
-  --accent-700:           #047857;   /* borders on active elements                     */
-  --accent-800:           #1a3a2a;   /* subtle tinted backgrounds                      */
-  --accent-900:           #132a1e;   /* very subtle tinted backgrounds                 */
+  --accent-400:           #66BB6A;   /* lightest — hover text, active indicator        */
+  --accent-500:           #4CAF50;   /* default  — WYF green, checkboxes, focus rings  */
+  --accent-600:           #43A047;   /* primary buttons, active pills                  */
+  --accent-700:           #388E3C;   /* borders on active elements                     */
+  --accent-800:           #1a3a1e;   /* subtle tinted backgrounds                      */
+  --accent-900:           #122a14;   /* very subtle tinted backgrounds                 */
 
   /* ── Surfaces ── */
   --app-bg:               #030712;   /* gray-950  page background                     */
