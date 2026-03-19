@@ -35,8 +35,6 @@ function CreateAgentModal({
   const [token, setToken]       = useState<string | null>(null);
   const [copied, setCopied]     = useState(false);
   const inputRef                = useRef<HTMLInputElement>(null);
-  const boardScrollRef          = useRef<HTMLDivElement>(null);
-  useScrollbarFade(boardScrollRef);
 
   useEffect(() => { setTimeout(() => inputRef.current?.focus(), 0); }, []);
 
@@ -137,6 +135,9 @@ function CreateAgentModal({
 }
 
 export default function Home() {
+  const boardScrollRef = useRef<HTMLDivElement>(null);
+  useScrollbarFade(boardScrollRef);
+
   const [board, setBoard] = useState<BoardData | null>(null);
   const [offline, setOffline] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
