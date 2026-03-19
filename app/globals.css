@@ -63,18 +63,28 @@ body {
 .app-logo         { font-size: var(--logo-font-size);    }
 .app-ui-text      { color: var(--text-ui); font-size: var(--ui-font-size); }
 
-/* ── Firefox: thin scrollbar, custom colour ───────────────────────────────── */
-/* scrollbar-color fights Chrome's webkit rules so it lives in a Firefox-only block */
+/* ── Firefox-only scrollbar ────────────────────────────────────────────────── */
+/* Firefox uses scrollbar-width / scrollbar-color (standard CSS).              */
+/* Scoped with @supports so no other browser is touched.                       */
 @supports (-moz-appearance: none) {
+  /* Global: thin dark scrollbar on every scrollable element */
   * {
-    scrollbar-width: thin;            /* subtle thin overlay — no layout jump */
-    scrollbar-color: #374151 transparent;
+    scrollbar-width: thin;
+    scrollbar-color: #374151 transparent;   /* thumb: gray-700, track: clear */
+  }
+
+  /* Column scroll areas: 2px breathing room between scrollbar and divider */
+  .column-scroll {
+    scrollbar-width: thin;
+    padding-right: 10px;                    /* 10px pad + ~6px thin scrollbar ≈ 16px visual (matches pl-4) */
+    margin-right: 2px;                      /* gap between scrollbar and column border */
   }
 }
 
-/* ── Chrome / Safari: custom scrollbar with hover/scroll fade ────────────── */
+/* ── Chrome / Safari scrollbar (webkit) ──────────────────────────────────── */
+/* These pseudo-elements are ignored by Firefox — Chrome/Safari only.         */
 ::-webkit-scrollbar {
-  width: 8px;  /* 6px visible thumb + 2px gap from container wall */
+  width: 8px;
   height: 8px;
 }
 
@@ -83,29 +93,27 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(55, 65, 81, 0);
+  background: rgba(55, 65, 81, 0);         /* invisible by default */
   border-radius: 4px;
   background-clip: padding-box;
   transition: background 0.35s ease;
 }
 
-/* Vertical scrollbars: 2px breathing room from the right container wall */
 ::-webkit-scrollbar-thumb:vertical {
-  border-right: 2px solid transparent;
+  border-right: 2px solid transparent;      /* 2px gap from right wall */
 }
 
-/* Horizontal scrollbar: 2px breathing room from the bottom edge */
 ::-webkit-scrollbar-thumb:horizontal {
   border-bottom: 2px solid transparent;
 }
 
-/* JS adds .sb-visible on hover-in or scroll, removes after hover-out / scroll-stop */
+/* JS toggles .sb-visible on hover-in / scroll, removes on hover-out / idle */
 .sb-visible::-webkit-scrollbar-thumb {
-  background: rgba(55, 65, 81, 1);   /* gray-700 — fade in */
+  background: rgba(55, 65, 81, 1);         /* gray-700 — fade in */
 }
 
 .sb-visible::-webkit-scrollbar-thumb:hover {
-  background: rgba(75, 85, 99, 1);   /* gray-600 — brighter on thumb hover */
+  background: rgba(75, 85, 99, 1);         /* gray-600 — brighter on direct thumb hover */
   background-clip: padding-box;
 }
 
