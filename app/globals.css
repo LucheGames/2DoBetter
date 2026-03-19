@@ -63,19 +63,19 @@ body {
 .app-logo         { font-size: var(--logo-font-size);    }
 .app-ui-text      { color: var(--text-ui); font-size: var(--ui-font-size); }
 
-/* ── Firefox: fatter scrollbar, custom colour ─────────────────────────────── */
+/* ── Firefox: thin scrollbar, custom colour ───────────────────────────────── */
 /* scrollbar-color fights Chrome's webkit rules so it lives in a Firefox-only block */
 @supports (-moz-appearance: none) {
   * {
-    scrollbar-width: auto;            /* fatter than 'thin' — Firefox only */
+    scrollbar-width: thin;            /* subtle thin overlay — no layout jump */
     scrollbar-color: #374151 transparent;
   }
 }
 
-/* ── Chrome / Safari: fully custom scrollbar with fade ────────────────────── */
+/* ── Chrome / Safari: custom scrollbar with hover/scroll fade ────────────── */
 ::-webkit-scrollbar {
-  width: 9px;  /* 7px visible thumb + 2px gap from container wall */
-  height: 9px; /* 7px visible thumb + 2px gap from bottom edge   */
+  width: 8px;  /* 6px visible thumb + 2px gap from container wall */
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -83,11 +83,10 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  /* rgba lets the browser interpolate alpha cleanly — named 'transparent' breaks transitions */
   background: rgba(55, 65, 81, 0);
-  border-radius: 3px;
+  border-radius: 4px;
   background-clip: padding-box;
-  transition: background 0.5s ease;
+  transition: background 0.35s ease;
 }
 
 /* Vertical scrollbars: 2px breathing room from the right container wall */
@@ -95,18 +94,18 @@ body {
   border-right: 2px solid transparent;
 }
 
-/* Horizontal scrollbar: 2px up from the bottom of its track */
+/* Horizontal scrollbar: 2px breathing room from the bottom edge */
 ::-webkit-scrollbar-thumb:horizontal {
   border-bottom: 2px solid transparent;
 }
 
-/* JS adds .is-scrolling while scrolling, removes 500ms after stop */
-.is-scrolling::-webkit-scrollbar-thumb {
-  background: rgba(55, 65, 81, 1);   /* gray-700 */
+/* JS adds .sb-visible on hover-in or scroll, removes after hover-out / scroll-stop */
+.sb-visible::-webkit-scrollbar-thumb {
+  background: rgba(55, 65, 81, 1);   /* gray-700 — fade in */
 }
 
-.is-scrolling::-webkit-scrollbar-thumb:hover {
-  background: rgba(75, 85, 99, 1);   /* gray-600 */
+.sb-visible::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 85, 99, 1);   /* gray-600 — brighter on thumb hover */
   background-clip: padding-box;
 }
 
