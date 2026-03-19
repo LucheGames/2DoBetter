@@ -74,6 +74,6 @@ body {
 /* compensate so left and right gaps look equal.                              */
 @supports not (-moz-appearance: none) {
   .column-scroll {
-    padding-right: 8px;                    /* 8px pad + ~8px scrollbar ≈ 16px (matches pl-4) */
+    padding-right: 6px;                    /* 6px pad + ~10px scrollbar ≈ 16px (matches pl-4) */
   }
 }
