@@ -433,6 +433,26 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
               <div className="space-y-2">
                 {users.map(u => (
                   <div key={u.username} className="flex items-center gap-2 min-h-[32px]">
+                    {/* Badge — left of name */}
+                    {u.isAdmin ? (
+                      <span className="px-2 py-0.5 admin-xs rounded border border-accent-700 text-accent-500 min-w-[3.5rem] text-center flex-shrink-0">
+                        Admin
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => toggleAgent(u.username, u.isAgent)}
+                        title={u.isAgent ? "Switch to human" : "Switch to agent"}
+                        className={`px-2 py-0.5 admin-xs rounded border transition-colors min-w-[3.5rem] text-center flex-shrink-0 ${
+                          u.isAgent
+                            ? "border-accent-700 text-accent-400 bg-accent-900/20"
+                            : "border-gray-700 text-gray-500 hover:text-gray-300"
+                        }`}
+                        style={{ cursor: "pointer" }}
+                      >
+                        {u.isAgent ? "Agent" : "Human"}
+                      </button>
+                    )}
+                    {/* Name + subtext */}
                     <div className="flex-1 min-w-0">
                       <span className="admin-sm text-gray-200">{u.username}</span>
                       {u.columnName && u.columnName !== u.username && (
@@ -442,27 +462,12 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                         <span className="admin-xs text-gray-500 ml-1.5">→ {u.supervisorUsername}</span>
                       )}
                     </div>
-                    {u.isAdmin ? (
-                      <span className="admin-xs text-accent-500 font-semibold uppercase tracking-wider px-1">Admin</span>
-                    ) : (
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <button
-                          onClick={() => toggleAgent(u.username, u.isAgent)}
-                          title={u.isAgent ? "Switch to human" : "Switch to agent"}
-                          className={`px-2 py-0.5 admin-xs rounded border transition-colors ${
-                            u.isAgent
-                              ? "border-accent-700 text-accent-400 bg-accent-900/20"
-                              : "border-gray-700 text-gray-500 hover:text-gray-300"
-                          }`}
-                          style={{ cursor: "pointer" }}
-                        >
-                          {u.isAgent ? "Agent" : "Human"}
-                        </button>
-                        <div className="flex gap-0.5">
-                          <Pill active={getAccessLevel(u) === "full"}      onClick={() => setAccess(u.username, "full")}>Full</Pill>
-                          <Pill active={getAccessLevel(u) === "ownColumn"} onClick={() => setAccess(u.username, "ownColumn")}>Own col</Pill>
-                          <Pill active={getAccessLevel(u) === "readOnly"}  onClick={() => setAccess(u.username, "readOnly")}>Read</Pill>
-                        </div>
+                    {/* Access pills — right side, non-admin only */}
+                    {!u.isAdmin && (
+                      <div className="flex gap-0.5 flex-shrink-0">
+                        <Pill active={getAccessLevel(u) === "full"}      onClick={() => setAccess(u.username, "full")}>Full</Pill>
+                        <Pill active={getAccessLevel(u) === "ownColumn"} onClick={() => setAccess(u.username, "ownColumn")}>Own col</Pill>
+                        <Pill active={getAccessLevel(u) === "readOnly"}  onClick={() => setAccess(u.username, "readOnly")}>Read</Pill>
                       </div>
                     )}
                   </div>
