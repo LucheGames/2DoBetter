@@ -22,14 +22,17 @@ function getAccessLevel(u: AdminUser): AccessLevel {
 
 // ── Pill toggle button ────────────────────────────────────────────────────────
 function Pill({
-  active, onClick, children,
-}: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  active, onClick, children, color = "green",
+}: { active: boolean; onClick: () => void; children: React.ReactNode; color?: "green" | "pink" }) {
+  const activeClass = color === "pink"
+    ? "bg-pink-700 text-white"
+    : "bg-accent-600 text-white";
   return (
     <button
       onClick={onClick}
       className={`px-2.5 py-1 admin-xs rounded transition-colors ${
         active
-          ? "bg-accent-600 text-white"
+          ? activeClass
           : "bg-gray-800 text-gray-400 hover:text-gray-200 hover:bg-gray-700"
       }`}
       style={{ cursor: "pointer" }}
@@ -55,13 +58,13 @@ function HoldButton({
   label,
   onConfirm,
   holdMs = 1500,
-  variant = "destructive",
+  variant = "pink",
   disabled = false,
 }: {
   label: string;
   onConfirm: () => void;
   holdMs?: number;
-  variant?: "destructive" | "neutral";
+  variant?: "pink" | "green" | "neutral";
   disabled?: boolean;
 }) {
   const [progress, setProgress] = useState(0);
@@ -70,9 +73,11 @@ function HoldButton({
   const firedRef  = useRef(false);
 
   // Solid fill at rest → drains to empty on hold → fires when empty
-  const solid = variant === "destructive"
-    ? { bg: "bg-pink-700", text: "text-white", fill: "bg-pink-500" }
-    : { bg: "bg-gray-600", text: "text-white", fill: "bg-gray-500" };
+  const solid = variant === "pink"
+    ? { bg: "bg-pink-700",    text: "text-white", fill: "bg-pink-500" }
+    : variant === "green"
+    ? { bg: "bg-accent-600",  text: "text-white", fill: "bg-accent-500" }
+    : { bg: "bg-gray-600",    text: "text-white", fill: "bg-gray-500" };
 
   function startHold(e: React.MouseEvent | React.TouchEvent) {
     e.preventDefault();
@@ -417,8 +422,8 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                         title={u.isAgent ? "Switch to human" : "Switch to agent"}
                         className={`px-2 py-0.5 admin-xs rounded border transition-colors min-w-[3.5rem] text-center flex-shrink-0 ${
                           u.isAgent
-                            ? "border-accent-700 text-accent-400 bg-accent-900/20"
-                            : "border-gray-700 text-gray-500 hover:text-gray-300"
+                            ? "border-pink-700 text-pink-300 bg-pink-900/20"
+                            : "border-accent-700 text-accent-400 bg-accent-900/20"
                         }`}
                         style={{ cursor: "pointer" }}
                       >
@@ -435,12 +440,12 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                         <span className="admin-xs text-gray-500 ml-1.5">→ {u.supervisorUsername}</span>
                       )}
                     </div>
-                    {/* Access pills — right side, non-admin only */}
+                    {/* Access pills — right side, colour matches user type */}
                     {!u.isAdmin && (
                       <div className="flex gap-0.5 flex-shrink-0">
-                        <Pill active={getAccessLevel(u) === "full"}      onClick={() => setAccess(u.username, "full")}>Full</Pill>
-                        <Pill active={getAccessLevel(u) === "ownColumn"} onClick={() => setAccess(u.username, "ownColumn")}>Own col</Pill>
-                        <Pill active={getAccessLevel(u) === "readOnly"}  onClick={() => setAccess(u.username, "readOnly")}>Read</Pill>
+                        <Pill active={getAccessLevel(u) === "full"}      onClick={() => setAccess(u.username, "full")}      color={u.isAgent ? "pink" : "green"}>Full</Pill>
+                        <Pill active={getAccessLevel(u) === "ownColumn"} onClick={() => setAccess(u.username, "ownColumn")} color={u.isAgent ? "pink" : "green"}>Own col</Pill>
+                        <Pill active={getAccessLevel(u) === "readOnly"}  onClick={() => setAccess(u.username, "readOnly")}  color={u.isAgent ? "pink" : "green"}>Read</Pill>
                       </div>
                     )}
                   </div>
@@ -506,7 +511,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                 placeholder="Agent name"
                 value={createAgentName}
                 onChange={e => { setCreateAgentName(e.target.value); setCreateAgentMsg(null); setCreateAgentToken(null); }}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 admin-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-accent-500"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 admin-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-pink-500"
               />
               <div className="flex items-center gap-3">
                 <span className="admin-xs text-gray-500 w-20 flex-shrink-0">Supervisor</span>
@@ -525,14 +530,14 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
               <div className="flex items-center gap-3">
                 <span className="admin-xs text-gray-500 w-20 flex-shrink-0">Access</span>
                 <div className="flex gap-1">
-                  <Pill active={createAgentAccess === "ownColumn"} onClick={() => setCreateAgentAccess("ownColumn")}>Own column</Pill>
-                  <Pill active={createAgentAccess === "full"}      onClick={() => setCreateAgentAccess("full")}>Full board</Pill>
+                  <Pill active={createAgentAccess === "ownColumn"} onClick={() => setCreateAgentAccess("ownColumn")} color="pink">Own column</Pill>
+                  <Pill active={createAgentAccess === "full"}      onClick={() => setCreateAgentAccess("full")}      color="pink">Full board</Pill>
                 </div>
               </div>
               <button
                 onClick={doCreateAgent}
                 disabled={createAgentLoading || createAgentName.trim().length < 2}
-                className="w-full py-2 mt-1 bg-accent-600 hover:bg-accent-500 disabled:bg-gray-800 disabled:text-gray-500 text-white admin-sm rounded-lg transition-colors"
+                className="w-full py-2 mt-1 bg-pink-700 hover:bg-pink-500 disabled:bg-gray-800 disabled:text-gray-500 text-white admin-sm rounded-lg transition-colors"
                 style={{ cursor: createAgentLoading || createAgentName.trim().length < 2 ? "default" : "pointer" }}
               >
                 {createAgentLoading ? "Creating\u2026" : "Create agent"}
@@ -562,9 +567,9 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
             </div>
           </Section>
 
-          {/* ── Manage user — context-aware: agents vs humans ────────── */}
+          {/* ── Manage users — context-aware: agents vs humans ───────── */}
           {nonAdmins.length > 0 && (
-            <Section title="Manage user">
+            <Section title="Manage users">
               <div className="space-y-4">
                 {/* User selector */}
                 <select
@@ -590,7 +595,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                           label="Hold to generate token"
                           onConfirm={doGenToken}
                           holdMs={1500}
-                          variant="neutral"
+                          variant="pink"
                           disabled={!manageTarget}
                         />
                         {tokenValue && (
@@ -624,7 +629,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                           label="Hold to reset password"
                           onConfirm={doResetPassword}
                           holdMs={2000}
-                          variant="destructive"
+                          variant="green"
                           disabled={resetPassword.length < 6 || !manageTarget}
                         />
                         {resetMsg && (
@@ -635,7 +640,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                       </div>
                     )}
 
-                    {/* ─ Rename — both ─ */}
+                    {/* ─ Rename — both, colour matches user type ─ */}
                     <div className="space-y-2">
                       <input
                         type="text"
@@ -648,7 +653,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                         label="Hold to rename"
                         onConfirm={doRenameUser}
                         holdMs={1500}
-                        variant="neutral"
+                        variant={manageUser?.isAgent ? "pink" : "green"}
                         disabled={renameNew.trim().length < 2 || !manageTarget || renameNew.trim() === manageTarget}
                       />
                       {renameMsg && (
@@ -658,13 +663,13 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                       )}
                     </div>
 
-                    {/* ─ Remove — both ─ */}
+                    {/* ─ Remove — both, colour + label match user type ─ */}
                     <div className="space-y-2">
                       <HoldButton
-                        label="Hold to delete user"
+                        label={manageUser?.isAgent ? "Hold to delete agent" : "Hold to delete teammate"}
                         onConfirm={doRemoveUser}
                         holdMs={2000}
-                        variant="destructive"
+                        variant={manageUser?.isAgent ? "pink" : "green"}
                         disabled={!manageTarget}
                       />
                       {removeMsg && (
@@ -691,10 +696,10 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                 }
               </p>
               <HoldButton
-                label="Hold to purge all"
+                label={"\uD83D\uDC80 Hold to purge all"}
                 onConfirm={doPurgeGrave}
                 holdMs={2500}
-                variant="destructive"
+                variant="pink"
                 disabled={graveCount === 0}
               />
               {graveMsg && (
