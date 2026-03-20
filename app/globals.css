@@ -35,6 +35,14 @@
   --accent-800:           #1a3a1e;   /* subtle tinted backgrounds                      */
   --accent-900:           #122a14;   /* very subtle tinted backgrounds                 */
 
+  /* ── Danger/destructive pink (WYF pink #f194ff) ──────────────────
+     Used for hold-to-confirm destructive actions in the admin panel.
+     ──────────────────────────────────────────────────────────────── */
+  --pink-300:             #f194ff;   /* text on dark bg                               */
+  --pink-500:             #d946ef;   /* fill bar / solid accent                       */
+  --pink-700:             #a21caf;   /* borders                                       */
+  --pink-900:             #4a044e;   /* subtle bg tint                                */
+
   /* ── Surfaces ── */
   --app-bg:               #030712;   /* gray-950  page background                     */
   --surface:              #111827;   /* gray-900  card backgrounds                    */
@@ -59,6 +67,12 @@
   --color-accent-700: var(--accent-700);
   --color-accent-800: var(--accent-800);
   --color-accent-900: var(--accent-900);
+
+  /* Pink (destructive) palette */
+  --color-pink-300: var(--pink-300);
+  --color-pink-500: var(--pink-500);
+  --color-pink-700: var(--pink-700);
+  --color-pink-900: var(--pink-900);
 }
 
 :root {

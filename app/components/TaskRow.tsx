@@ -2,12 +2,10 @@
 
 import { useState } from "react";
 import { Task } from "../types";
-import HoldToDelete from "./HoldToDelete";
 
 type TaskRowProps = {
   task: Task;
   onToggle: (task: Task) => void;
-  onDelete: (id: number) => void;
   onSave: (id: number, title: string) => void;
   showBreadcrumb?: boolean;
   dragHandle?: React.ReactNode;
@@ -17,7 +15,6 @@ type TaskRowProps = {
 export default function TaskRow({
   task,
   onToggle,
-  onDelete,
   onSave,
   showBreadcrumb,
   dragHandle,
@@ -116,13 +113,9 @@ export default function TaskRow({
       </div>
 
       {/* Action buttons — hidden until hover on desktop, always visible on touch */}
-      {!isEditing && (
+      {!isEditing && moveButton && (
         <div className="hidden group-hover:flex [@media(pointer:coarse)]:flex items-center flex-shrink-0">
           {moveButton}
-          <HoldToDelete
-            onConfirm={() => onDelete(task.id)}
-            label="Delete task?"
-          />
         </div>
       )}
     </div>

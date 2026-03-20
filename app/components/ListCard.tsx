@@ -20,7 +20,6 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { ListData, Task } from "../types";
 import TaskRow from "./TaskRow";
-import HoldToDelete from "./HoldToDelete";
 import { MoveTaskButton, MoveProjectButton } from "./MoveMenu";
 
 type DragHandleProps = React.HTMLAttributes<HTMLButtonElement>;
@@ -50,13 +49,11 @@ function GripIcon({ className }: { className?: string }) {
 function SortableTaskRow({
   task,
   onToggle,
-  onDelete,
   onSave,
   moveButton,
 }: {
   task: Task;
   onToggle: (task: Task) => void;
-  onDelete: (id: number) => void;
   onSave: (id: number, title: string) => void;
   moveButton?: React.ReactNode;
 }) {
@@ -83,7 +80,6 @@ function SortableTaskRow({
       <TaskRow
         task={task}
         onToggle={onToggle}
-        onDelete={onDelete}
         onSave={onSave}
         moveButton={moveButton}
         dragHandle={
@@ -205,10 +201,6 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
     });
   }
 
-  async function deleteTask(id: number) {
-    await fetch(`/api/tasks/${id}`, { method: "DELETE" });
-  }
-
   async function saveTaskTitle(id: number, title: string) {
     await fetch(`/api/tasks/${id}`, {
       method: "PATCH",
@@ -242,11 +234,6 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
       body: JSON.stringify({ columnId: targetColumnId }),
     });
   }
-
-  async function deleteList() {
-    await fetch(`/api/lists/${list.id}`, { method: "DELETE" });
-  }
-
 
   const totalActive = orderedActiveTasks.length + optimisticTasks.length;
 
@@ -311,7 +298,6 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
         {!editingName && (
           <div className="flex md:hidden md:group-hover:flex items-center">
             <MoveProjectButton currentColumnId={list.columnId} onMove={moveProject} />
-            <HoldToDelete onConfirm={deleteList} label="Delete project?" />
           </div>
         )}
 
@@ -335,7 +321,6 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
                   key={task.id}
                   task={task}
                   onToggle={toggleTask}
-                  onDelete={deleteTask}
                   onSave={saveTaskTitle}
                   moveButton={
                     <MoveTaskButton
@@ -354,7 +339,6 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
               key={task.id}
               task={task}
               onToggle={toggleTask}
-              onDelete={deleteTask}
               onSave={saveTaskTitle}
             />
           ))}

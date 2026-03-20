@@ -66,11 +66,6 @@ export default function GraveyardPanel({ columnId, onResurrect }: GraveyardPanel
     onResurrect();
   }
 
-  async function deleteTask(id: number) {
-    await fetch(`/api/tasks/${id}`, { method: "DELETE" });
-    await load();
-  }
-
   const totalArchived = archived.length;
 
   return (
@@ -165,11 +160,6 @@ export default function GraveyardPanel({ columnId, onResurrect }: GraveyardPanel
                       </svg>
                     </button>
                     <span className="text-xs text-gray-600 line-through flex-1 truncate">{task.title}</span>
-                    <HoldToDelete
-                      onConfirm={() => deleteTask(task.id)}
-                      label="Delete task?"
-                      className="flex md:hidden md:group-hover:flex flex-shrink-0"
-                    />
                   </div>
                 ))}
 

@@ -70,7 +70,7 @@ function HoldButton({
   const firedRef  = useRef(false);
 
   const styles = variant === "destructive"
-    ? { bg: "bg-fuchsia-900/40", border: "border-fuchsia-700", fill: "bg-fuchsia-500", text: "text-fuchsia-300" }
+    ? { bg: "bg-pink-900/40", border: "border-pink-700", fill: "bg-pink-500", text: "text-pink-300" }
     : { bg: "bg-gray-800/60",   border: "border-gray-600",   fill: "bg-gray-500",   text: "text-gray-300" };
 
   function startHold(e: React.MouseEvent | React.TouchEvent) {
@@ -148,6 +148,10 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
   const [tokenCopied,   setTokenCopied]   = useState(false);
   const [removeMsg,     setRemoveMsg]     = useState<string | null>(null);
 
+  // Purge graveyard
+  const [graveCount,    setGraveCount]    = useState<number | null>(null);
+  const [graveMsg,      setGraveMsg]      = useState<string | null>(null);
+
   // Create agent
   const [createAgentName,       setCreateAgentName]       = useState("");
   const [createAgentSupervisor, setCreateAgentSupervisor] = useState("");
@@ -178,6 +182,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
 
   useEffect(() => {
     loadUsers();
+    fetch("/api/admin/purge-graveyard").then(r => r.json()).then(d => setGraveCount(d.count ?? null));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -342,6 +347,24 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
       }
     } finally {
       setCreateAgentLoading(false);
+    }
+  }
+
+  // ── Purge graveyard ────────────────────────────────────────────────────────
+  async function doPurgeGrave() {
+    setGraveMsg(null);
+    const res = await fetch("/api/admin/purge-graveyard", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    if (res.ok) {
+      const { deleted } = await res.json();
+      setGraveMsg(`Deleted ${deleted} archived list${deleted !== 1 ? "s" : ""} and their tasks.`);
+      setGraveCount(0);
+      onDataChanged?.();
+    } else {
+      setGraveMsg("Error purging graveyard.");
     }
   }
 
@@ -538,7 +561,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
             </div>
           </Section>
 
-          {/* ── Manage user (merged: token, password, rename, remove) ────── */}
+          {/* ── Manage user — context-aware: agents vs humans ────────── */}
           {nonAdmins.length > 0 && (
             <Section title="Manage user">
               <div className="space-y-4">
@@ -550,62 +573,68 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                   style={{ cursor: "pointer" }}
                 >
                   {nonAdmins.map(u => (
-                    <option key={u.username} value={u.username}>{u.username}</option>
+                    <option key={u.username} value={u.username}>
+                      {u.username}{u.isAgent ? " (agent)" : ""}
+                    </option>
                   ))}
                 </select>
 
                 {manageUser && (
                   <>
-                    {/* ─ Agent token ─ */}
-                    <div className="space-y-2">
-                      <p className="admin-xs text-gray-500">Rotate agent token — existing token stops working instantly.</p>
-                      <HoldButton
-                        label="Hold to generate token"
-                        onConfirm={doGenToken}
-                        holdMs={1500}
-                        variant="neutral"
-                        disabled={!manageTarget}
-                      />
-                      {tokenValue && (
-                        <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50 space-y-2">
-                          <p className="admin-xs text-gray-300 break-all font-mono leading-relaxed">{tokenValue}</p>
-                          <div className="flex justify-end">
-                            <button
-                              onClick={copyToken}
-                              className="admin-xs text-gray-400 hover:text-gray-200 transition-colors font-medium"
-                              style={{ cursor: "pointer" }}
-                            >
-                              {tokenCopied ? "Copied \u2713" : "Copy token"}
-                            </button>
+                    {/* ─ Agent token — agents only ─ */}
+                    {manageUser.isAgent && (
+                      <div className="space-y-2">
+                        <p className="admin-xs text-gray-500">Rotate agent token — existing token stops working instantly.</p>
+                        <HoldButton
+                          label="Hold to generate token"
+                          onConfirm={doGenToken}
+                          holdMs={1500}
+                          variant="neutral"
+                          disabled={!manageTarget}
+                        />
+                        {tokenValue && (
+                          <div className="p-3 bg-gray-800/50 rounded-lg border border-gray-700/50 space-y-2">
+                            <p className="admin-xs text-gray-300 break-all font-mono leading-relaxed">{tokenValue}</p>
+                            <div className="flex justify-end">
+                              <button
+                                onClick={copyToken}
+                                className="admin-xs text-gray-400 hover:text-gray-200 transition-colors font-medium"
+                                style={{ cursor: "pointer" }}
+                              >
+                                {tokenCopied ? "Copied \u2713" : "Copy token"}
+                              </button>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
+                        )}
+                      </div>
+                    )}
 
-                    {/* ─ Reset password ─ */}
-                    <div className="space-y-2">
-                      <input
-                        type="password"
-                        placeholder="New password (min 6 chars)"
-                        value={resetPassword}
-                        onChange={e => { setResetPassword(e.target.value); setResetMsg(null); }}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 admin-sm text-gray-200 placeholder-gray-500"
-                      />
-                      <HoldButton
-                        label="Hold to reset password"
-                        onConfirm={doResetPassword}
-                        holdMs={2000}
-                        variant="destructive"
-                        disabled={resetPassword.length < 6 || !manageTarget}
-                      />
-                      {resetMsg && (
-                        <p className={`admin-xs ${resetMsg.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>
-                          {resetMsg}
-                        </p>
-                      )}
-                    </div>
+                    {/* ─ Reset password — humans only ─ */}
+                    {!manageUser.isAgent && (
+                      <div className="space-y-2">
+                        <input
+                          type="password"
+                          placeholder="New password (min 6 chars)"
+                          value={resetPassword}
+                          onChange={e => { setResetPassword(e.target.value); setResetMsg(null); }}
+                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 admin-sm text-gray-200 placeholder-gray-500"
+                        />
+                        <HoldButton
+                          label="Hold to reset password"
+                          onConfirm={doResetPassword}
+                          holdMs={2000}
+                          variant="destructive"
+                          disabled={resetPassword.length < 6 || !manageTarget}
+                        />
+                        {resetMsg && (
+                          <p className={`admin-xs ${resetMsg.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>
+                            {resetMsg}
+                          </p>
+                        )}
+                      </div>
+                    )}
 
-                    {/* ─ Rename ─ */}
+                    {/* ─ Rename — both ─ */}
                     <div className="space-y-2">
                       <input
                         type="text"
@@ -628,7 +657,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                       )}
                     </div>
 
-                    {/* ─ Remove ─ */}
+                    {/* ─ Remove — both ─ */}
                     <div className="space-y-2">
                       <HoldButton
                         label="Hold to delete user"
@@ -648,6 +677,32 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
               </div>
             </Section>
           )}
+
+          {/* ── Purge graveyard ────────────────────────────────────────── */}
+          <Section title="Purge graveyard">
+            <div className="space-y-3">
+              <p className="admin-xs text-gray-500">
+                {graveCount === null
+                  ? "Counting\u2026"
+                  : graveCount === 0
+                  ? "Graveyard is empty."
+                  : <><span className="text-gray-300 font-semibold">{graveCount}</span> archived list{graveCount !== 1 ? "s" : ""} in graveyard.</>
+                }
+              </p>
+              <HoldButton
+                label="Hold to purge all"
+                onConfirm={doPurgeGrave}
+                holdMs={2500}
+                variant="destructive"
+                disabled={graveCount === 0}
+              />
+              {graveMsg && (
+                <p className={`admin-xs ${graveMsg.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>
+                  {graveMsg}
+                </p>
+              )}
+            </div>
+          </Section>
 
         </div>
       </div>

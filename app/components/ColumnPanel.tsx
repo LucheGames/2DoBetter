@@ -21,7 +21,6 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { ColumnData, ListData } from "../types";
 import ListCard from "./ListCard";
-import CompletedSection from "./CompletedSection";
 import HoldToDelete from "./HoldToDelete";
 import GraveyardPanel from "./GraveyardPanel";
 
@@ -446,9 +445,6 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
             </button>
           )
         )}
-
-        {/* Completed section */}
-        <CompletedSection lists={column.lists} onRefresh={onRefresh} />
 
         {/* Graveyard — shown on every column, scoped to that column's archived projects */}
         <GraveyardPanel columnId={column.id} onResurrect={onRefresh} />
