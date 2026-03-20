@@ -297,23 +297,23 @@ export default function Home() {
             </button>
           )}
 
-          {/* Test: add a teammate column — admin only */}
+          {/* Test: add a teammate — admin only */}
           {board.isAdmin && (
             <button
               onClick={async () => {
                 const n = board.columns.length + 1;
-                await fetch("/api/columns", {
+                await fetch("/api/admin/create-teammate", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({ name: `Tester ${n}` }),
                 });
                 fetchBoard();
               }}
-              title="Add a test column"
+              title="Add a test teammate (password: test123)"
               className="app-ui-text text-gray-600 hover:text-gray-300 transition-colors select-none"
               style={{ cursor: "pointer" }}
             >
-              + Column
+              + Teammate
             </button>
           )}
 
