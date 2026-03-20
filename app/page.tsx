@@ -297,6 +297,26 @@ export default function Home() {
             </button>
           )}
 
+          {/* Test: add a teammate column — admin only */}
+          {board.isAdmin && (
+            <button
+              onClick={async () => {
+                const n = board.columns.length + 1;
+                await fetch("/api/columns", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ name: `Tester ${n}` }),
+                });
+                fetchBoard();
+              }}
+              title="Add a test column"
+              className="app-ui-text text-gray-600 hover:text-gray-300 transition-colors select-none"
+              style={{ cursor: "pointer" }}
+            >
+              + Column
+            </button>
+          )}
+
           {/* Admin panel button — admin only */}
           {board.isAdmin && (
             <button
