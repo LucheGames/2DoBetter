@@ -633,7 +633,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                     {/* ─ Temp login code — humans only ─ */}
                     {!manageUser.isAgent && (
                       <div className="space-y-2">
-                        <p className="admin-xs text-gray-500">Generate an 8-digit reset code — user enters it on the sign-in page to set a new password.</p>
+                        <p className="admin-xs text-gray-500">Reset password and generate reset code — user enters it on the sign-in page to set a new password.</p>
                         <HoldButton
                           label="Hold to generate reset code"
                           onConfirm={doGenTempCode}
