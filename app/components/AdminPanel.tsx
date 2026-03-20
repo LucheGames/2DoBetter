@@ -148,8 +148,10 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
   const [manageTarget,  setManageTarget]  = useState("");
   const [renameNew,     setRenameNew]     = useState("");
   const [renameMsg,     setRenameMsg]     = useState<string | null>(null);
-  const [resetPassword, setResetPassword] = useState("");
-  const [resetMsg,      setResetMsg]      = useState<string | null>(null);
+  const [tempCodeValue, setTempCodeValue] = useState<string | null>(null);
+  const [tempCodeExpiry,setTempCodeExpiry]= useState<string | null>(null);
+  const [tempCodeCopied,setTempCodeCopied]= useState(false);
+  const [tempCodeMsg,   setTempCodeMsg]   = useState<string | null>(null);
   const [tokenValue,    setTokenValue]    = useState<string | null>(null);
   const [tokenCopied,   setTokenCopied]   = useState(false);
   const [removeMsg,     setRemoveMsg]     = useState<string | null>(null);
@@ -197,8 +199,10 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
     setManageTarget(username);
     setRenameNew("");
     setRenameMsg(null);
-    setResetPassword("");
-    setResetMsg(null);
+    setTempCodeValue(null);
+    setTempCodeExpiry(null);
+    setTempCodeCopied(false);
+    setTempCodeMsg(null);
     setTokenValue(null);
     setTokenCopied(false);
     setRemoveMsg(null);
@@ -274,20 +278,31 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
     setTimeout(() => setTokenCopied(false), 2500);
   }
 
-  async function doResetPassword() {
-    setResetMsg(null);
-    const res = await fetch("/api/admin/reset-password", {
+  async function doGenTempCode() {
+    setTempCodeValue(null);
+    setTempCodeExpiry(null);
+    setTempCodeCopied(false);
+    setTempCodeMsg(null);
+    const res = await fetch("/api/admin/temp-code", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: manageTarget, newPassword: resetPassword }),
+      body: JSON.stringify({ username: manageTarget }),
     });
     if (res.ok) {
-      setResetMsg(`Password reset for ${manageTarget}. Session invalidated.`);
-      setResetPassword("");
+      const { code, expiresAt } = await res.json();
+      setTempCodeValue(code);
+      setTempCodeExpiry(expiresAt);
     } else {
       const d = await res.json();
-      setResetMsg(`Error: ${d.error}`);
+      setTempCodeMsg(`Error: ${d.error}`);
     }
+  }
+
+  function copyTempCode() {
+    if (!tempCodeValue) return;
+    navigator.clipboard.writeText(tempCodeValue).catch(() => {});
+    setTempCodeCopied(true);
+    setTimeout(() => setTempCodeCopied(false), 2500);
   }
 
   async function doRenameUser() {
@@ -615,26 +630,38 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                       </div>
                     )}
 
-                    {/* ─ Reset password — humans only ─ */}
+                    {/* ─ Temp login code — humans only ─ */}
                     {!manageUser.isAgent && (
                       <div className="space-y-2">
-                        <input
-                          type="password"
-                          placeholder="New password (min 6 chars)"
-                          value={resetPassword}
-                          onChange={e => { setResetPassword(e.target.value); setResetMsg(null); }}
-                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 admin-sm text-gray-200 placeholder-gray-500"
-                        />
+                        <p className="admin-xs text-gray-500">Generate an 8-digit reset code — user enters it on the sign-in page to set a new password.</p>
                         <HoldButton
-                          label="Hold to reset password"
-                          onConfirm={doResetPassword}
+                          label="Hold to generate reset code"
+                          onConfirm={doGenTempCode}
                           holdMs={2000}
                           variant="green"
-                          disabled={resetPassword.length < 6 || !manageTarget}
+                          disabled={!manageTarget}
                         />
-                        {resetMsg && (
-                          <p className={`admin-xs ${resetMsg.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>
-                            {resetMsg}
+                        {tempCodeValue && (
+                          <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700/50 space-y-3 text-center">
+                            <div className="text-4xl font-mono font-bold tracking-[0.2em] text-gray-100 py-1">
+                              {tempCodeValue.slice(0, 4)}{"\u2009"}{tempCodeValue.slice(4)}
+                            </div>
+                            <div className="flex items-center justify-between admin-xs text-gray-500">
+                              <span>Expires {tempCodeExpiry ? new Date(tempCodeExpiry).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}</span>
+                              <button
+                                onClick={copyTempCode}
+                                className="text-gray-400 hover:text-gray-200 transition-colors font-medium"
+                                style={{ cursor: "pointer" }}
+                              >
+                                {tempCodeCopied ? "Copied \u2713" : "Copy code"}
+                              </button>
+                            </div>
+                            <p className="admin-xs text-gray-500">Tell the user to enter this on the sign-in page.</p>
+                          </div>
+                        )}
+                        {tempCodeMsg && (
+                          <p className={`admin-xs ${tempCodeMsg.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>
+                            {tempCodeMsg}
                           </p>
                         )}
                       </div>

@@ -38,6 +38,10 @@ export type UserRecord = {
   ownColumnOnly?: boolean;    // token can only write to its own column — cross-column push blocked
   isAgent?: boolean;          // display hint: show AGENT badge in column header instead of TEAMMATE
   supervisorUsername?: string; // human who supervises this agent — gets same edit rights as owner
+  tempCode?: string;           // 8-digit temporary login code (admin-generated, short-lived)
+  tempCodeExpiry?: string;     // ISO timestamp — temp code expires after this
+  resetToken?: string;         // one-time token issued after temp code verification
+  resetTokenExpiry?: string;   // ISO timestamp — reset token expires after this
 };
 
 /** Read users fresh from disk so auth operations see the latest data.
