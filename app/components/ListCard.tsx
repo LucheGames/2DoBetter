@@ -20,6 +20,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { ListData, Task } from "../types";
 import TaskRow from "./TaskRow";
+import HoldToDelete from "./HoldToDelete";
 import { MoveTaskButton, MoveProjectButton } from "./MoveMenu";
 
 type DragHandleProps = React.HTMLAttributes<HTMLButtonElement>;
@@ -235,6 +236,10 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
     });
   }
 
+  async function archiveList() {
+    await fetch(`/api/lists/${list.id}`, { method: "DELETE" });
+  }
+
   const totalActive = orderedActiveTasks.length + optimisticTasks.length;
 
   return (
@@ -298,6 +303,7 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
         {!editingName && (
           <div className="flex md:hidden md:group-hover:flex items-center">
             <MoveProjectButton currentColumnId={list.columnId} onMove={moveProject} />
+            <HoldToDelete onConfirm={archiveList} label="Archive project?" />
           </div>
         )}
 

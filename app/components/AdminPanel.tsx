@@ -69,9 +69,10 @@ function HoldButton({
   const startRef  = useRef<number>(0);
   const firedRef  = useRef(false);
 
-  const styles = variant === "destructive"
-    ? { bg: "bg-pink-900/40", border: "border-pink-700", fill: "bg-pink-500", text: "text-pink-300" }
-    : { bg: "bg-gray-800/60",   border: "border-gray-600",   fill: "bg-gray-500",   text: "text-gray-300" };
+  // Solid fill at rest → drains to empty on hold → fires when empty
+  const solid = variant === "destructive"
+    ? { bg: "bg-pink-700", text: "text-white", fill: "bg-pink-500" }
+    : { bg: "bg-gray-600", text: "text-white", fill: "bg-gray-500" };
 
   function startHold(e: React.MouseEvent | React.TouchEvent) {
     e.preventDefault();
@@ -108,15 +109,15 @@ function HoldButton({
       onTouchEnd={endHold}
       onTouchCancel={endHold}
       disabled={disabled}
-      className={`relative w-full py-2 mt-1 admin-sm rounded-lg border overflow-hidden select-none transition-colors
+      className={`relative w-full py-2 mt-1 admin-sm rounded-lg overflow-hidden select-none transition-colors
         ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}
-        ${styles.bg} ${styles.border} ${styles.text}`}
+        ${solid.bg} ${solid.text}`}
     >
-      {/* Fill bar */}
+      {/* Remaining-fill drains right-to-left as you hold */}
       {progress > 0 && (
         <span
-          className={`absolute inset-y-0 left-0 ${styles.fill} opacity-30 transition-none`}
-          style={{ width: `${progress}%` }}
+          className={`absolute inset-y-0 right-0 ${solid.fill} opacity-40 transition-none`}
+          style={{ width: `${100 - progress}%` }}
         />
       )}
       <span className="relative">

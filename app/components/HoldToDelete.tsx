@@ -57,10 +57,10 @@ export default function HoldToDelete({ onConfirm, className = "", label = "Delet
             className="pointer-events-auto flex items-center gap-3 bg-gray-900 border border-gray-700 rounded-xl px-5 py-3 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <span className="text-sm text-red-300 whitespace-nowrap">{label}</span>
+            <span className="text-sm text-pink-300 whitespace-nowrap">{label}</span>
             <button
               onClick={(e) => { e.stopPropagation(); onConfirm(); setPhase("idle"); }}
-              className="min-w-[44px] min-h-[44px] px-4 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-medium flex items-center justify-center"
+              className="min-w-[44px] min-h-[44px] px-4 rounded-lg bg-pink-700 hover:bg-pink-500 text-white text-sm font-medium flex items-center justify-center"
               style={{ cursor: "pointer" }}
             >
               Yes
@@ -87,7 +87,7 @@ export default function HoldToDelete({ onConfirm, className = "", label = "Delet
         onMouseLeave={cancelHold}
         onTouchStart={(e) => { e.preventDefault(); startHold(); }}
         onTouchEnd={cancelHold}
-        className="min-w-[36px] min-h-[36px] flex items-center justify-center text-gray-500 hover:text-red-400 select-none transition-colors rounded"
+        className="min-w-[36px] min-h-[36px] flex items-center justify-center text-gray-500 hover:text-pink-300 select-none transition-colors rounded"
         title="Hold to delete"
       >
         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
@@ -102,7 +102,7 @@ export default function HoldToDelete({ onConfirm, className = "", label = "Delet
           <circle
             cx="18" cy="18" r="14"
             fill="none"
-            stroke="rgb(239 68 68 / 0.5)"
+            stroke="var(--pink-500)"
             strokeWidth="2"
             strokeDasharray={`${(progress / 100) * 87.96} 87.96`}
             strokeLinecap="round"

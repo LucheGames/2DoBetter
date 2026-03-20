@@ -36,12 +36,12 @@
   --accent-900:           #122a14;   /* very subtle tinted backgrounds                 */
 
   /* ── Danger/destructive pink (WYF pink #f194ff) ──────────────────
-     Used for hold-to-confirm destructive actions in the admin panel.
+     Warmer shades — shifted toward magenta to avoid purple cast.
      ──────────────────────────────────────────────────────────────── */
-  --pink-300:             #f194ff;   /* text on dark bg                               */
-  --pink-500:             #d946ef;   /* fill bar / solid accent                       */
-  --pink-700:             #a21caf;   /* borders                                       */
-  --pink-900:             #4a044e;   /* subtle bg tint                                */
+  --pink-300:             #f194ff;   /* text on dark bg — the WYF reference           */
+  --pink-500:             #e860d8;   /* fill bar — warm bright pink                   */
+  --pink-700:             #c040b0;   /* borders — warm dark pink                      */
+  --pink-900:             #4d1545;   /* subtle bg tint — dark warm pink               */
 
   /* ── Surfaces ── */
   --app-bg:               #030712;   /* gray-950  page background                     */
