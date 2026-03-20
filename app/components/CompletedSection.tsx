@@ -63,11 +63,6 @@ export default function CompletedSection({
     onRefresh();
   }
 
-  async function deleteTask(id: number) {
-    await fetch(`/api/tasks/${id}`, { method: "DELETE" });
-    onRefresh();
-  }
-
   async function saveTaskTitle(id: number, title: string) {
     await fetch(`/api/tasks/${id}`, {
       method: "PATCH",
@@ -110,7 +105,6 @@ export default function CompletedSection({
                     key={task.id}
                     task={task}
                     onToggle={toggleTask}
-                    onDelete={deleteTask}
                     onSave={saveTaskTitle}
                     showBreadcrumb
                   />
