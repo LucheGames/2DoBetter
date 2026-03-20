@@ -70,8 +70,8 @@ function HoldButton({
   const firedRef  = useRef(false);
 
   const styles = variant === "destructive"
-    ? { bg: "bg-red-900/40",   border: "border-red-700",   fill: "bg-red-500",   text: "text-red-300" }
-    : { bg: "bg-gray-800/60",  border: "border-gray-600",  fill: "bg-gray-500",  text: "text-gray-300" };
+    ? { bg: "bg-fuchsia-900/40", border: "border-fuchsia-700", fill: "bg-fuchsia-500", text: "text-fuchsia-300" }
+    : { bg: "bg-gray-800/60",   border: "border-gray-600",   fill: "bg-gray-500",   text: "text-gray-300" };
 
   function startHold(e: React.MouseEvent | React.TouchEvent) {
     e.preventDefault();
@@ -148,16 +148,6 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
   const [tokenCopied,   setTokenCopied]   = useState(false);
   const [removeMsg,     setRemoveMsg]     = useState<string | null>(null);
 
-  // Purge completed
-  const [purgeCount,    setPurgeCount]    = useState<number | null>(null);
-  const [purgeDays,     setPurgeDays]     = useState<"all" | number>("all");
-  const [purgeMsg,      setPurgeMsg]      = useState<string | null>(null);
-
-  // Purge graveyard
-  const [graveCount,    setGraveCount]    = useState<number | null>(null);
-  const [graveDays,     setGraveDays]     = useState<"all" | number>("all");
-  const [graveMsg,      setGraveMsg]      = useState<string | null>(null);
-
   // Create agent
   const [createAgentName,       setCreateAgentName]       = useState("");
   const [createAgentSupervisor, setCreateAgentSupervisor] = useState("");
@@ -188,8 +178,6 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
 
   useEffect(() => {
     loadUsers();
-    fetch("/api/admin/purge-completed").then(r => r.json()).then(d => setPurgeCount(d.count ?? null));
-    fetch("/api/admin/purge-graveyard").then(r => r.json()).then(d => setGraveCount(d.count ?? null));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -324,44 +312,6 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
     } else {
       const d = await res.json().catch(() => ({}));
       setRemoveMsg(`Error: ${d.error ?? "Unknown error"}`);
-    }
-  }
-
-  // ── Purge completed ────────────────────────────────────────────────────────
-  async function doPurge() {
-    setPurgeMsg(null);
-    const body = purgeDays === "all" ? {} : { olderThanDays: purgeDays };
-    const res = await fetch("/api/admin/purge-completed", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    if (res.ok) {
-      const { deleted } = await res.json();
-      setPurgeMsg(`Deleted ${deleted} completed task${deleted !== 1 ? "s" : ""}.`);
-      setPurgeCount(0);
-      onDataChanged?.();
-    } else {
-      setPurgeMsg("Error purging tasks.");
-    }
-  }
-
-  // ── Purge graveyard ────────────────────────────────────────────────────────
-  async function doPurgeGrave() {
-    setGraveMsg(null);
-    const body = graveDays === "all" ? {} : { olderThanDays: graveDays };
-    const res = await fetch("/api/admin/purge-graveyard", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    if (res.ok) {
-      const { deleted } = await res.json();
-      setGraveMsg(`Deleted ${deleted} archived list${deleted !== 1 ? "s" : ""} and their tasks.`);
-      setGraveCount(0);
-      onDataChanged?.();
-    } else {
-      setGraveMsg("Error purging graveyard.");
     }
   }
 
@@ -698,74 +648,6 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
               </div>
             </Section>
           )}
-
-          {/* ── Purge completed tasks ──────────────────────────────────────── */}
-          <Section title="Purge completed tasks">
-            <div className="space-y-3">
-              <p className="admin-xs text-gray-500">
-                {purgeCount === null
-                  ? "Counting\u2026"
-                  : purgeCount === 0
-                  ? "No completed tasks in database."
-                  : <><span className="text-gray-300 font-semibold">{purgeCount}</span> completed task{purgeCount !== 1 ? "s" : ""} in database.</>
-                }
-              </p>
-              <div className="flex items-center gap-3">
-                <span className="admin-xs text-gray-500 w-14 flex-shrink-0">Delete</span>
-                <div className="flex gap-1">
-                  <Pill active={purgeDays === "all"} onClick={() => setPurgeDays("all")}>All</Pill>
-                  <Pill active={purgeDays === 30}    onClick={() => setPurgeDays(30)}>{'> 30 d'}</Pill>
-                  <Pill active={purgeDays === 7}     onClick={() => setPurgeDays(7)}>{'> 7 d'}</Pill>
-                </div>
-              </div>
-              <HoldButton
-                label={`Hold to delete ${purgeDays === "all" ? "all" : `tasks older than ${purgeDays}d`}`}
-                onConfirm={doPurge}
-                holdMs={2000}
-                variant="destructive"
-                disabled={purgeCount === 0}
-              />
-              {purgeMsg && (
-                <p className={`admin-xs ${purgeMsg.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>
-                  {purgeMsg}
-                </p>
-              )}
-            </div>
-          </Section>
-
-          {/* ── Purge graveyard ────────────────────────────────────────────── */}
-          <Section title="Purge graveyard">
-            <div className="space-y-3">
-              <p className="admin-xs text-gray-500">
-                {graveCount === null
-                  ? "Counting\u2026"
-                  : graveCount === 0
-                  ? "Graveyard is empty."
-                  : <><span className="text-gray-300 font-semibold">{graveCount}</span> archived list{graveCount !== 1 ? "s" : ""} in graveyard. All tasks deleted too.</>
-                }
-              </p>
-              <div className="flex items-center gap-3">
-                <span className="admin-xs text-gray-500 w-14 flex-shrink-0">Delete</span>
-                <div className="flex gap-1">
-                  <Pill active={graveDays === "all"} onClick={() => setGraveDays("all")}>All</Pill>
-                  <Pill active={graveDays === 30}    onClick={() => setGraveDays(30)}>{'> 30 d'}</Pill>
-                  <Pill active={graveDays === 7}     onClick={() => setGraveDays(7)}>{'> 7 d'}</Pill>
-                </div>
-              </div>
-              <HoldButton
-                label={`Hold to delete ${graveDays === "all" ? "all" : `lists older than ${graveDays}d`}`}
-                onConfirm={doPurgeGrave}
-                holdMs={2000}
-                variant="destructive"
-                disabled={graveCount === 0}
-              />
-              {graveMsg && (
-                <p className={`admin-xs ${graveMsg.startsWith("Error") ? "text-red-400" : "text-green-400"}`}>
-                  {graveMsg}
-                </p>
-              )}
-            </div>
-          </Section>
 
         </div>
       </div>
