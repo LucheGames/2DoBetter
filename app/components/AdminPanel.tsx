@@ -310,15 +310,14 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
     }
   }
 
-  async function doRemoveUser(deleteData: boolean) {
+  async function doRemoveUser() {
     setRemoveMsg(null);
     const res = await fetch(
-      `/api/admin/users/${encodeURIComponent(manageTarget)}?deleteData=${deleteData}`,
+      `/api/admin/users/${encodeURIComponent(manageTarget)}?deleteData=true`,
       { method: "DELETE" },
     );
     if (res.ok) {
-      const verb = deleteData ? "removed and all data deleted" : "removed (column kept as Shared)";
-      setRemoveMsg(`"${manageTarget}" ${verb}.`);
+      setRemoveMsg(`"${manageTarget}" removed — user and all data deleted.`);
       setManageTarget("");
       loadUsers();
       onDataChanged?.();
@@ -681,17 +680,9 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
 
                     {/* ─ Remove ─ */}
                     <div className="space-y-2">
-                      <p className="admin-xs text-gray-500">Remove user — keep tasks as shared column, or delete everything.</p>
                       <HoldButton
-                        label="Hold to remove (keep tasks)"
-                        onConfirm={() => doRemoveUser(false)}
-                        holdMs={2000}
-                        variant="neutral"
-                        disabled={!manageTarget}
-                      />
-                      <HoldButton
-                        label="Hold to remove + delete all data"
-                        onConfirm={() => doRemoveUser(true)}
+                        label="Hold to delete user"
+                        onConfirm={doRemoveUser}
                         holdMs={2000}
                         variant="destructive"
                         disabled={!manageTarget}
