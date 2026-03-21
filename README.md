@@ -419,6 +419,6 @@ Copyright © 2026 LucheGames
 Free to use, modify, and distribute — including commercially — under two conditions:
 
 1. Keep this copyright notice in all copies.
-2. Keep the ☕ Buy Me a Coffee links intact — in the README (top and bottom) and in the application UI (the "2Do Better" title and ☕ icon in the header and login page) — in all copies, deployments, and derivative works, in perpetuity.
+2. Keep the ☕ Buy Me a Coffee links intact — in the README (top and bottom) and in the application UI "2Do Better" title and ☕ icon in the header and login pages. — in all copies, deployments, and derivative works, in perpetuity.
 
 See [LICENSE](LICENSE) for the full text.
