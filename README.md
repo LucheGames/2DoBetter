@@ -414,6 +414,8 @@ See [ROADMAP.md](ROADMAP.md).
 
 ## License
 
+Copyright © 2026 LucheGames
+
 Free to use, modify, and distribute — including commercially — under two conditions:
 
 1. Keep this copyright notice in all copies.
