@@ -243,9 +243,22 @@ async function main() {
     console.log('');
   }
   if (isLinux) {
-    console.log(`  ${C.bold}To remove the CA cert from system trust store:${C.reset}`);
-    info('  sudo rm /usr/local/share/ca-certificates/2dobetter*.crt');
-    info('  sudo update-ca-certificates --fresh');
+    const sysStore = '/usr/local/share/ca-certificates';
+    const { execSync } = require('child_process');
+    let sysFiles = [];
+    try { sysFiles = require('fs').readdirSync(sysStore).filter(f => f.toLowerCase().includes('2dobetter')); } catch (_) {}
+
+    if (sysFiles.length) {
+      console.log(`  ${C.bold}To remove the CA cert from the system trust store:${C.reset}`);
+      info(`  sudo rm /usr/local/share/ca-certificates/2dobetter*.crt`);
+      info(`  sudo update-ca-certificates --fresh`);
+    } else {
+      console.log(`  ${C.bold}CA certificate:${C.reset}`);
+      info(`  Not found in system trust store (${sysStore}).`);
+      info(`  If you installed it via a browser, remove it there instead:`);
+      info(`  Chrome/Edge: Settings → Privacy → Manage certificates → Authorities → find 2DoBetter → Delete`);
+      info(`  Firefox:     Settings → Privacy → Certificates → Authorities → find 2DoBetter → Delete`);
+    }
     console.log('');
   }
 

@@ -358,7 +358,7 @@ If you installed the CA certificate on any devices, remove it to clean up:
 | Platform | Steps |
 |----------|-------|
 | **macOS** | Keychain Access → search "2DoBetter" → right-click → Delete |
-| **Linux** | `sudo rm /usr/local/share/ca-certificates/2dobetter*.crt && sudo update-ca-certificates --fresh` |
+| **Linux (system-wide)** | Only if you manually copied it to the system store: `sudo rm /usr/local/share/ca-certificates/2dobetter*.crt && sudo update-ca-certificates --fresh`. If you installed via a browser instead, use the Chrome/Edge or Firefox row below — no file to delete. |
 | **Chrome / Edge** | Settings → Privacy → Manage certificates → Authorities → find 2DoBetter → Delete |
 | **Firefox** | Settings → Privacy → Certificates → Authorities → find 2DoBetter → Delete |
 | **Android** | Settings → Security → Trusted credentials → User → find 2DoBetter → Remove |
