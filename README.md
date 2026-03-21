@@ -9,7 +9,7 @@ Think through problems and queue up tasks from anywhere, and when you're back in
 Built from the ground up around [MCP](https://modelcontextprotocol.io) (Model Context Protocol), the open standard used by Anthropic, Google, Microsoft, and OpenAI for connecting AI to external systems, giving teammates and AI agents total visibility into your shared 2Dos. 
 
 [![Buy Me a Coffee](https://img.shields.io/badge/Support-Buy%20me%20a%20coffee-yellow?logo=buy-me-a-coffee)](https://www.buymeacoffee.com/luchegames)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-Custom%20Permissive-blue.svg)](LICENSE)
 
 ---
 
@@ -414,4 +414,9 @@ See [ROADMAP.md](ROADMAP.md).
 
 ## License
 
-MIT — use it, fork it, ship it.
+Free to use, modify, and distribute — including commercially — under two conditions:
+
+1. Keep this copyright notice in all copies.
+2. Keep the ☕ Buy Me a Coffee links intact — in the README (top and bottom) and in the application UI (the "2Do Better" title and ☕ icon in the header and login page) — in all copies, deployments, and derivative works, in perpetuity.
+
+See [LICENSE](LICENSE) for the full text.

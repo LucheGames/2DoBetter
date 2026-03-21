@@ -1,16 +1,30 @@
-MIT License
-
 Copyright (c) 2026 LucheGames
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+of this software and associated documentation files (the "Software"), to use,
+copy, modify, merge, publish, distribute, and deploy the Software, including
+for commercial purposes, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. Attribution
+   This copyright notice and license must be included in all copies or
+   substantial portions of the Software.
+
+2. Support link retention
+   The following links to https://www.buymeacoffee.com/luchegames must be
+   retained, unmodified and fully functional, in all copies, deployments,
+   and derivative works in perpetuity:
+
+   a. The Buy Me a Coffee badge and link in the repository README (or
+      equivalent top-level project documentation), present at both the top
+      and the bottom of the document.
+
+   b. The Buy Me a Coffee link within the application's user interface —
+      specifically the clickable "2Do Better" title and the ☕ icon in the
+      app header and login page.
+
+   These links must remain visible, clickable, and point to the original URL
+   above. They may not be hidden, removed, replaced, obscured, or rendered
+   non-functional in any form of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
