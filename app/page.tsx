@@ -350,7 +350,7 @@ export default function Home() {
 
       {/* Mobile action bar — shown below header on small screens only */}
       {board.currentUser && !board.isAgent && (
-        <div className="flex-shrink-0 flex md:hidden items-center justify-end gap-6 px-6 py-1.5 border-b border-gray-800">
+        <div className="flex-shrink-0 flex md:hidden items-center justify-end gap-4 px-6 py-1.5 border-b border-gray-800">
           {board.isAdmin && (
             <button
               onClick={async () => {
@@ -369,6 +369,7 @@ export default function Home() {
               + Teammate
             </button>
           )}
+          <div className="w-px h-4 bg-gray-800" />
           <button
             onClick={() => setShowCreateAgent(true)}
             title="Create a new AI agent"
@@ -378,17 +379,20 @@ export default function Home() {
             + Agent
           </button>
           {board.isAdmin && (
-            <button
-              onClick={() => setShowAdmin(true)}
-              title="Admin panel"
-              className="text-accent-500 hover:text-accent-400 transition-colors"
-              style={{ cursor: "pointer" }}
-            >
-              <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M6.6 1h2.8l.4 2.2a5.2 5.2 0 0 1 1.3.7L13.2 3l1.4 2.4-1.7 1.5a5.3 5.3 0 0 1 0 1.5l1.7 1.5-1.4 2.4-2.1-.9a5.2 5.2 0 0 1-1.3.7L9.4 15H6.6l-.4-2.2a5.2 5.2 0 0 1-1.3-.7L2.8 13 1.4 10.6l1.7-1.5a5.3 5.3 0 0 1 0-1.5L1.4 6.1 2.8 3.7l2.1.9a5.2 5.2 0 0 1 1.3-.7Z" />
-                <circle cx="8" cy="8" r="2" />
-              </svg>
-            </button>
+            <>
+              <div className="w-px h-4 bg-gray-800" />
+              <button
+                onClick={() => setShowAdmin(true)}
+                title="Admin panel"
+                className="text-accent-500 hover:text-accent-400 transition-colors"
+                style={{ cursor: "pointer" }}
+              >
+                <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6.6 1h2.8l.4 2.2a5.2 5.2 0 0 1 1.3.7L13.2 3l1.4 2.4-1.7 1.5a5.3 5.3 0 0 1 0 1.5l1.7 1.5-1.4 2.4-2.1-.9a5.2 5.2 0 0 1-1.3.7L9.4 15H6.6l-.4-2.2a5.2 5.2 0 0 1-1.3-.7L2.8 13 1.4 10.6l1.7-1.5a5.3 5.3 0 0 1 0-1.5L1.4 6.1 2.8 3.7l2.1.9a5.2 5.2 0 0 1 1.3-.7Z" />
+                  <circle cx="8" cy="8" r="2" />
+                </svg>
+              </button>
+            </>
           )}
         </div>
       )}

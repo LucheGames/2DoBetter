@@ -723,7 +723,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
                 }
               </p>
               <HoldButton
-                label={"\uD83D\uDC80 Hold to purge all"}
+                label={"\uD83D\uDC80 Hold to purge graveyard"}
                 onConfirm={doPurgeGrave}
                 holdMs={2500}
                 variant="pink"
