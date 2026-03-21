@@ -270,35 +270,31 @@ The CLI is available for scripting or SSH access.
 
 ### CLI commands
 
-> **Docker:** prefix with `docker exec -it 2dobetter` instead of `npm run`:
-> ```bash
-> docker exec -it 2dobetter node scripts/admin.js status
-> docker exec -it 2dobetter node scripts/admin.js reset-password <username>
-> ```
+| Purpose | Commands |
+|---------|----------|
+| Full command list | **npm:** `npm run admin`<br>**docker:** `docker exec -it 2dobetter node scripts/admin.js` |
+| Service status | **npm:** `npm run status`<br>**docker:** `docker exec -it 2dobetter node scripts/admin.js status` |
+| List users | **npm:** `npm run list-users`<br>**docker:** `docker exec -it 2dobetter node scripts/admin.js list-users` |
+| | |
+| Add user | **npm:** `npm run add-user`<br>**docker:** `docker exec -it 2dobetter node scripts/setup.js add-user` |
+| Remove user (keep column) | **npm:** `npm run remove-user <name>`<br>**docker:** `docker exec -it 2dobetter node scripts/setup.js remove-user <name>` |
+| Remove user + delete column | **npm:** `npm run remove-user <name> delete`<br>**docker:** `docker exec -it 2dobetter node scripts/setup.js remove-user <name> delete` |
+| Reset password | **npm:** `npm run reset-password <name>`<br>**docker:** `docker exec -it 2dobetter node scripts/admin.js reset-password <name>` |
+| Rename user | **npm:** `npm run rename-user <old> <new>`<br>**docker:** `docker exec -it 2dobetter node scripts/admin.js rename-user <old> <new>` |
+| Generate invite code | **npm:** `npm run gen-invite`<br>**docker:** `docker exec -it 2dobetter node scripts/admin.js gen-invite` |
+| Generate agent token | **npm:** `npm run gen-agent-token <name>`<br>**docker:** `docker exec -it 2dobetter node scripts/admin.js gen-agent-token <name>` |
+| | |
+| Purge completed tasks | **npm:** `npm run purge-completed`<br>**docker:** `docker exec -it 2dobetter node scripts/admin.js purge-completed` |
+| Export board | **npm:** `npm run export-data [file]`<br>**docker:** `docker exec -it 2dobetter node scripts/admin.js export-data /app/data/backup.json` |
+| Import board | **npm:** `npm run import-data <file>`<br>**docker:** `docker exec -it 2dobetter node scripts/admin.js import-data /app/data/backup.json` |
+| | |
+| Restart server | **npm:** `npm run restart`<br>**docker:** `docker compose restart` |
+| Regenerate TLS cert | **npm:** `npm run regen-certs`<br>**docker:** `docker exec -it 2dobetter bash generate-certs.sh` |
+| Install as service | **npm:** `npm run service:install`<br>**docker:** *not needed — auto-restarts by default* |
+| Remove service | **npm:** `npm run service:uninstall`<br>**docker:** *not needed* |
+| Full removal | See [Removing 2Do Better](#removing-2do-better) |
 
-| Command | What it does |
-|---------|-------------|
-| `npm run status` | Service state, users, task counts, DB size |
-| `npm run list-users` | All users with access level and type |
-| `npm run admin` | Full command list |
-| | |
-| `npm run add-user` | Add a user interactively |
-| `npm run remove-user [name]` | Remove user (column becomes "Shared") |
-| `npm run remove-user [name] delete` | Remove user + delete column and tasks |
-| `npm run reset-password [name]` | Reset password |
-| `npm run rename-user [old] [new]` | Rename user and column |
-| `npm run gen-invite` | Generate invite code |
-| `npm run gen-agent-token [name]` | Generate/rotate agent token |
-| | |
-| `npm run purge-completed` | Delete completed tasks (all or older than N days) |
-| `npm run export-data [file]` | Export board to JSON |
-| `npm run import-data <file>` | Import from JSON (**replaces all data**) |
-| | |
-| `npm run restart` | Restart server |
-| `npm run regen-certs` | Regenerate TLS cert (after adding Tailscale/DuckDNS) |
-| `npm run service:install` | Install as auto-start service |
-| `npm run service:uninstall` | Remove auto-start service |
-| `npm run uninstall` | Full removal |
+> **Docker file paths:** The `data/` directory is mounted into the container at `/app/data/`. Export writes to the host at `./data/backup.json`. For import, copy the file into `./data/` first, then use the `/app/data/` path.
 
 ### Access levels
 
@@ -328,6 +324,45 @@ systemctl --user start 2dobetter
 npm run export-data backup.json
 npm run import-data backup.json
 ```
+
+### Removing 2Do Better
+
+#### Docker
+
+```bash
+cd ~/2DoBetter                  # or wherever you cloned it
+
+# Optional: back up your data first
+docker exec -it 2dobetter node scripts/admin.js export-data /app/data/backup.json
+cp data/backup.json ~/Desktop/
+
+# Remove everything
+docker compose down --rmi all   # stop container + remove image
+cd ..
+rm -rf 2DoBetter                # delete directory and all data
+```
+
+#### Node.js
+
+```bash
+cd ~/2DoBetter                  # or wherever you cloned it
+npm run uninstall               # guided wizard — stops service, removes cron/config, offers backup
+cd ..
+rm -rf 2DoBetter                # delete directory
+```
+
+#### CA certificate removal
+
+If you installed the CA certificate on any devices, remove it to clean up:
+
+| Platform | Steps |
+|----------|-------|
+| **macOS** | Keychain Access → search "2DoBetter" → right-click → Delete |
+| **Linux** | `sudo rm /usr/local/share/ca-certificates/2dobetter*.crt && sudo update-ca-certificates --fresh` |
+| **Chrome / Edge** | Settings → Privacy → Manage certificates → Authorities → find 2DoBetter → Delete |
+| **Firefox** | Settings → Privacy → Certificates → Authorities → find 2DoBetter → Delete |
+| **Android** | Settings → Security → Trusted credentials → User → find 2DoBetter → Remove |
+| **iOS** | Settings → General → VPN & Device Management → find 2DoBetter → Remove Profile |
 
 ---
 

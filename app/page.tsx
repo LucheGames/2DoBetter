@@ -285,19 +285,19 @@ export default function Home() {
         </div>
 
         <div className="flex items-center gap-4">
-          {/* + Agent button — visible to all non-agent users */}
+          {/* + Agent button — visible to all non-agent users (desktop only) */}
           {board.currentUser && !board.isAgent && (
             <button
               onClick={() => setShowCreateAgent(true)}
               title="Create a new AI agent"
-              className="app-ui-text text-gray-600 hover:text-gray-300 transition-colors select-none"
+              className="hidden md:block app-ui-text text-gray-600 hover:text-gray-300 transition-colors select-none"
               style={{ cursor: "pointer" }}
             >
               + Agent
             </button>
           )}
 
-          {/* Test: add a teammate — admin only */}
+          {/* + Teammate — admin only (desktop only) */}
           {board.isAdmin && (
             <button
               onClick={async () => {
@@ -310,7 +310,7 @@ export default function Home() {
                 fetchBoard();
               }}
               title="Add a test teammate (password: test123)"
-              className="app-ui-text text-gray-600 hover:text-gray-300 transition-colors select-none"
+              className="hidden md:block app-ui-text text-gray-600 hover:text-gray-300 transition-colors select-none"
               style={{ cursor: "pointer" }}
             >
               + Teammate
@@ -347,6 +347,38 @@ export default function Home() {
           )}
         </div>
       </header>
+
+      {/* Mobile action bar — shown below header on small screens only */}
+      {board.currentUser && !board.isAgent && (
+        <div className="flex-shrink-0 flex md:hidden items-center gap-4 px-4 py-1.5 border-b border-gray-800">
+          {board.isAdmin && (
+            <button
+              onClick={async () => {
+                const n = board.columns.length + 1;
+                await fetch("/api/admin/create-teammate", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ name: `Tester ${n}` }),
+                });
+                fetchBoard();
+              }}
+              title="Add a test teammate (password: test123)"
+              className="app-ui-text text-gray-600 hover:text-gray-300 transition-colors select-none"
+              style={{ cursor: "pointer" }}
+            >
+              + Teammate
+            </button>
+          )}
+          <button
+            onClick={() => setShowCreateAgent(true)}
+            title="Create a new AI agent"
+            className="app-ui-text text-gray-600 hover:text-gray-300 transition-colors select-none"
+            style={{ cursor: "pointer" }}
+          >
+            + Agent
+          </button>
+        </div>
+      )}
 
       {/* Admin panel modal */}
       {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} onDataChanged={fetchBoard} />}
