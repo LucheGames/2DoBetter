@@ -584,6 +584,25 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   saveUsers(users);
   ok(`data/users.json written (${users.length} user${users.length !== 1 ? 's' : ''})`);
 
+  // ── Pre-create columns for all users ──────────────────────────────
+  // Without this, columns only appear after each user's first login.
+  if (fs.existsSync(DB_PATH)) {
+    users.forEach(function(user) {
+      var name = user.username.replace(/'/g, "''");
+      var existing = runSql("SELECT id FROM \"Column\" WHERE ownerUsername = '" + name + "' LIMIT 1");
+      if (existing.ok && existing.out) return; // column already exists
+      var maxOrder = runSql('SELECT COALESCE(MAX("order"), -1) FROM "Column"');
+      var nextOrder = maxOrder.ok ? (parseInt(maxOrder.out, 10) + 1) : 0;
+      var slug = user.username.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now();
+      runSql("INSERT INTO \"Column\" (name, slug, \"order\", ownerUsername, locked, createdAt) VALUES ('" + name + "', '" + slug + "', " + nextOrder + ", '" + name + "', 0, datetime('now'))");
+      var colId = runSql("SELECT id FROM \"Column\" WHERE slug = '" + slug + "' LIMIT 1");
+      if (colId.ok && colId.out) {
+        runSql("INSERT INTO \"List\" (columnId, name, \"order\", createdAt) VALUES (" + colId.out + ", 'Project', 0, datetime('now'))");
+      }
+      ok("Column pre-created for " + user.username);
+    });
+  }
+
   // Write .env.local (preserves legacy AUTH_TOKEN for backward compat)
   const final = { ...existing, ...cfg };
   // Remove legacy INVITE_CODE if present (replaced by per-invite admin panel flow)
