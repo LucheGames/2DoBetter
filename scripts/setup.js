@@ -130,15 +130,14 @@ function runSql(sql) {
 }
 
 // ── Shared column naming helper ───────────────────────────────────────────────
-// Returns "Shared", then "Shared 02", "Shared 03", … whichever is unused.
+// Returns "Shared 01", "Shared 02", … whichever is unused.
 function nextSharedName() {
-  var result = runSql("SELECT name FROM \"Column\" WHERE name = 'Shared' OR name LIKE 'Shared %'");
+  var result = runSql("SELECT name FROM \"Column\" WHERE name LIKE 'Shared %'");
   var existing = [];
   if (result.ok && result.out) {
     existing = result.out.split('\n').filter(function(n) { return n.trim(); });
   }
-  if (existing.indexOf('Shared') === -1) return 'Shared';
-  var n = 2;
+  var n = 1;
   while (true) {
     var candidate = 'Shared ' + (n < 10 ? '0' + n : '' + n);
     if (existing.indexOf(candidate) === -1) return candidate;
@@ -585,8 +584,8 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   ok(`data/users.json written (${users.length} user${users.length !== 1 ? 's' : ''})`);
 
   // ── Clean up orphaned columns from previous wizard runs ───────────
-  // Columns whose ownerUsername no longer matches any user get renamed
-  // to "Shared" (same as remove-user behaviour) so data isn't lost.
+  // Columns whose ownerUsername no longer matches any user are deleted
+  // (cascades to all lists and tasks inside them).
   if (fs.existsSync(DB_PATH)) {
     var currentUsernames = users.map(function(u) { return u.username; });
     var allCols = runSql('SELECT id, name, ownerUsername FROM "Column" WHERE ownerUsername IS NOT NULL');
@@ -597,9 +596,8 @@ ${C.bold}${C.cyan}  ╔═══════════════════
         var colId = parts[0].trim();
         var colOwner = parts[2].trim();
         if (currentUsernames.indexOf(colOwner) === -1) {
-          var sharedName = nextSharedName();
-          runSql("UPDATE \"Column\" SET name = '" + sharedName.replace(/'/g, "''") + "', ownerUsername = NULL WHERE id = " + colId);
-          warn("Orphaned column for '" + colOwner + "' renamed to '" + sharedName + "' (user no longer exists)");
+          runSql('DELETE FROM "Column" WHERE id = ' + colId);
+          warn("Deleted column for '" + colOwner + "' (user no longer exists)");
         }
       });
     }
