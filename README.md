@@ -98,6 +98,7 @@ Open `https://localhost:3000` and log in.
 ```bash
 git pull && docker compose up -d --build
 ```
+> The app code is baked into the Docker image at build time — `--build` is always required after `git pull` to pick up changes. Your data (database, users, certs) lives in mounted volumes and survives rebuilds.
 
 **Locked out?**
 ```bash
