@@ -364,7 +364,19 @@ function serveCaCert(req, res) {
   fs.createReadStream(certPath).pipe(res);
 }
 
+// Bind the port immediately so the browser gets a response during the
+// ~5-10s window while Next.js initialises, instead of connection refused.
+// Once app.prepare() resolves the real handler takes over.
+const earlyPort = parseInt(process.env.PORT || '3000', 10);
+const earlyServer = http.createServer((_req, res) => {
+  res.writeHead(503, { 'Content-Type': 'text/html', 'Retry-After': '5' });
+  res.end('<!DOCTYPE html><html><head><meta http-equiv="refresh" content="3"><title>Starting…</title><style>body{font-family:sans-serif;text-align:center;padding:60px;background:#1c1917;color:#e7e5e4}</style></head><body><h2>2 Do Better is starting up…</h2><p>This page will refresh automatically.</p></body></html>');
+});
+earlyServer.listen(earlyPort, '0.0.0.0');
+
 app.prepare().then(() => {
+  // Close the early server before the real one claims the port
+  earlyServer.close();
   const rawHostname = os.hostname();
   // Ensure .local suffix (macOS hostname may already include it)
   const hostname = rawHostname.endsWith('.local') ? rawHostname : `${rawHostname}.local`;

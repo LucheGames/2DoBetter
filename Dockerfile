@@ -13,7 +13,7 @@ WORKDIR /app
 
 # bash — build.sh uses bash (Alpine ships ash by default)
 # python3, make, g++ no longer needed — bcryptjs is pure JS (no native addons)
-RUN apk add --no-cache bash
+RUN apk add --no-cache bash sqlite
 
 # Install dependencies — Docker layer cache handles this automatically.
 # This layer only re-runs when package.json or package-lock.json change.
