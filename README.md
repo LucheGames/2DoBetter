@@ -285,6 +285,7 @@ The CLI is available for scripting or SSH access.
 | Generate agent token | **npm:** `npm run gen-agent-token <name>`<br>**docker:** `docker exec -it 2dobetter node scripts/admin.js gen-agent-token <name>` |
 | | |
 | Purge completed tasks | **npm:** `npm run purge-completed`<br>**docker:** `docker exec -it 2dobetter node scripts/admin.js purge-completed` |
+| Purge graveyard | **npm:** `npm run purge-graveyard`<br>**docker:** `docker exec -it 2dobetter node scripts/admin.js purge-graveyard` |
 | Export board | **npm:** `npm run export-data [file]`<br>**docker:** `docker exec -it 2dobetter node scripts/admin.js export-data /app/data/backup.json` |
 | Import board | **npm:** `npm run import-data <file>`<br>**docker:** `docker exec -it 2dobetter node scripts/admin.js import-data /app/data/backup.json` |
 | | |
