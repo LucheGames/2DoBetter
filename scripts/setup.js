@@ -731,7 +731,7 @@ ${userList}
     • Add AI agents  — ⚙ admin panel → + Agent
     • Remote access  — install Tailscale + DuckDNS (see README)
 
-  ${C.bold}${isDocker() ? 'Restart the container (run this on your host machine):' : 'Start the server:'}${C.reset}
+  ${C.bold}${C.yellow}${isDocker() ? 'YOU MUST restart the container now (run this on your host):' : 'Start the server:'}${C.reset}
     ${restartCmd}
   ${isDocker() ? `${C.dim}  Wait ~30s after restart for Next.js to initialise before opening.${C.reset}` : ''}
   ${C.bold}Then open:${C.reset}
