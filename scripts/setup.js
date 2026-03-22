@@ -595,6 +595,12 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   const port = final.PORT || '3000';
   const userList = users.map(u => `    • ${u.username}`).join('\n');
   const restartCmd = getRestartCommand();
+  const certDir = path.join(ROOT, 'certs');
+  const hasCerts = fs.existsSync(path.join(certDir, 'server.key')) && fs.existsSync(path.join(certDir, 'server.crt'));
+  const protocol = hasCerts ? 'https' : 'http';
+  const certNote = hasCerts
+    ? `  ${C.dim}First visit: browser will warn about the self-signed cert.\n  Install the CA cert once: https://localhost:${port}/download-ca-cert${C.reset}`
+    : `  ${C.yellow}Server running in HTTP mode — certs not generated.\n  Run: docker exec -it 2dobetter bash generate-certs.sh (then restart)${C.reset}`;
   console.log(`
 ${C.bold}${C.green}  ✓ Setup complete!${C.reset}
 
@@ -611,10 +617,9 @@ ${userList}
     ${restartCmd}
 
   ${C.bold}Then open:${C.reset}
-    https://localhost:${port}
+    ${protocol}://localhost:${port}
 
-  ${C.dim}First visit: browser will warn about the self-signed cert.
-  Install the CA cert once: https://localhost:${port}/download-ca-cert${C.reset}
+${certNote}
 `);
 
   rl.close();
