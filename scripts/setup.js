@@ -437,14 +437,16 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   var freshInstall = false;
   if (fs.existsSync(DB_PATH)) {
     warn('Existing database found.');
-    const wipe = await ask('Wipe database for a clean install? (y/n)');
+    info('  y = delete everything and start fresh (new DB, new users)');
+    info('  n = keep existing tasks but reconfigure users');
+    const wipe = await ask('Wipe database? (y/n)');
     if (wipe.toLowerCase() === 'y') {
       fs.unlinkSync(DB_PATH);
       if (fs.existsSync(USERS_FILE)) fs.unlinkSync(USERS_FILE);
       freshInstall = true;
       ok('Database and users wiped — starting fresh.');
     } else {
-      info('Keeping existing database.');
+      info('Keeping existing tasks. Old user columns will be cleaned up at the end.');
     }
   }
 
