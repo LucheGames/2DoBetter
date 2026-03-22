@@ -371,7 +371,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   const colNote = !hasColumn ? ''
     : deleteData  ? ` Their column + all tasks will be deleted.`
     :               ` Their column will be renamed "${sharedName}" (shared team column).`;
-  const confirm = await ask(`Remove "${found.username}"?${colNote} (y/n)`, 'N');
+  const confirm = await ask(`Remove "${found.username}"?${colNote} (y/n)`);
   if (confirm.toLowerCase() !== 'y') {
     console.log('\n  Cancelled — nothing changed.\n');
     rl.close(); return;
@@ -434,12 +434,15 @@ ${C.bold}${C.cyan}  ╔═══════════════════
 `);
 
   // ── Offer clean DB wipe if one already exists ─────────────────────
+  var freshInstall = false;
   if (fs.existsSync(DB_PATH)) {
     warn('Existing database found.');
-    const wipe = await ask('Wipe database for a clean install? (y/n)', 'N');
+    const wipe = await ask('Wipe database for a clean install? (y/n)');
     if (wipe.toLowerCase() === 'y') {
       fs.unlinkSync(DB_PATH);
-      ok('Database wiped — starting fresh.');
+      if (fs.existsSync(USERS_FILE)) fs.unlinkSync(USERS_FILE);
+      freshInstall = true;
+      ok('Database and users wiped — starting fresh.');
     } else {
       info('Keeping existing database.');
     }
@@ -461,12 +464,12 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   }
 
   // Load existing config so we can preserve / show current values
-  const existing = { ...parseEnv(ENV_FILE), ...parseEnv(ENV_LOCAL) };
+  const existing = freshInstall ? {} : { ...parseEnv(ENV_FILE), ...parseEnv(ENV_LOCAL) };
   const existingUsers = loadUsers();
 
-  if (existing.AUTH_TOKEN || existingUsers.length > 0) {
+  if (!freshInstall && (existing.AUTH_TOKEN || existingUsers.length > 0)) {
     warn('Existing configuration detected.');
-    const redo = await ask('Reconfigure from scratch? (y/n)', 'N');
+    const redo = await ask('Reconfigure from scratch? (y/n)');
     if (redo.toLowerCase() !== 'y') {
       console.log('\n  Nothing changed. Existing config preserved.\n');
       info(`  To add more users: ${C.bold}npm run setup add-user${C.reset}`);
@@ -555,8 +558,8 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     info('AES-256 encryption means nobody can read your backups without your key.');
     info('⚠  If you lose the key, the backups cannot be decrypted — save it safely.\n');
 
-    const encChoice = await ask('Encrypt backups? (y/n)', 'Y');
-    encrypt = encChoice.toLowerCase() !== 'n';
+    const encChoice = await ask('Encrypt backups? (y/n)');
+    encrypt = encChoice.toLowerCase() === 'y';
 
     if (encrypt) {
       const key = crypto.randomBytes(32).toString('base64');

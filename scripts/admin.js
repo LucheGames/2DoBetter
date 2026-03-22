@@ -287,7 +287,7 @@ async function renameUser() {
   var clash = users.find(function(u, i) { return i !== idx && u.username.toLowerCase() === newName.toLowerCase(); });
   if (clash) { warn('"' + newName + '" is already taken.'); return; }
 
-  var confirm = await prompt('Rename "' + users[idx].username + '" → "' + newName + '"? (y/N)', 'N');
+  var confirm = await prompt('Rename "' + users[idx].username + '" → "' + newName + '"? (y/n)');
   if (confirm.toLowerCase() !== 'y') { console.log('\n  Cancelled.\n'); return; }
 
   var oldUsername = users[idx].username;
