@@ -18,8 +18,10 @@ RUN apk add --no-cache bash
 # Install dependencies — Docker layer cache handles this automatically.
 # This layer only re-runs when package.json or package-lock.json change.
 # When they haven't changed, Docker skips this step entirely (instant).
+# npm install (not npm ci) — tolerates lock file drift so first-time builds
+# don't fail if package-lock.json is slightly out of sync with package.json.
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY . .

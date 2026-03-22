@@ -83,7 +83,7 @@ macOS / Windows: install [Docker Desktop](https://docs.docker.com/get-docker/).
 git clone https://github.com/LucheGames/2DoBetter.git
 cd 2DoBetter
 mkdir -p data certs prisma
-docker compose build
+docker compose build    # ~2–5 min first time
 docker compose up -d
 docker exec -it 2dobetter node scripts/setup.js    # first-run wizard
 docker compose restart
