@@ -469,16 +469,79 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   const existing = freshInstall ? {} : { ...parseEnv(ENV_FILE), ...parseEnv(ENV_LOCAL) };
   const existingUsers = loadUsers();
 
-  if (!freshInstall && (existing.AUTH_TOKEN || existingUsers.length > 0)) {
-    warn('Existing configuration detected.');
-    const redo = await ask('Reconfigure from scratch? (y/n)');
-    if (redo.toLowerCase() !== 'y') {
+  // ── DB kept — offer to add users to existing setup ──────────────
+  if (!freshInstall && existingUsers.length > 0) {
+    console.log('  Current users:');
+    existingUsers.forEach(function(u) {
+      var role = u.isAdmin ? 'admin' : u.isAgent ? 'agent' : 'human';
+      console.log('    \u2022 ' + u.username + ' (' + role + ')');
+    });
+    console.log('');
+
+    const addMore = await ask('Add another user? (y/n)');
+    if (addMore.toLowerCase() !== 'y') {
       console.log('\n  Nothing changed. Existing config preserved.\n');
-      info(`  To add more users: ${C.bold}npm run setup add-user${C.reset}`);
-      console.log('');
-      ensureCerts();   // always generate certs if missing, even on early exit
+      ensureCerts();
       rl.close(); return;
     }
+
+    // Add new users to existing list
+    const users = existingUsers.slice();
+    while (true) {
+      const uname = await ask('Username');
+      if (!uname) { warn('Username cannot be empty — skipping.'); continue; }
+      if (users.some(function(u) { return u.username.toLowerCase() === uname.toLowerCase(); })) {
+        warn('User "' + uname + '" already exists — skipping.');
+        continue;
+      }
+
+      const typeChoice = await askChoice('Account type:', ['Admin', 'Human user', 'AI agent']);
+      const isAdmin = typeChoice === 0;
+      const isAgent = typeChoice === 2;
+
+      const tok = await collectToken();
+      const hash = await bcrypt.hash(tok, 12);
+      var userObj = { username: uname, hash: hash };
+      if (isAdmin) userObj.isAdmin = true;
+      if (isAgent) userObj.isAgent = true;
+      users.push(userObj);
+      ok('User "' + uname + '" added (' + (isAdmin ? 'admin' : isAgent ? 'agent' : 'human') + ').');
+
+      console.log('');
+      const another = await askChoice('Add another user?', ['Add another', 'Done']);
+      if (another === 1) break;
+    }
+
+    saveUsers(users);
+    ok('data/users.json updated (' + users.length + ' user' + (users.length !== 1 ? 's' : '') + ')');
+
+    // Pre-create columns for new users
+    if (fs.existsSync(DB_PATH)) {
+      users.forEach(function(user) {
+        var name = user.username.replace(/'/g, "''");
+        var colCheck = runSql("SELECT id FROM \"Column\" WHERE ownerUsername = '" + name + "' LIMIT 1");
+        if (colCheck.ok && colCheck.out) return;
+        var maxOrder = runSql('SELECT COALESCE(MAX("order"), -1) FROM "Column"');
+        var nextOrder = maxOrder.ok ? (parseInt(maxOrder.out, 10) + 1) : 0;
+        var slug = user.username.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now();
+        runSql("INSERT INTO \"Column\" (name, slug, \"order\", ownerUsername, locked, createdAt) VALUES ('" + name + "', '" + slug + "', " + nextOrder + ", '" + name + "', 0, datetime('now'))");
+        var colId = runSql("SELECT id FROM \"Column\" WHERE slug = '" + slug + "' LIMIT 1");
+        if (colId.ok && colId.out) {
+          runSql("INSERT INTO \"List\" (columnId, name, \"order\", createdAt) VALUES (" + colId.out + ", 'Project', 0, datetime('now'))");
+        }
+        ok('Column pre-created for ' + user.username);
+      });
+    }
+
+    ensureCerts();
+    var restartCmd = getRestartCommand();
+    console.log('\n  ' + C.bold + (isDocker() ? 'Restart the container:' : 'Restart the server:') + C.reset + '  ' + restartCmd);
+    if (isDocker()) {
+      info('Wait ~30s after restart for Next.js to initialise.');
+    }
+    console.log('');
+    rl.close();
+    return;
   }
 
   const cfg = {};   // will be merged into .env.local at the end
