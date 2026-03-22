@@ -534,8 +534,8 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     }
 
     ensureCerts();
-    var restartCmd = getRestartCommand();
-    console.log('\n  ' + C.bold + (isDocker() ? 'Restart the container:' : 'Restart the server:') + C.reset + '  ' + restartCmd);
+    const addRestartCmd = getRestartCommand();
+    console.log('\n  ' + C.bold + (isDocker() ? 'Restart the container:' : 'Restart the server:') + C.reset + '  ' + addRestartCmd);
     if (isDocker()) {
       info('Wait ~30s after restart for Next.js to initialise.');
     }
