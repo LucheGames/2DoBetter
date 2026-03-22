@@ -371,7 +371,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   const colNote = !hasColumn ? ''
     : deleteData  ? ` Their column + all tasks will be deleted.`
     :               ` Their column will be renamed "${sharedName}" (shared team column).`;
-  const confirm = await ask(`Remove "${found.username}"?${colNote} (y/N)`, 'N');
+  const confirm = await ask(`Remove "${found.username}"?${colNote} (y/n)`, 'N');
   if (confirm.toLowerCase() !== 'y') {
     console.log('\n  Cancelled — nothing changed.\n');
     rl.close(); return;
@@ -433,6 +433,18 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   ╚════════════════════════════════════╝${C.reset}
 `);
 
+  // ── Offer clean DB wipe if one already exists ─────────────────────
+  if (fs.existsSync(DB_PATH)) {
+    warn('Existing database found.');
+    const wipe = await ask('Wipe database for a clean install? (y/n)', 'N');
+    if (wipe.toLowerCase() === 'y') {
+      fs.unlinkSync(DB_PATH);
+      ok('Database wiped — starting fresh.');
+    } else {
+      info('Keeping existing database.');
+    }
+  }
+
   // ── Run DB migrations ─────────────────────────────────────────────
   // Ensures the SQLite schema is up to date before we touch anything.
   info('Applying database migrations...');
@@ -454,7 +466,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
 
   if (existing.AUTH_TOKEN || existingUsers.length > 0) {
     warn('Existing configuration detected.');
-    const redo = await ask('Reconfigure from scratch? (y/N)', 'N');
+    const redo = await ask('Reconfigure from scratch? (y/n)', 'N');
     if (redo.toLowerCase() !== 'y') {
       console.log('\n  Nothing changed. Existing config preserved.\n');
       info(`  To add more users: ${C.bold}npm run setup add-user${C.reset}`);
@@ -543,7 +555,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     info('AES-256 encryption means nobody can read your backups without your key.');
     info('⚠  If you lose the key, the backups cannot be decrypted — save it safely.\n');
 
-    const encChoice = await ask('Encrypt backups? (Y/n)', 'Y');
+    const encChoice = await ask('Encrypt backups? (y/n)', 'Y');
     encrypt = encChoice.toLowerCase() !== 'n';
 
     if (encrypt) {
