@@ -584,6 +584,27 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   saveUsers(users);
   ok(`data/users.json written (${users.length} user${users.length !== 1 ? 's' : ''})`);
 
+  // ── Clean up orphaned columns from previous wizard runs ───────────
+  // Columns whose ownerUsername no longer matches any user get renamed
+  // to "Shared" (same as remove-user behaviour) so data isn't lost.
+  if (fs.existsSync(DB_PATH)) {
+    var currentUsernames = users.map(function(u) { return u.username; });
+    var allCols = runSql('SELECT id, name, ownerUsername FROM "Column" WHERE ownerUsername IS NOT NULL');
+    if (allCols.ok && allCols.out) {
+      allCols.out.split('\n').filter(Boolean).forEach(function(row) {
+        var parts = row.split('|');
+        if (parts.length < 3) return;
+        var colId = parts[0].trim();
+        var colOwner = parts[2].trim();
+        if (currentUsernames.indexOf(colOwner) === -1) {
+          var sharedName = nextSharedName();
+          runSql("UPDATE \"Column\" SET name = '" + sharedName.replace(/'/g, "''") + "', ownerUsername = NULL WHERE id = " + colId);
+          warn("Orphaned column for '" + colOwner + "' renamed to '" + sharedName + "' (user no longer exists)");
+        }
+      });
+    }
+  }
+
   // ── Pre-create columns for all users ──────────────────────────────
   // Without this, columns only appear after each user's first login.
   if (fs.existsSync(DB_PATH)) {
@@ -634,7 +655,7 @@ ${userList}
 
   ${C.bold}${isDocker() ? 'Restart the container (run this on your host machine):' : 'Start the server:'}${C.reset}
     ${restartCmd}
-
+  ${isDocker() ? `${C.dim}  Wait ~30s after restart for Next.js to initialise before opening.${C.reset}` : ''}
   ${C.bold}Then open:${C.reset}
     ${protocol}://localhost:${port}
 

@@ -33,8 +33,10 @@ services:
       - NEXT_TELEMETRY_DISABLED=1   # opt out of Next.js anonymous usage telemetry
     restart: unless-stopped        # Survives reboots; stops cleanly on `docker compose down`
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "--no-check-certificate", "https://localhost:3000/api/auth/config"]
+      # Try HTTPS first (normal mode), fall back to HTTP (no-certs mode).
+      # start_period gives Next.js time to initialise on slow hardware before retries begin.
+      test: ["CMD", "sh", "-c", "wget -qO- --no-check-certificate https://localhost:3000/api/auth/config 2>/dev/null || wget -qO- http://localhost:3000/api/auth/config 2>/dev/null"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 20s
+      retries: 5
+      start_period: 60s
