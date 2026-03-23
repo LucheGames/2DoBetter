@@ -84,8 +84,11 @@ export function proxy(request: NextRequest) {
   // ── Legacy single-user mode (AUTH_TOKEN env var) ─────────────────────────
   const validToken = process.env.AUTH_TOKEN;
   if (!validToken) {
-    // No auth configured — dev mode, allow everything
-    return NextResponse.next();
+    // No auth configured at all — redirect to login (never allow open access)
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Unauthorized — no auth configured' }, { status: 401 });
+    }
+    return NextResponse.rewrite(new URL('/login', request.url));
   }
 
   if (tokenCookie === validToken) {
