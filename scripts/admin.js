@@ -431,6 +431,36 @@ function showStatus() {
   console.log('');
 }
 
+// ── Spinner with elapsed time ─────────────────────────────────────────────────
+const SPIN_FRAMES = ['\u2807', '\u2819', '\u2839', '\u2838', '\u283C', '\u2834', '\u2826', '\u2827', '\u2847', '\u280F'];
+function createSpinner(label) {
+  const start = Date.now();
+  let idx = 0;
+  const iv = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - start) / 1000);
+    const min = Math.floor(elapsed / 60);
+    const sec = elapsed % 60;
+    const time = min > 0
+      ? min + 'm ' + (sec < 10 ? '0' : '') + sec + 's'
+      : sec + 's';
+    process.stdout.write('\r  ' + C.cyan + SPIN_FRAMES[idx] + C.reset + '  ' + label + ' ' + C.dim + '(' + time + ')' + C.reset + '  ');
+    idx = (idx + 1) % SPIN_FRAMES.length;
+  }, 80);
+  return {
+    update(newLabel) { label = newLabel; },
+    stop(msg) {
+      clearInterval(iv);
+      process.stdout.write('\r' + ' '.repeat(80) + '\r');
+      if (msg) ok(msg);
+    },
+    fail(msg) {
+      clearInterval(iv);
+      process.stdout.write('\r' + ' '.repeat(80) + '\r');
+      if (msg) warn(msg);
+    }
+  };
+}
+
 // ── restart ───────────────────────────────────────────────────────────────────
 function getRestartCommand() {
   if (process.platform === 'darwin') {
@@ -448,40 +478,55 @@ function getRestartCommand() {
   return null; // no managed service found
 }
 
-function restartService() {
+async function restartService() {
   // ── Build first ──────────────────────────────────────────────────
   console.log('');
-  info('Building...');
-  const buildResult = spawnSync('bash', [path.join(ROOT, 'scripts', 'build.sh')], {
-    cwd: ROOT, stdio: 'inherit'
+  const buildSpin = createSpinner('Building 2DoBetter...');
+
+  const buildCode = await new Promise(function(resolve) {
+    const buildProc = spawn('bash', [path.join(ROOT, 'scripts', 'build.sh')], {
+      cwd: ROOT, stdio: ['inherit', 'pipe', 'pipe']
+    });
+    function handleLine(line) {
+      line = line.trim();
+      if (line) buildSpin.update(line);
+    }
+    buildProc.stdout.on('data', function(chunk) {
+      chunk.toString().split('\n').forEach(handleLine);
+    });
+    buildProc.stderr.on('data', function(chunk) {
+      chunk.toString().split('\n').forEach(handleLine);
+    });
+    buildProc.on('close', function(code) { resolve(code); });
   });
-  if (buildResult.status !== 0) {
-    throw new Error('Build failed (exit code ' + buildResult.status + ')');
+
+  if (buildCode !== 0) {
+    buildSpin.fail('Build failed (exit code ' + buildCode + ')');
+    throw new Error('Build failed');
   }
-  ok('Build complete.');
+  buildSpin.stop('Build complete.');
 
   // ── Restart ──────────────────────────────────────────────────────
   const svc = getRestartCommand();
   if (svc) {
     // Managed service (launchd / systemd)
-    const displayCmd = [svc.cmd].concat(svc.args).join(' ');
-    info('Restarting service: ' + displayCmd);
-    const result = spawnSync(svc.cmd, svc.args, { stdio: 'inherit' });
-    if (result.error) throw new Error('Failed to run restart command: ' + result.error.message);
-    if (result.status !== 0) throw new Error('Restart command exited with code ' + result.status);
-    ok('Service restarted successfully.');
+    const svcSpin = createSpinner('Restarting service...');
+    const result = spawnSync(svc.cmd, svc.args, { stdio: 'pipe' });
+    if (result.error) { svcSpin.fail('Failed: ' + result.error.message); throw result.error; }
+    if (result.status !== 0) { svcSpin.fail('Restart exited with code ' + result.status); throw new Error('Restart failed'); }
+    svcSpin.stop('Service restarted.');
   } else {
     // No service manager — kill old process and spawn detached
     const env = { ...parseEnv(path.join(ROOT, '.env')), ...parseEnv(path.join(ROOT, '.env.local')) };
     const port = env.PORT || '3000';
 
-    info('Stopping any existing server on port ' + port + '...');
+    const startSpin = createSpinner('Stopping old server...');
     spawnSync('bash', ['-c',
       'lsof -ti tcp:' + port + ' 2>/dev/null | xargs kill -9 2>/dev/null; ' +
       'pkill -9 -f "node.*server\\.js" 2>/dev/null; true'
     ], { stdio: 'pipe' });
 
-    info('Starting server (detached)...');
+    startSpin.update('Starting server on port ' + port + '...');
     const serverProc = spawn('bash', ['-i', '-c',
       'cd ' + JSON.stringify(ROOT) + ' && NODE_ENV=production node server.js'
     ], {
@@ -490,7 +535,7 @@ function restartService() {
       detached: true
     });
     serverProc.unref();
-    ok('Server started on port ' + port + ' (PID ' + serverProc.pid + ').');
+    startSpin.stop('Server started on port ' + port + ' (PID ' + serverProc.pid + ').');
   }
   console.log('');
 }
@@ -948,7 +993,7 @@ const dispatch = {
   'import-data':      importData,
   'purge-completed':  purgeCompleted,
   'purge-graveyard':  purgeGraveyard,
-  'restart':          () => { restartService();    return Promise.resolve(); },
+  'restart':          () => restartService(),
   'service:install':  () => { serviceInstall();   return Promise.resolve(); },
   'service:uninstall':() => { serviceUninstall(); return Promise.resolve(); },
 };
