@@ -128,12 +128,10 @@ rm -rf 2DoBetter    # remove any previous install first
 git clone https://github.com/LucheGames/2DoBetter.git
 cd 2DoBetter
 npm install
-npm run setup       # wizard: DB, certs, admin account
-npm run build       # ~2-3 min first time
-npm start
+npm run setup       # wizard: DB, certs, admin account, build & start
 ```
 
-Open `https://localhost:3000`. You will see a certificate warning on first visit — this is normal ([see below](#certificate-warnings)).
+The wizard builds the app and starts the server automatically. Open the URL it prints when done. You will see a certificate warning on first visit — this is normal ([see below](#certificate-warnings)).
 
 **Updating:**
 ```bash
