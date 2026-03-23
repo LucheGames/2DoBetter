@@ -20,7 +20,7 @@ const readline   = require('readline');
 const os         = require('os');
 const crypto     = require('crypto');
 const bcrypt     = require('bcryptjs');
-const { spawnSync } = require('child_process');
+const { spawnSync, spawn } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -449,28 +449,49 @@ function getRestartCommand() {
 }
 
 function restartService() {
+  // ── Build first ──────────────────────────────────────────────────
+  console.log('');
+  info('Building...');
+  const buildResult = spawnSync('bash', [path.join(ROOT, 'scripts', 'build.sh')], {
+    cwd: ROOT, stdio: 'inherit'
+  });
+  if (buildResult.status !== 0) {
+    throw new Error('Build failed (exit code ' + buildResult.status + ')');
+  }
+  ok('Build complete.');
+
+  // ── Restart ──────────────────────────────────────────────────────
   const svc = getRestartCommand();
-  if (!svc) {
-    console.log('\n  No managed service detected on this machine.');
-    console.log('  If you started the server manually, stop it and run:');
-    console.log('    npm start\n');
-    return;
+  if (svc) {
+    // Managed service (launchd / systemd)
+    const displayCmd = [svc.cmd].concat(svc.args).join(' ');
+    info('Restarting service: ' + displayCmd);
+    const result = spawnSync(svc.cmd, svc.args, { stdio: 'inherit' });
+    if (result.error) throw new Error('Failed to run restart command: ' + result.error.message);
+    if (result.status !== 0) throw new Error('Restart command exited with code ' + result.status);
+    ok('Service restarted successfully.');
+  } else {
+    // No service manager — kill old process and spawn detached
+    const env = { ...parseEnv(path.join(ROOT, '.env')), ...parseEnv(path.join(ROOT, '.env.local')) };
+    const port = env.PORT || '3000';
+
+    info('Stopping any existing server on port ' + port + '...');
+    spawnSync('bash', ['-c',
+      'lsof -ti tcp:' + port + ' 2>/dev/null | xargs kill -9 2>/dev/null; ' +
+      'pkill -9 -f "node.*server\\.js" 2>/dev/null; true'
+    ], { stdio: 'pipe' });
+
+    info('Starting server (detached)...');
+    const serverProc = spawn('bash', ['-i', '-c',
+      'cd ' + JSON.stringify(ROOT) + ' && NODE_ENV=production node server.js'
+    ], {
+      cwd: ROOT,
+      stdio: ['ignore', 'ignore', 'ignore'],
+      detached: true
+    });
+    serverProc.unref();
+    ok('Server started on port ' + port + ' (PID ' + serverProc.pid + ').');
   }
-
-  const displayCmd = [svc.cmd].concat(svc.args).join(' ');
-  console.log('\n  Restarting service...');
-  info('  Command: ' + displayCmd);
-
-  const result = spawnSync(svc.cmd, svc.args, { stdio: 'inherit' });
-
-  if (result.error) {
-    throw new Error('Failed to run restart command: ' + result.error.message);
-  }
-  if (result.status !== 0) {
-    throw new Error('Restart command exited with code ' + result.status);
-  }
-
-  ok('Service restarted successfully.');
   console.log('');
 }
 
