@@ -750,24 +750,32 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   var isService = restartCmd !== 'npm start';
 
   // ── Build ────────────────────────────────────────────────────────
+  console.log('');
   console.log('  ' + C.bold + 'Building 2DoBetter...' + C.reset);
-  var frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-  var frameIdx = 0;
-  var spinner = setInterval(function() {
-    process.stdout.write('\r  ' + C.cyan + frames[frameIdx] + C.reset + '  Building (this takes ~30s)...');
-    frameIdx = (frameIdx + 1) % frames.length;
-  }, 80);
+  console.log('  ' + C.dim + '─'.repeat(40) + C.reset);
 
-  var buildResult = spawnSync('bash', [path.join(ROOT, 'scripts', 'build.sh')], {
-    stdio: ['inherit', 'pipe', 'pipe'],
-    cwd: ROOT
+  var buildCode = await new Promise(function(resolve) {
+    var buildProc = spawn('bash', [path.join(ROOT, 'scripts', 'build.sh')], {
+      cwd: ROOT,
+      stdio: ['inherit', 'pipe', 'pipe']
+    });
+    buildProc.stdout.on('data', function(chunk) {
+      chunk.toString().split('\n').forEach(function(line) {
+        if (line.trim()) console.log('  ' + C.dim + line + C.reset);
+      });
+    });
+    buildProc.stderr.on('data', function(chunk) {
+      chunk.toString().split('\n').forEach(function(line) {
+        if (line.trim()) console.log('  ' + C.dim + line + C.reset);
+      });
+    });
+    buildProc.on('close', function(code) { resolve(code); });
   });
-  clearInterval(spinner);
-  process.stdout.write('\r' + ' '.repeat(60) + '\r');
 
-  if (buildResult.status !== 0) {
+  console.log('  ' + C.dim + '─'.repeat(40) + C.reset);
+
+  if (buildCode !== 0) {
     console.log('  ' + C.red + '✗' + C.reset + '  Build failed.');
-    if (buildResult.stderr) console.log(buildResult.stderr.toString());
     console.log('');
     console.log('  ' + C.bold + 'Run manually:' + C.reset);
     console.log('    npm run build && npm start');
@@ -802,10 +810,11 @@ ${C.bold}${C.cyan}  ╔═══════════════════
 
   // ── Wait for server to respond ────────────────────────────────────
   var http2 = protocol === 'https' ? require('https') : require('http');
+  var spinFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
   var waitFrameIdx = 0;
   var waitSpinner = setInterval(function() {
-    process.stdout.write('\r  ' + C.cyan + frames[waitFrameIdx] + C.reset + '  Waiting for server...');
-    waitFrameIdx = (waitFrameIdx + 1) % frames.length;
+    process.stdout.write('\r  ' + C.cyan + spinFrames[waitFrameIdx] + C.reset + '  Waiting for server...');
+    waitFrameIdx = (waitFrameIdx + 1) % spinFrames.length;
   }, 80);
 
   var attempts = 0;
