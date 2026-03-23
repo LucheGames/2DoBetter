@@ -369,8 +369,8 @@ function serveCaCert(req, res) {
 // Once app.prepare() resolves the real handler takes over.
 const earlyPort = parseInt(process.env.PORT || '3000', 10);
 const earlyServer = http.createServer((_req, res) => {
-  res.writeHead(503, { 'Content-Type': 'text/html', 'Retry-After': '5' });
-  res.end('<!DOCTYPE html><html><head><meta http-equiv="refresh" content="3"><title>Starting…</title><style>body{font-family:sans-serif;text-align:center;padding:60px;background:#1c1917;color:#e7e5e4}</style></head><body><h2>2 Do Better is starting up…</h2><p>This page will refresh automatically.</p></body></html>');
+  res.writeHead(503, { 'Content-Type': 'text/html; charset=utf-8', 'Retry-After': '5' });
+  res.end('<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="3"><title>Starting...</title><style>body{font-family:sans-serif;text-align:center;padding:60px;background:#1c1917;color:#e7e5e4}</style></head><body><h2>2DoBetter is starting up...</h2><p>This page will refresh automatically.</p></body></html>');
 });
 earlyServer.listen(earlyPort, '0.0.0.0');
 
