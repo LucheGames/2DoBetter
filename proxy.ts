@@ -53,11 +53,18 @@ export function proxy(request: NextRequest) {
   if (usersFileExists || process.env.AUTH_USERS_JSON) {
     const users = readUsers();
     // Accept session token (new), legacy plaintext token (migration), or permanent agent token.
+    // Guard: if no token was provided at all, no match is possible
+    if (!tokenCookie) {
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      return NextResponse.rewrite(new URL('/login', request.url));
+    }
     const matchesSession = (u: typeof users[0]) =>
-      (tokenCookie != null && u.sessions?.includes(tokenCookie)) ||
-      u.session === tokenCookie ||
-      u.token === tokenCookie ||
-      u.agentToken === tokenCookie;
+      (u.sessions?.includes(tokenCookie)) ||
+      (u.session != null && u.session === tokenCookie) ||
+      (u.token != null && u.token === tokenCookie) ||
+      (u.agentToken != null && u.agentToken === tokenCookie);
     const user = userCookie
       ? users.find(u => u.username === userCookie && matchesSession(u))
       : users.find(u => matchesSession(u));
