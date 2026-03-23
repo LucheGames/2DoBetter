@@ -799,10 +799,11 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     }
   } else {
     // No service — launch server in the background
+    // Use bash -i to load nvm (system node may be v10, Next.js needs v20)
     info('Starting server...');
-    var serverProc = spawn('node', [path.join(ROOT, 'server.js')], {
+    var serverProc = spawn('bash', ['-i', '-c', 'cd ' + JSON.stringify(ROOT) + ' && NODE_ENV=production node server.js'], {
       cwd: ROOT,
-      stdio: 'ignore',
+      stdio: ['ignore', 'ignore', 'inherit'],
       detached: true
     });
     serverProc.unref();
