@@ -90,6 +90,36 @@ async function askChoice(question, choices) {
   }
 }
 
+// ── Spinner with elapsed time ─────────────────────────────────────────────────
+var SPIN_FRAMES = ['\u2807', '\u2819', '\u2839', '\u2838', '\u283C', '\u2834', '\u2826', '\u2827', '\u2847', '\u280F'];
+function createSpinner(label) {
+  var start = Date.now();
+  var idx = 0;
+  var iv = setInterval(function() {
+    var elapsed = Math.floor((Date.now() - start) / 1000);
+    var min = Math.floor(elapsed / 60);
+    var sec = elapsed % 60;
+    var time = min > 0
+      ? min + 'm ' + (sec < 10 ? '0' : '') + sec + 's'
+      : sec + 's';
+    process.stdout.write('\r  ' + C.cyan + SPIN_FRAMES[idx] + C.reset + '  ' + label + ' ' + C.dim + '(' + time + ')' + C.reset + '  ');
+    idx = (idx + 1) % SPIN_FRAMES.length;
+  }, 80);
+  return {
+    update: function(newLabel) { label = newLabel; },
+    stop: function(msg) {
+      clearInterval(iv);
+      process.stdout.write('\r' + ' '.repeat(80) + '\r');
+      if (msg) ok(msg);
+    },
+    fail: function(msg) {
+      clearInterval(iv);
+      process.stdout.write('\r' + ' '.repeat(80) + '\r');
+      if (msg) warn(msg);
+    }
+  };
+}
+
 // ── .env parser / writer ──────────────────────────────────────────────────────
 function parseEnv(file) {
   if (!fs.existsSync(file)) return {};
@@ -751,31 +781,32 @@ ${C.bold}${C.cyan}  ╔═══════════════════
 
   // ── Build ────────────────────────────────────────────────────────
   console.log('');
-  console.log('  ' + C.bold + 'Building 2DoBetter...' + C.reset);
-  console.log('  ' + C.dim + '─'.repeat(40) + C.reset);
+  var buildSpin = createSpinner('Building 2DoBetter...');
+  var lastBuildLine = '';
 
   var buildCode = await new Promise(function(resolve) {
     var buildProc = spawn('bash', [path.join(ROOT, 'scripts', 'build.sh')], {
       cwd: ROOT,
       stdio: ['inherit', 'pipe', 'pipe']
     });
+    function handleLine(line) {
+      line = line.trim();
+      if (line) {
+        lastBuildLine = line;
+        buildSpin.update(lastBuildLine);
+      }
+    }
     buildProc.stdout.on('data', function(chunk) {
-      chunk.toString().split('\n').forEach(function(line) {
-        if (line.trim()) console.log('  ' + C.dim + line + C.reset);
-      });
+      chunk.toString().split('\n').forEach(handleLine);
     });
     buildProc.stderr.on('data', function(chunk) {
-      chunk.toString().split('\n').forEach(function(line) {
-        if (line.trim()) console.log('  ' + C.dim + line + C.reset);
-      });
+      chunk.toString().split('\n').forEach(handleLine);
     });
     buildProc.on('close', function(code) { resolve(code); });
   });
 
-  console.log('  ' + C.dim + '─'.repeat(40) + C.reset);
-
   if (buildCode !== 0) {
-    console.log('  ' + C.red + '✗' + C.reset + '  Build failed.');
+    buildSpin.fail('Build failed.');
     console.log('');
     console.log('  ' + C.bold + 'Run manually:' + C.reset);
     console.log('    npm run build && npm start');
@@ -783,19 +814,17 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     rl.close();
     return;
   }
-  ok('Build complete.');
+  buildSpin.stop('Build complete.');
 
   // ── Start ────────────────────────────────────────────────────────
   if (isService) {
     // Service-managed: just restart it
-    process.stdout.write('  Restarting service...');
+    var svcSpin = createSpinner('Restarting service...');
     var svcResult = spawnSync('bash', ['-c', restartCmd], { stdio: 'pipe', encoding: 'utf8' });
     if (svcResult.status === 0) {
-      process.stdout.write('\r' + ' '.repeat(60) + '\r');
-      ok('Service restarted.');
+      svcSpin.stop('Service restarted.');
     } else {
-      process.stdout.write('\r' + ' '.repeat(60) + '\r');
-      warn('Service restart failed. Try:  ' + restartCmd);
+      svcSpin.fail('Service restart failed. Try:  ' + restartCmd);
     }
   } else {
     // Kill any existing server process before starting a new one
@@ -805,7 +834,6 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     ], { stdio: 'pipe' });
 
     // Use bash -i to load nvm (system node may be v10, Next.js needs v20)
-    info('Starting server...');
     var serverProc = spawn('bash', ['-i', '-c', 'cd ' + JSON.stringify(ROOT) + ' && NODE_ENV=production node server.js'], {
       cwd: ROOT,
       stdio: ['ignore', 'ignore', 'inherit'],
@@ -816,12 +844,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
 
   // ── Wait for server to respond ────────────────────────────────────
   var http2 = protocol === 'https' ? require('https') : require('http');
-  var spinFrames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-  var waitFrameIdx = 0;
-  var waitSpinner = setInterval(function() {
-    process.stdout.write('\r  ' + C.cyan + spinFrames[waitFrameIdx] + C.reset + '  Waiting for server...');
-    waitFrameIdx = (waitFrameIdx + 1) % spinFrames.length;
-  }, 80);
+  var serverSpin = createSpinner('Waiting for server...');
 
   var attempts = 0;
   var maxAttempts = 60; // 30 seconds
@@ -830,11 +853,9 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     var opts = { hostname: 'localhost', port: parseInt(port, 10), path: '/', method: 'GET', timeout: 2000 };
     if (protocol === 'https') opts.rejectUnauthorized = false;
     var req = http2.request(opts, function(res) {
-      clearInterval(waitSpinner);
-      process.stdout.write('\r' + ' '.repeat(60) + '\r');
       // 200 or 302 (redirect to login) both mean it's up
       if (res.statusCode < 500) {
-        ok('Server is running!');
+        serverSpin.stop('Server is running!');
         console.log('');
         console.log('  ' + C.bold + C.green + '  Open: ' + url + C.reset);
         if (hasCerts) {
@@ -842,7 +863,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
           console.log('  ' + C.dim + 'First visit: browser will warn about the self-signed cert.' + C.reset);
         }
       } else {
-        console.log('  ' + C.yellow + '!' + C.reset + '  Server returned ' + res.statusCode + ' — it may still be initialising.');
+        serverSpin.fail('Server returned ' + res.statusCode + ' — it may still be initialising.');
         console.log('  ' + C.bold + 'Open: ' + url + C.reset);
       }
       console.log('');
@@ -850,9 +871,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     });
     req.on('error', function() {
       if (attempts >= maxAttempts) {
-        clearInterval(waitSpinner);
-        process.stdout.write('\r' + ' '.repeat(60) + '\r');
-        warn('Server not responding yet — it may need more time.');
+        serverSpin.fail('Server not responding yet — it may need more time.');
         console.log('  ' + C.bold + 'Open when ready: ' + url + C.reset);
         console.log('');
         rl.close();
