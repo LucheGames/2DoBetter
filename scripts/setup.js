@@ -798,7 +798,12 @@ ${C.bold}${C.cyan}  ╔═══════════════════
       warn('Service restart failed. Try:  ' + restartCmd);
     }
   } else {
-    // No service — launch server in the background
+    // Kill any existing server process before starting a new one
+    var killResult = spawnSync('bash', ['-c',
+      'lsof -ti tcp:' + port + ' 2>/dev/null | xargs kill -9 2>/dev/null; ' +
+      'pkill -9 -f "node.*server\\.js" 2>/dev/null; true'
+    ], { stdio: 'pipe' });
+
     // Use bash -i to load nvm (system node may be v10, Next.js needs v20)
     info('Starting server...');
     var serverProc = spawn('bash', ['-i', '-c', 'cd ' + JSON.stringify(ROOT) + ' && NODE_ENV=production node server.js'], {
