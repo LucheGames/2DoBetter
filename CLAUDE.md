@@ -55,12 +55,12 @@
 | System (`/usr/bin/node`) | **v10** | Old, installed by package manager |
 | nvm (`~/.nvm/versions/node/v20…`) | **v20** | What Next.js needs |
 | CLI scripts (`setup.js`, `admin.js`) | Runs on system node v10 | **No optional chaining `?.`, no `??`** |
-| `npm run build` | Auto-uses nvm v20 | `scripts/build.sh` handles this |
+| `npm run restart` | Builds + restarts | `scripts/build.sh` + service or detached process |
 
 **SSH commands need `bash -i -c '…'` to load nvm:**
 ```bash
-ssh <user>@<server-ip> "bash -i -c 'cd ~/2DoBetter && npm run build'"
-# plain `ssh … "npm run build"` fails — npm not in PATH in non-interactive shells
+ssh <user>@<server-ip> "bash -i -c 'cd ~/2DoBetter && npm run restart'"
+# plain `ssh … "npm run restart"` fails — npm not in PATH in non-interactive shells
 ```
 
 ---
@@ -71,13 +71,8 @@ ssh <user>@<server-ip> "bash -i -c 'cd ~/2DoBetter && npm run build'"
 # 1. On dev machine — commit and push
 git add <files> && git commit -m "message" && git push
 
-# 2. On server — pull, build, restart
-ssh <user>@<server-ip> "bash -i -c 'cd ~/2DoBetter && git pull && npm run build && node scripts/admin.js restart'"
-```
-
-**When to skip the build** (CLI-only changes to `scripts/`, `CLAUDE.md`, `.gitignore`):
-```bash
-ssh <user>@<server-ip> "bash -i -c 'cd ~/2DoBetter && git pull && node scripts/admin.js restart'"
+# 2. On server — pull and restart (build is automatic)
+ssh <user>@<server-ip> "bash -i -c 'cd ~/2DoBetter && git pull && npm run restart'"
 ```
 
 Server service management:

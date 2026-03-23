@@ -135,8 +135,9 @@ The wizard builds the app and starts the server automatically. Open the URL it p
 
 **Updating:**
 ```bash
-git pull && npm run build && npm run restart
+git pull && npm run restart
 ```
+> `npm run restart` automatically builds and restarts the server — no separate build step needed.
 
 ---
 
@@ -288,7 +289,7 @@ The CLI is available for scripting or SSH access.
 | Export board | **npm:** `npm run export-data [file]`<br>**docker:** `docker exec -it 2dobetter node scripts/admin.js export-data /app/data/backup.json` |
 | Import board | **npm:** `npm run import-data <file>`<br>**docker:** `docker exec -it 2dobetter node scripts/admin.js import-data /app/data/backup.json` |
 | | |
-| Restart server | **npm:** `npm run restart`<br>**docker:** `docker compose restart` |
+| Rebuild + restart | **npm:** `npm run restart`<br>**docker:** `docker compose up -d --build` |
 | Regenerate TLS cert | **npm:** `npm run regen-certs`<br>**docker:** `docker exec -it 2dobetter bash generate-certs.sh` |
 | Install as service | **npm:** `npm run service:install`<br>**docker:** *not needed — auto-restarts by default* |
 | Remove service | **npm:** `npm run service:uninstall`<br>**docker:** *not needed* |
