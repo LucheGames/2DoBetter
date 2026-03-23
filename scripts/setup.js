@@ -574,7 +574,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   step(1, 3, 'Identity & Access');
   info('Set up the first user — this will be your admin account.\n');
 
-  const firstUsername = await ask('Username', existing.AUTH_USERNAME || os.userInfo().username);
+  const firstUsername = await ask('Username', 'admin');
   cfg.AUTH_USERNAME = firstUsername;
 
   const firstToken = await collectToken(existing);
