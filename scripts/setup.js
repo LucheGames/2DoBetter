@@ -9,7 +9,7 @@ const crypto   = require('crypto');
 const fs       = require('fs');
 const path     = require('path');
 const os       = require('os');
-const { spawnSync } = require('child_process');
+const { spawnSync, spawn } = require('child_process');
 
 let bcrypt;
 try {
@@ -712,35 +712,143 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   // ── Done ──────────────────────────────────────────────────────────
   const port = final.PORT || '3000';
   const userList = users.map(u => `    • ${u.username}`).join('\n');
-  const restartCmd = getRestartCommand();
   const certDir = path.join(ROOT, 'certs');
   const hasCerts = fs.existsSync(path.join(certDir, 'server.key')) && fs.existsSync(path.join(certDir, 'server.crt'));
   const protocol = hasCerts ? 'https' : 'http';
-  const certNote = hasCerts
-    ? `  ${C.dim}First visit: browser will warn about the self-signed cert.\n  Install the CA cert once: https://localhost:${port}/download-ca-cert${C.reset}`
-    : `  ${C.yellow}Server running in HTTP mode — certs not generated.\n  Run: docker exec -it 2dobetter bash generate-certs.sh (then restart)${C.reset}`;
-  console.log(`
-${C.bold}${C.green}  ✓ Setup complete!${C.reset}
+  const url = protocol + '://localhost:' + port;
 
-  Users     :
-${userList}
-  Backups   : ${C.bold}${path.join(ROOT, 'backups')}${encrypt ? ' — AES-256 encrypted' : ''}${C.reset}
+  console.log('\n' + C.bold + C.green + '  ✓ Setup complete!' + C.reset + '\n');
+  console.log('  Users     :');
+  console.log(userList);
+  console.log('  Backups   : ' + C.bold + path.join(ROOT, 'backups') + (encrypt ? ' — AES-256 encrypted' : '') + C.reset);
+  console.log('');
+  console.log('  ' + C.bold + 'Next steps:' + C.reset);
+  console.log('    • Add teammates  — ⚙ admin panel → Generate setup code');
+  console.log('    • Add AI agents  — ⚙ admin panel → + Agent');
+  console.log('    • Remote access  — install Tailscale + DuckDNS (see README)');
+  console.log('');
 
-  ${C.bold}Next steps:${C.reset}
-    • Add teammates  — ⚙ admin panel → Generate setup code
-    • Add AI agents  — ⚙ admin panel → + Agent
-    • Remote access  — install Tailscale + DuckDNS (see README)
+  if (isDocker()) {
+    // Docker: user must restart the container from the host
+    console.log('  ' + C.bold + C.yellow + 'YOU MUST restart the container now (run this on your host):' + C.reset);
+    console.log('    docker compose restart');
+    console.log('  ' + C.dim + 'Wait ~30s after restart for Next.js to initialise before opening.' + C.reset);
+    console.log('');
+    console.log('  ' + C.bold + 'Then open:' + C.reset);
+    console.log('    ' + url);
+    if (hasCerts) {
+      console.log('');
+      console.log('  ' + C.dim + 'First visit: browser will warn about the self-signed cert.' + C.reset);
+    }
+    console.log('');
+    rl.close();
+    return;
+  }
 
-  ${C.bold}${C.yellow}${isDocker() ? 'YOU MUST restart the container now (run this on your host):' : 'Start the server:'}${C.reset}
-    ${restartCmd}
-  ${isDocker() ? `${C.dim}  Wait ~30s after restart for Next.js to initialise before opening.${C.reset}` : ''}
-  ${C.bold}Then open:${C.reset}
-    ${protocol}://localhost:${port}
+  // Non-Docker: build and start automatically
+  var restartCmd = getRestartCommand();
+  var isService = restartCmd !== 'npm start';
 
-${certNote}
-`);
+  // ── Build ────────────────────────────────────────────────────────
+  console.log('  ' + C.bold + 'Building 2DoBetter...' + C.reset);
+  var frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+  var frameIdx = 0;
+  var spinner = setInterval(function() {
+    process.stdout.write('\r  ' + C.cyan + frames[frameIdx] + C.reset + '  Building (this takes ~30s)...');
+    frameIdx = (frameIdx + 1) % frames.length;
+  }, 80);
 
-  rl.close();
+  var buildResult = spawnSync('bash', [path.join(ROOT, 'scripts', 'build.sh')], {
+    stdio: ['inherit', 'pipe', 'pipe'],
+    cwd: ROOT
+  });
+  clearInterval(spinner);
+  process.stdout.write('\r' + ' '.repeat(60) + '\r');
+
+  if (buildResult.status !== 0) {
+    console.log('  ' + C.red + '✗' + C.reset + '  Build failed.');
+    if (buildResult.stderr) console.log(buildResult.stderr.toString());
+    console.log('');
+    console.log('  ' + C.bold + 'Run manually:' + C.reset);
+    console.log('    npm run build && npm start');
+    console.log('');
+    rl.close();
+    return;
+  }
+  ok('Build complete.');
+
+  // ── Start ────────────────────────────────────────────────────────
+  if (isService) {
+    // Service-managed: just restart it
+    process.stdout.write('  Restarting service...');
+    var svcResult = spawnSync('bash', ['-c', restartCmd], { stdio: 'pipe', encoding: 'utf8' });
+    if (svcResult.status === 0) {
+      process.stdout.write('\r' + ' '.repeat(60) + '\r');
+      ok('Service restarted.');
+    } else {
+      process.stdout.write('\r' + ' '.repeat(60) + '\r');
+      warn('Service restart failed. Try:  ' + restartCmd);
+    }
+  } else {
+    // No service — launch server in the background
+    info('Starting server...');
+    var serverProc = spawn('node', [path.join(ROOT, 'server.js')], {
+      cwd: ROOT,
+      stdio: 'ignore',
+      detached: true
+    });
+    serverProc.unref();
+  }
+
+  // ── Wait for server to respond ────────────────────────────────────
+  var http2 = protocol === 'https' ? require('https') : require('http');
+  var waitFrameIdx = 0;
+  var waitSpinner = setInterval(function() {
+    process.stdout.write('\r  ' + C.cyan + frames[waitFrameIdx] + C.reset + '  Waiting for server...');
+    waitFrameIdx = (waitFrameIdx + 1) % frames.length;
+  }, 80);
+
+  var attempts = 0;
+  var maxAttempts = 60; // 30 seconds
+  function checkServer() {
+    attempts++;
+    var opts = { hostname: 'localhost', port: parseInt(port, 10), path: '/', method: 'GET', timeout: 2000 };
+    if (protocol === 'https') opts.rejectUnauthorized = false;
+    var req = http2.request(opts, function(res) {
+      clearInterval(waitSpinner);
+      process.stdout.write('\r' + ' '.repeat(60) + '\r');
+      // 200 or 302 (redirect to login) both mean it's up
+      if (res.statusCode < 500) {
+        ok('Server is running!');
+        console.log('');
+        console.log('  ' + C.bold + C.green + '  Open: ' + url + C.reset);
+        if (hasCerts) {
+          console.log('');
+          console.log('  ' + C.dim + 'First visit: browser will warn about the self-signed cert.' + C.reset);
+        }
+      } else {
+        console.log('  ' + C.yellow + '!' + C.reset + '  Server returned ' + res.statusCode + ' — it may still be initialising.');
+        console.log('  ' + C.bold + 'Open: ' + url + C.reset);
+      }
+      console.log('');
+      rl.close();
+    });
+    req.on('error', function() {
+      if (attempts >= maxAttempts) {
+        clearInterval(waitSpinner);
+        process.stdout.write('\r' + ' '.repeat(60) + '\r');
+        warn('Server not responding yet — it may need more time.');
+        console.log('  ' + C.bold + 'Open when ready: ' + url + C.reset);
+        console.log('');
+        rl.close();
+      } else {
+        setTimeout(checkServer, 500);
+      }
+    });
+    req.on('timeout', function() { req.abort(); });
+    req.end();
+  }
+  checkServer();
 }
 
 main().catch(err => {
