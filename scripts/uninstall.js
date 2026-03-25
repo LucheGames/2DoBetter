@@ -49,6 +49,34 @@ const CLAUDE_JSON        = path.join(HOME, '.claude.json');
 const CRON_MARKER        = '2dobetter';   // catches backup + any other 2dobetter cron entries
 const DB_FILE            = path.join(ROOT, 'prisma', 'dev.db');
 
+// ── Find running server process ──────────────────────────────────────────────
+// Catches the server whether started via service, npm run start, or bare node.
+// Uses pgrep to find node processes whose command line includes our server.js path.
+function findServerPids() {
+  var serverJs = path.join(ROOT, 'server.js');
+  // pgrep -f matches full command line; returns one PID per line
+  var result = spawnSync('pgrep', ['-f', 'node.*' + serverJs], { stdio: 'pipe', encoding: 'utf8' });
+  if (result.status !== 0 || !result.stdout) return [];
+  // Filter out our own PID (this uninstall script is also a node process)
+  var myPid = String(process.pid);
+  return result.stdout.trim().split('\n').filter(function(pid) {
+    return pid && pid !== myPid;
+  });
+}
+
+function killServerProcess() {
+  var pids = findServerPids();
+  if (!pids.length) { info('No running server process found.'); return; }
+  pids.forEach(function(pid) {
+    try {
+      process.kill(Number(pid), 'SIGTERM');
+      ok('Killed server process (PID ' + pid + ')');
+    } catch (e) {
+      warn('Could not kill PID ' + pid + ': ' + e.message);
+    }
+  });
+}
+
 // ── Inventory — figure out what exists on THIS machine ───────────────────────
 function buildInventory() {
   const inv = [];
@@ -58,6 +86,12 @@ function buildInventory() {
   }
   if (isLinux && fs.existsSync(SYSTEMD_UNIT)) {
     inv.push({ label: 'systemd user service  (stopped, disabled, unit file removed)', key: 'systemd' });
+  }
+
+  // Check for a running server process (covers manual starts outside service manager)
+  var serverPids = findServerPids();
+  if (serverPids.length) {
+    inv.push({ label: 'running server process  (PID ' + serverPids.join(', ') + ' — will be killed)', key: 'process' });
   }
 
   // Check crontab for 2dobetter entries
@@ -226,6 +260,8 @@ async function main() {
   // ── Execute ──────────────────────────────────────────────────────────────────
   const keys = inventory.map(i => i.key);
 
+  // Kill the running server first — whether it was started by a service or manually
+  if (keys.includes('process'))  killServerProcess();
   if (keys.includes('launchd'))  stopAndRemoveLaunchd();
   if (keys.includes('systemd'))  stopAndRemoveSystemd();
   if (keys.includes('cron'))     removeCronEntries();
