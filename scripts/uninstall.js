@@ -269,27 +269,23 @@ async function main() {
   if (keys.includes('backupkey'))removeBackupKey();
   if (keys.includes('mcp'))      removeMcpEntry();
 
-  // ── Final manual steps ───────────────────────────────────────────────────────
-  console.log(`\n  ${C.bold}${C.green}Done.${C.reset}  One step left — delete the app directory:\n`);
-  console.log(`  ${C.bold}${C.cyan}    rm -rf ${ROOT}${C.reset}\n`);
-
+  // ── CA cert instructions (manual — requires sudo or GUI) ─────────────────────
   if (isMac) {
-    console.log(`  ${C.bold}To remove the CA cert from Keychain:${C.reset}`);
+    console.log(`\n  ${C.bold}To remove the CA cert from Keychain:${C.reset}`);
     info('  Open Keychain Access → search "2DoBetter" or "2dobetter" → right-click → Delete');
     console.log('');
   }
   if (isLinux) {
     const sysStore = '/usr/local/share/ca-certificates';
-    const { execSync } = require('child_process');
     let sysFiles = [];
-    try { sysFiles = require('fs').readdirSync(sysStore).filter(f => f.toLowerCase().includes('2dobetter')); } catch (_) {}
+    try { sysFiles = fs.readdirSync(sysStore).filter(f => f.toLowerCase().includes('2dobetter')); } catch (_) {}
 
     if (sysFiles.length) {
-      console.log(`  ${C.bold}To remove the CA cert from the system trust store:${C.reset}`);
+      console.log(`\n  ${C.bold}To remove the CA cert from the system trust store:${C.reset}`);
       info(`  sudo rm /usr/local/share/ca-certificates/2dobetter*.crt`);
       info(`  sudo update-ca-certificates --fresh`);
     } else {
-      console.log(`  ${C.bold}CA certificate:${C.reset}`);
+      console.log(`\n  ${C.bold}CA certificate:${C.reset}`);
       info(`  Not found in system trust store (${sysStore}).`);
       info(`  If you installed it via a browser, remove it there instead:`);
       info(`  Chrome/Edge: Settings → Privacy → Manage certificates → Authorities → find 2DoBetter → Delete`);
@@ -297,6 +293,18 @@ async function main() {
     }
     console.log('');
   }
+
+  // ── Delete app directory ────────────────────────────────────────────────────
+  // The script can't rm -rf itself while running, so schedule the delete
+  // to happen after this process exits. `nohup` + short sleep ensures
+  // the node process has fully exited before the directory is removed.
+  console.log(`  ${C.bold}Deleting app directory...${C.reset}  ${C.dim}${ROOT}${C.reset}`);
+  spawnSync('bash', ['-c',
+    'nohup bash -c \'sleep 1 && rm -rf ' + JSON.stringify(ROOT) + '\' >/dev/null 2>&1 &'
+  ], { stdio: 'pipe' });
+  ok('App directory scheduled for deletion.');
+
+  console.log(`\n  ${C.bold}${C.green}Uninstall complete.${C.reset}  2Do Better has been removed from this machine.\n`);
 
   rl.close();
 }
