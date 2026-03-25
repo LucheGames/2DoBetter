@@ -827,19 +827,34 @@ ${C.bold}${C.cyan}  ╔═══════════════════
       svcSpin.fail('Service restart failed. Try:  ' + restartCmd);
     }
   } else {
-    // Kill any existing server process before starting a new one
-    var killResult = spawnSync('bash', ['-c',
+    // No service registered — install one so the app survives reboots
+    // and the uninstall script can cleanly stop it later.
+    var installSpin = createSpinner('Installing as system service...');
+
+    // Kill any existing orphan process first
+    spawnSync('bash', ['-c',
       'lsof -ti tcp:' + port + ' 2>/dev/null | xargs kill -9 2>/dev/null; ' +
       'pkill -9 -f "node.*server\\.js" 2>/dev/null; true'
     ], { stdio: 'pipe' });
 
-    // Use bash -i to load nvm (system node may be v10, Next.js needs v20)
-    var serverProc = spawn('bash', ['-i', '-c', 'cd ' + JSON.stringify(ROOT) + ' && NODE_ENV=production node server.js'], {
-      cwd: ROOT,
-      stdio: ['ignore', 'ignore', 'inherit'],
-      detached: true
-    });
-    serverProc.unref();
+    // service:install creates, enables, and starts the service
+    var installResult = spawnSync(process.execPath,
+      [path.join(ROOT, 'scripts', 'admin.js'), 'service:install'],
+      { stdio: 'pipe', encoding: 'utf8', cwd: ROOT }
+    );
+    if (installResult.status === 0) {
+      installSpin.stop('Service installed — 2Do Better will start at boot.');
+    } else {
+      installSpin.fail('Service install failed — starting detached process as fallback.');
+      info(installResult.stderr || installResult.stdout || '');
+      // Fallback: detached process (better than nothing)
+      var serverProc = spawn('bash', ['-i', '-c', 'cd ' + JSON.stringify(ROOT) + ' && NODE_ENV=production node server.js'], {
+        cwd: ROOT,
+        stdio: ['ignore', 'ignore', 'inherit'],
+        detached: true
+      });
+      serverProc.unref();
+    }
   }
 
   // ── Wait for server to respond ────────────────────────────────────
