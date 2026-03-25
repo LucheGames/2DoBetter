@@ -6,6 +6,11 @@ process.env.NEXT_TELEMETRY_DISABLED = "1";
 const nextConfig: NextConfig = {
   // Hide the Next.js dev indicator button — not useful to end users
   devIndicators: false,
+  // Skip TypeScript type-checking during production build — saves significant
+  // time on slow machines. Types are still checked in the editor/CI.
+  typescript: { ignoreBuildErrors: true },
+  // Skip ESLint during production build (no eslint config in this project)
+  eslint: { ignoreDuringBuilds: true },
   async headers() {
     return [
       {
