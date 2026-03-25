@@ -732,6 +732,34 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
             </div>
           </Section>
 
+          {/* ── Restart server ─────────────────────────────────────────── */}
+          <Section title="Server">
+            <div className="space-y-3">
+              <p className="admin-xs text-gray-500">
+                Graceful restart — the board will be back in a few seconds.
+              </p>
+              <HoldButton
+                label={"\u21BB Hold to restart server"}
+                onConfirm={async () => {
+                  await fetch("/api/admin/restart", { method: "POST" });
+                  // Server is going down — poll until it's back
+                  const poll = () => {
+                    setTimeout(async () => {
+                      try {
+                        const r = await fetch("/api/columns", { cache: "no-store" });
+                        if (r.ok) window.location.reload();
+                        else poll();
+                      } catch { poll(); }
+                    }, 1500);
+                  };
+                  poll();
+                }}
+                holdMs={2000}
+                variant="neutral"
+              />
+            </div>
+          </Section>
+
         </div>
       </div>
     </div>

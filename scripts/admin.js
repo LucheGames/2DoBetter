@@ -576,7 +576,7 @@ function serviceInstall() {
       'WorkingDirectory=' + ROOT,
       'Environment=NODE_ENV=production',
       'ExecStart=' + nodeBin + ' ' + path.join(ROOT, 'server.js'),
-      'Restart=on-failure',
+      'Restart=always',
       'RestartSec=5',
       'StandardOutput=journal',
       'StandardError=journal',
