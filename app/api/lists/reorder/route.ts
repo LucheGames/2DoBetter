@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     if (deny) return deny;
   }
 
-  await Promise.all(
+  await prisma.$transaction(
     ids.map((id: number, index: number) =>
       prisma.list.update({ where: { id }, data: { order: index } })
     )

@@ -25,17 +25,16 @@ export async function POST(req: NextRequest) {
 
   const {
     label           = '',
-    expiresInMinutes = 10,
     readOnly        = false,
     ownColumnOnly   = false,
     isAgent         = false,
   } = await req.json().catch(() => ({}));
 
-  // 6-digit numeric PIN (100000–999999), cryptographically random
-  // ~900,000 possibilities — impractical to brute-force within the time window
-  const code      = String(100000 + (randomBytes(4).readUInt32BE(0) % 900000));
+  // 8-digit numeric PIN (10000000–99999999), cryptographically random
+  // ~90,000,000 possibilities + 10-min expiry + rate-limited registration = infeasible brute-force
+  const code      = String(10000000 + (randomBytes(4).readUInt32BE(0) % 90000000));
   const now       = new Date();
-  const expiresAt = new Date(now.getTime() + Number(expiresInMinutes) * 60 * 1000);
+  const expiresAt = new Date(now.getTime() + 10 * 60 * 1000); // always 10 minutes
 
   const invite: Invite = {
     code,

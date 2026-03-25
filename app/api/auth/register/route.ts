@@ -8,6 +8,23 @@ import { broadcast } from '@/lib/events';
 import * as fs from 'fs';
 import * as path from 'path';
 
+// ── Per-IP rate limit (shared with login: 10 attempts / 15 min) ─────────────
+const RATE_WINDOW_MS = 15 * 60 * 1000;
+const RATE_MAX       = 10;
+const ipAttempts     = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(key: string): boolean {
+  const now   = Date.now();
+  const entry = ipAttempts.get(key);
+  if (!entry || now > entry.resetAt) {
+    ipAttempts.set(key, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= RATE_MAX) return false;
+  entry.count++;
+  return true;
+}
+
 // ── Invite validation ─────────────────────────────────────────────────────────
 // Invite codes live in data/invites.json — managed by `npm run gen-invite`
 // or generated from the admin panel.
@@ -52,6 +69,16 @@ function consumeInvite(code: string): Invite | null {
 
 // ── POST /api/auth/register ───────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+          ?? req.headers.get('x-real-ip')
+          ?? 'unknown';
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json(
+      { error: 'Too many attempts — try again in 15 minutes.' },
+      { status: 429 }
+    );
+  }
+
   const { username, token, inviteCode, agentName } = await req.json();
 
   const invite = consumeInvite(String(inviteCode ?? '').trim());

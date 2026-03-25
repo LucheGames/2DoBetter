@@ -33,7 +33,8 @@ function applyClearCookies(response: NextResponse) {
 export async function GET(req: NextRequest) {
   const token = req.cookies.get('auth_token')?.value;
   const host  = req.headers.get('host') ?? 'localhost:3000';
-  const proto = req.headers.get('x-forwarded-proto') ?? 'http';
+  const rawProto = req.headers.get('x-forwarded-proto') ?? 'http';
+  const proto = (rawProto === 'https' || rawProto === 'http') ? rawProto : 'https';
   const response = NextResponse.redirect(`${proto}://${host}/login`);
   applyClearCookies(response);
   after(() => clearSession(token));

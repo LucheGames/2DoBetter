@@ -139,7 +139,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
 
   // Invite form
   const [inviteAccess,   setInviteAccess]   = useState<AccessLevel>("ownColumn");
-  const [inviteExpiry,   setInviteExpiry]   = useState(10);
+  const inviteExpiry = 10; // hardcoded — no admin toggle
   const [inviteResult,   setInviteResult]   = useState<{ code: string; url: string; expiresAt: string } | null>(null);
   const [inviteLoading,  setInviteLoading]  = useState(false);
   const [copied,         setCopied]         = useState(false);
@@ -240,7 +240,6 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
           isAgent: false,
           readOnly: inviteAccess === "readOnly",
           ownColumnOnly: inviteAccess === "ownColumn",
-          expiresInMinutes: inviteExpiry,
         }),
       });
       if (res.ok) setInviteResult(await res.json());
@@ -482,11 +481,7 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
               </div>
               <div className="flex items-center gap-3">
                 <span className="admin-xs text-gray-500 w-14 flex-shrink-0">Expires</span>
-                <div className="flex gap-1">
-                  {([[10, "10 m"], [30, "30 m"], [60, "1 h"]] as [number, string][]).map(([mins, label]) => (
-                    <Pill key={mins} active={inviteExpiry === mins} onClick={() => setInviteExpiry(mins)}>{label}</Pill>
-                  ))}
-                </div>
+                <span className="admin-xs text-gray-400">10 minutes</span>
               </div>
               <button
                 onClick={generateInvite}

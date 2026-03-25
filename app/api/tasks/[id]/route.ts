@@ -5,30 +5,23 @@ import { checkLane, checkReadOnly } from "@/lib/lane-guard";
 import { checkWriteRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 async function computeBreadcrumb(listId: number): Promise<string> {
-  const parts: string[] = [];
-
-  let currentList = await prisma.list.findUnique({
+  // Single query: fetch the list with its parent chain and column in one go.
+  // Prisma doesn't support recursive includes, but the schema only has one
+  // level of nesting (parentId), so two levels covers all cases.
+  const list = await prisma.list.findUnique({
     where: { id: listId },
-    select: { name: true, parentId: true, columnId: true },
+    select: {
+      name: true,
+      column: { select: { name: true } },
+      parent: { select: { name: true } },
+    },
   });
+  if (!list) return "";
 
-  while (currentList) {
-    parts.unshift(currentList.name);
-    if (currentList.parentId) {
-      currentList = await prisma.list.findUnique({
-        where: { id: currentList.parentId },
-        select: { name: true, parentId: true, columnId: true },
-      });
-    } else {
-      const column = await prisma.column.findUnique({
-        where: { id: currentList.columnId },
-        select: { name: true },
-      });
-      if (column) parts.unshift(column.name);
-      break;
-    }
-  }
-
+  const parts: string[] = [];
+  if (list.column) parts.push(list.column.name);
+  if (list.parent) parts.push(list.parent.name);
+  parts.push(list.name);
   return parts.join(" > ");
 }
 

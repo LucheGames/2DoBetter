@@ -68,6 +68,22 @@ if (bcrypt && process.env.AUTH_USERS_JSON && fs.existsSync(usersFile)) {
   }
 }
 
+// ── Validate data/ directory permissions ──────────────────────────────────────
+const dataDir = path.join(__dirname, 'data');
+if (fs.existsSync(dataDir)) {
+  try {
+    var dataStat = fs.statSync(dataDir);
+    var dataMode = dataStat.mode & 0o777;
+    if (dataMode & 0o077) {
+      // Group or world readable — tighten it
+      fs.chmodSync(dataDir, 0o700);
+      console.log('  ✓  Tightened data/ directory permissions to 700');
+    }
+  } catch (e) {
+    console.warn('  ⚠  Could not check data/ permissions:', e.message);
+  }
+}
+
 const next = require('next');
 
 const dev = process.env.NODE_ENV !== 'production';

@@ -16,6 +16,8 @@ model Column {
   ownerUsername String?
   locked        Boolean  @default(false)
   lists         List[]
+
+  @@index([ownerUsername])
 }
 
 model List {

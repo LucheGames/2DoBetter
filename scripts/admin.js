@@ -659,7 +659,7 @@ async function genInvite() {
   var typeStr = (await prompt('Type (human/agent)', 'human')).toLowerCase().trim();
   var isAgent = (typeStr === 'agent');
 
-  var code = crypto.randomBytes(4).toString('hex'); // 8 hex chars — short enough to read aloud
+  var code = String(10000000 + (crypto.randomBytes(4).readUInt32BE(0) % 90000000)); // 8-digit numeric PIN
   var now = new Date();
   var expiresAt = new Date(now.getTime() + minutes * 60 * 1000);
 
