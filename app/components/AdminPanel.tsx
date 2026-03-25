@@ -168,6 +168,8 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
   const [createAgentToken,      setCreateAgentToken]      = useState<string | null>(null);
   const [createAgentTokenCopied,setCreateAgentTokenCopied]= useState(false);
   const [createAgentMsg,        setCreateAgentMsg]        = useState<string | null>(null);
+  const [restarting,     setRestarting]     = useState(false);
+  const [restartElapsed, setRestartElapsed] = useState(0);
 
   async function loadUsers() {
     // loadingUsers starts as true (initial state) — don't re-show "Loading…"
@@ -738,25 +740,42 @@ export default function AdminPanel({ onClose, onDataChanged }: { onClose: () => 
               <p className="admin-xs text-gray-500">
                 Graceful restart — the board will be back in a few seconds.
               </p>
-              <HoldButton
-                label={"\u21BB Hold to restart server"}
-                onConfirm={async () => {
-                  await fetch("/api/admin/restart", { method: "POST" });
-                  // Server is going down — poll until it's back
-                  const poll = () => {
-                    setTimeout(async () => {
-                      try {
-                        const r = await fetch("/api/columns", { cache: "no-store" });
-                        if (r.ok) window.location.reload();
-                        else poll();
-                      } catch { poll(); }
-                    }, 1500);
-                  };
-                  poll();
-                }}
-                holdMs={2000}
-                variant="neutral"
-              />
+              {restarting ? (
+                <div className="flex items-center gap-3 py-2 px-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                  <svg className="animate-spin h-4 w-4 text-gray-400 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+                  </svg>
+                  <span className="admin-xs text-gray-400">
+                    Server restarting… {restartElapsed}s
+                  </span>
+                </div>
+              ) : (
+                <HoldButton
+                  label={"\u21BB Hold to restart server"}
+                  onConfirm={async () => {
+                    setRestarting(true);
+                    setRestartElapsed(0);
+                    await fetch("/api/admin/restart", { method: "POST" });
+                    const startTime = Date.now();
+                    const ticker = setInterval(() => {
+                      setRestartElapsed(Math.floor((Date.now() - startTime) / 1000));
+                    }, 1000);
+                    const poll = () => {
+                      setTimeout(async () => {
+                        try {
+                          const r = await fetch("/api/columns", { cache: "no-store" });
+                          if (r.ok) { clearInterval(ticker); window.location.reload(); }
+                          else poll();
+                        } catch { poll(); }
+                      }, 1500);
+                    };
+                    poll();
+                  }}
+                  holdMs={2000}
+                  variant="neutral"
+                />
+              )}
             </div>
           </Section>
 

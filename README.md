@@ -145,17 +145,13 @@ git pull && npm run restart
 
 #### 1. Invite users
 
-Open the ⚙ gear icon (top-right) → **Generate setup code**. Give the 6-digit code to the new user. They enter it on the sign-in page, pick a username and password, and they are in.
+Open the ⚙ gear icon (top-right) → **Generate setup code**. Give the 8-digit code to the new user. They enter it on the sign-in page, pick a username and password, and they are in.
 
-Codes expire after 10 minutes.
+Codes expire after 10 minutes and are single-use.
 
-#### 2. Run as a background service
+The setup wizard registers the server as a system service automatically — it starts at boot and restarts on crash.
 
-```bash
-npm run service:install    # auto-detects macOS (launchd) or Linux (systemd)
-```
-
-#### 3. Connect AI agents
+#### 2. Connect AI agents
 
 See [AI Agent Setup](#ai-agent-setup) below.
 
@@ -239,7 +235,7 @@ No terminal, no git, no Node.js required.
 
 1. **Install Tailscale** — download from [tailscale.com/download](https://tailscale.com/download) and join the same account as the server admin. Skip this if you are on the same Wi-Fi as the server.
 2. **Get the board URL** — ask the admin (e.g. `https://yourname.duckdns.org:3000`). On the same Wi-Fi without Tailscale? Use the LAN IP: `https://192.168.x.x:3000`.
-3. **Enter your setup code** — the admin gives you a 6-digit code. Enter it on the sign-in page, pick a username and password, done.
+3. **Enter your setup code** — the admin gives you an 8-digit code. Enter it on the sign-in page, pick a username and password, done.
 4. **Install as an app** — iOS: Share → Add to Home Screen. Android: browser menu → Install app. Desktop: install icon in address bar.
 
 ---
@@ -291,7 +287,7 @@ The CLI is available for scripting or SSH access.
 | | |
 | Rebuild + restart | **npm:** `npm run restart`<br>**docker:** `docker compose up -d --build` |
 | Regenerate TLS cert | **npm:** `npm run regen-certs`<br>**docker:** `docker exec -it 2dobetter bash generate-certs.sh` |
-| Install as service | **npm:** `npm run service:install`<br>**docker:** *not needed — auto-restarts by default* |
+| Install as service | **npm:** done automatically by `npm run setup` — or manually: `npm run service:install`<br>**docker:** *not needed — auto-restarts by default* |
 | Remove service | **npm:** `npm run service:uninstall`<br>**docker:** *not needed* |
 | Full removal | See [Removing 2Do Better](#removing-2do-better) |
 
@@ -347,9 +343,7 @@ rm -rf 2DoBetter                # delete directory and all data
 
 ```bash
 cd ~/2DoBetter                  # or wherever you cloned it
-npm run uninstall               # guided wizard — stops service, removes cron/config, offers backup
-cd ..
-rm -rf 2DoBetter                # delete directory
+npm run uninstall               # guided wizard — stops service, removes cron/config, offers backup, deletes directory
 ```
 
 #### CA certificate removal
@@ -371,18 +365,19 @@ If you installed the CA certificate on any devices, remove it to clean up:
 
 | Layer | How |
 |-------|-----|
-| Transport | HTTPS everywhere — Let's Encrypt or self-signed |
-| Passwords | bcrypt-hashed; plaintext never stored |
-| Sessions | Random 64-char token; secure cookie |
-| Agent tokens | Separate from sessions; rotate from admin panel |
-| API auth | Every request validated before reaching route handlers |
-| Lane mode | Column locks and access flags enforced server-side |
-| Rate limiting | Per-user and per-IP rate limits on login and writes |
-| Input validation | Parameterised queries (no raw SQL); length limits on all inputs |
-| Backups | Encrypted at rest (AES-256) |
+| Transport | HTTPS everywhere — self-signed CA, installed once per device |
+| Passwords | bcrypt (12 rounds); never stored in plaintext |
+| Sessions | Cryptographic 64-char tokens; `HttpOnly` / `Secure` / `SameSite=Strict` cookies; capped at 10 concurrent devices |
+| Agent tokens | Separate permanent tokens; rotate any time from the admin panel |
+| Registration | 8-digit invite codes, 10-minute expiry, rate-limited per IP, single-use |
+| API auth | Auth middleware runs before every route; no unauthenticated endpoints |
+| Access control | Column locks and per-user access flags enforced server-side |
+| Rate limiting | Per-IP and per-user limits on login, registration, and writes |
+| Input validation | Parameterised queries (no SQL injection); length limits on all inputs |
+| Backups | AES-256 encrypted at rest |
 
 **Things to know:**
-- `users.json` tokens are plaintext at rest — run `chmod 600` on it and use disk encryption (LUKS / FileVault).
+- Agent tokens in `users.json` are random hex strings (not passwords). Keep the file `chmod 600` and use disk encryption (LUKS / FileVault) to protect it at rest.
 - All board content is visible to every logged-in user — do not store secrets or API keys as tasks.
 
 ---
@@ -391,8 +386,11 @@ If you installed the CA certificate on any devices, remove it to clean up:
 
 | Layer | What |
 |-------|------|
-| Next.js 16 | Web framework — UI and API in one codebase |
-| SQLite + Prisma | Database — single file, no separate server |
+| Next.js 16 + React 19 | Web framework — UI and API in one codebase |
+| TypeScript | End-to-end type safety |
+| SQLite + Prisma 6 | Database — single file, no separate server |
+| Tailwind v4 | Styling |
+| dnd-kit | Drag-and-drop for tasks and lists |
 | Node.js / server.js | Custom HTTPS server with SSE for real-time push |
 | Tailscale | Private VPN — board reachable only by invited devices |
 | Self-signed TLS | HTTPS everywhere — CA cert installed once per device |
