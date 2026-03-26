@@ -28,7 +28,7 @@
     "service:restart": "node scripts/admin.js restart",
     "uninstall": "node scripts/uninstall.js",
     "regen-certs": "bash generate-certs.sh",
-    "test": "vitest run",
+    "test": "vitest run --reporter=verbose",
     "test:watch": "vitest"
   },
   "dependencies": {
