@@ -14,8 +14,10 @@ try { require('dotenv').config(); } catch {}
 try { require('dotenv').config({ path: '.env.local', override: true }); } catch {}
 
 // Default DATABASE_URL for Prisma (schema uses env("DATABASE_URL"))
+// Use absolute path — relative paths can fail in Next.js production builds
+// where Prisma resolves the path from a different working directory.
 if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = 'file:./prisma/dev.db';
+  process.env.DATABASE_URL = 'file:' + path.join(__dirname, 'prisma', 'dev.db');
 }
 
 // ── Multi-user store ──────────────────────────────────────────────────────────
