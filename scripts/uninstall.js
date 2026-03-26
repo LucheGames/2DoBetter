@@ -219,7 +219,7 @@ function removeMcpEntry() {
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
   console.log(`\n${C.bold}${C.red}  ╔══════════════════════════════════════╗
-  ║   2 Do Better — Uninstall / Nuke    ║
+  ║   2Do Better — Uninstall / Nuke     ║
   ╚══════════════════════════════════════╝${C.reset}\n`);
 
   const inventory = buildInventory();
@@ -239,7 +239,7 @@ async function main() {
 
   // ── Offer data backup ───────────────────────────────────────────────────────
   if (fs.existsSync(DB_FILE)) {
-    const backup = await ask('Back up your data before deleting? (Y/n)');
+    const backup = await ask('Back up your data before deleting? (y/n)');
     if (backup.toLowerCase() !== 'n') {
       console.log('');
       backupDb();

@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# 2 Do Better — Installer (macOS + Linux)
+# 2Do Better — Installer (macOS + Linux)
 # =============================================================================
 # Installs the app, sets up the database, builds for production,
 # registers the background service, and (macOS only) creates a launcher.
@@ -32,7 +32,7 @@ else
 fi
 
 echo ""
-echo -e "${CYAN}  2 Do Better — Installer${NC}"
+echo -e "${CYAN}  2Do Better — Installer${NC}"
 echo "  ─────────────────────────────────"
 echo ""
 
@@ -177,7 +177,7 @@ if httpCode is not "200" and httpCode is not "307" then
       if result is "200" or result is "307" then exit repeat
     end try
     if attempts > 8 then
-      display alert "2 Do Better" message "Server could not start. Check ~/Library/Logs/2dobetter-error.log" as critical
+      display alert "2Do Better" message "Server could not start. Check ~/Library/Logs/2dobetter-error.log" as critical
       return
     end if
   end repeat
@@ -202,7 +202,7 @@ elif $IS_LINUX; then
 
   cat > "$SERVICE_FILE" << UNIT
 [Unit]
-Description=2 Do Better — Todo App
+Description=2Do Better — Todo App
 After=network-online.target
 Wants=network-online.target
 

@@ -1,4 +1,4 @@
-// 2 Do Better — Custom HTTPS/HTTP server
+// 2Do Better — Custom HTTPS/HTTP server
 // Wraps Next.js with Node built-in TLS. No external dependencies.
 
 const fs   = require('fs');
@@ -259,7 +259,7 @@ async function serveSetupPage(req, res, { useTLS, port, hostname, lanAddresses }
   const html = `<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>2Do Better \u2014 Add Device</title>
+<title>2Do Better — Add Device</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#030712;color:#e5e7eb;font-family:Arial,sans-serif;padding:24px 16px;max-width:480px;margin:0 auto}
@@ -386,7 +386,7 @@ function serveCaCert(req, res) {
 const earlyPort = parseInt(process.env.PORT || '3000', 10);
 const earlyServer = http.createServer((_req, res) => {
   res.writeHead(503, { 'Content-Type': 'text/html; charset=utf-8', 'Retry-After': '5' });
-  res.end('<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="3"><title>Starting...</title><style>body{font-family:sans-serif;text-align:center;padding:60px;background:#1c1917;color:#e7e5e4}</style></head><body><h2>2DoBetter is starting up...</h2><p>This page will refresh automatically.</p></body></html>');
+  res.end('<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="refresh" content="3"><title>Starting...</title><style>body{font-family:sans-serif;text-align:center;padding:60px;background:#1c1917;color:#e7e5e4}</style></head><body><h2>2Do Better is starting up...</h2><p>This page will refresh automatically.</p></body></html>');
 });
 earlyServer.listen(earlyPort, '0.0.0.0');
 
@@ -424,7 +424,7 @@ app.prepare().then(() => {
     httpsServer.listen(port, '0.0.0.0', () => {
       const primaryAddr = lanAddresses[0]?.address || 'localhost';
       const httpPort = port + 1;
-      console.log(`\n  ✓  2 Do Better is running!\n`);
+      console.log(`\n  ✓  2Do Better is running!\n`);
       console.log(`  ── First time on this device? ──────────────────────`);
       console.log(`  STEP 1  Open this in your browser to install the cert:`);
       console.log(`          http://${primaryAddr}:${httpPort}\n`);
@@ -478,7 +478,7 @@ app.prepare().then(() => {
     });
 
     httpServer.listen(port, '0.0.0.0', () => {
-      console.log(`\n  2 Do Better — HTTP server ready (no TLS certs found)\n`);
+      console.log(`\n  2Do Better — HTTP server ready (no TLS certs found)\n`);
       console.log(`  Local:    http://localhost:${port}`);
       console.log(`  Network:  http://${hostname}:${port}`);
       for (const { address } of lanAddresses) {

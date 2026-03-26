@@ -333,7 +333,24 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   users.push(userObj);
   saveUsers(users);
   ok(`User "${username}" added (${isAgent ? 'AI agent' : 'human'}).`);
-  info('They\'ll get their own column automatically on first login.');
+
+  // Pre-create column so admin sees it immediately (no need to wait for first login)
+  if (fs.existsSync(DB_PATH)) {
+    var safeName = username.replace(/'/g, "''");
+    var colCheck = runSql("SELECT id FROM \"Column\" WHERE ownerUsername = '" + safeName + "' LIMIT 1");
+    if (!(colCheck.ok && colCheck.out)) {
+      var maxOrder = runSql('SELECT COALESCE(MAX("order"), -1) FROM "Column"');
+      var nextOrder = maxOrder.ok ? (parseInt(maxOrder.out, 10) + 1) : 0;
+      var slug = username.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now();
+      runSql("INSERT INTO \"Column\" (name, slug, \"order\", ownerUsername, locked, createdAt) VALUES ('" + safeName + "', '" + slug + "', " + nextOrder + ", '" + safeName + "', 0, datetime('now'))");
+      var colId = runSql("SELECT id FROM \"Column\" WHERE slug = '" + slug + "' LIMIT 1");
+      if (colId.ok && colId.out) {
+        runSql("INSERT INTO \"List\" (columnId, name, \"order\", createdAt) VALUES (" + colId.out + ", 'Project', 0, datetime('now'))");
+      }
+      ok('Column pre-created for ' + username);
+    }
+  }
+
   console.log('');
 
   // Auto-restart so the live server picks up the new user immediately
@@ -633,7 +650,7 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   }
 
   if (users.length > 1) {
-    info(`${users.length} users configured. Each gets their own column on first login.`);
+    info(`${users.length} users configured. Each gets their own column.`);
   }
 
   // ── [2/4] Backups ────────────────────────────────────────────────

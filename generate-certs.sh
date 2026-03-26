@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# 2 Do Better — TLS Certificate Generator
+# 2Do Better — TLS Certificate Generator
 # =============================================================================
 # Creates a local Certificate Authority and a server cert signed by it.
 # Works on macOS and Ubuntu. No external dependencies (uses openssl).
@@ -21,7 +21,7 @@ CERT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/certs"
 mkdir -p "$CERT_DIR"
 
 echo ""
-echo -e "${CYAN}  2 Do Better — Certificate Generator${NC}"
+echo -e "${CYAN}  2Do Better — Certificate Generator${NC}"
 echo "  ─────────────────────────────────────"
 echo ""
 

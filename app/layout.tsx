@@ -14,13 +14,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "2 Do Better",
+  title: "2Do Better",
   description: "Personal todo board",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "2 Do Better",
+    title: "2Do Better",
   },
   icons: {
     apple: "/icons/icon-192.png",

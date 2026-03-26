@@ -1,5 +1,5 @@
 #!/bin/bash
-# 2 Do Better — production server startup script
+# 2Do Better — production server startup script
 # Managed by launchd (macOS) or systemd (Linux) — do not run manually.
 
 export NODE_ENV="production"
