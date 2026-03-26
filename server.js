@@ -13,6 +13,11 @@ let QRCode; try { QRCode = require('qrcode'); } catch { /* installed post-setup 
 try { require('dotenv').config(); } catch {}
 try { require('dotenv').config({ path: '.env.local', override: true }); } catch {}
 
+// Default DATABASE_URL for Prisma (schema uses env("DATABASE_URL"))
+if (!process.env.DATABASE_URL) {
+  process.env.DATABASE_URL = 'file:./prisma/dev.db';
+}
+
 // ── Multi-user store ──────────────────────────────────────────────────────────
 // If data/users.json exists, load it into AUTH_USERS_JSON so middleware +
 // API routes can validate tokens without hitting the DB on every request.

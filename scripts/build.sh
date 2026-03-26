@@ -32,6 +32,9 @@ cd "$APP_DIR"
 
 export PATH="$(dirname "$NODE_BIN"):$PATH"
 
+# Default DATABASE_URL for Prisma (schema uses env("DATABASE_URL"))
+export DATABASE_URL="${DATABASE_URL:-file:./prisma/dev.db}"
+
 echo "▸ Running prisma generate..."
 "$NODE_BIN" node_modules/.bin/prisma generate
 
