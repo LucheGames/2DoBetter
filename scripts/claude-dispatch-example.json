@@ -12,5 +12,5 @@
   "defaultRepo": "/Users/YOU/_Repos/ToDoBetter",
 
   "pollMs": 30000,
-  "retryCapMs": 300000
+  "maxCapRetries": 3
 }

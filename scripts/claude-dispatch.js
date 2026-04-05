@@ -17,8 +17,9 @@
  *   The session ID prefix lets you --resume the session interactively.
  *
  * ── Usage cap handling ────────────────────────────────────────────────────────
- *   When Claude hits a usage/rate-limit error the task stays in Queue and the
- *   daemon backs off for retryCapMs (default 5 min) before retrying.
+ *   When Claude hits a usage/rate-limit error the task is retried up to
+ *   maxCapRetries times (default 3). On the third failure it is moved to
+ *   Results as [cap-failed] and marked complete — no runaway token burn.
  *
  * ── LaunchAgent (Mac) ─────────────────────────────────────────────────────────
  *   Install once to keep the daemon alive across reboots:
@@ -90,7 +91,7 @@ const {
   resultsListName = 'Results',
   defaultRepo,
   pollMs          = 30_000,
-  retryCapMs      = 300_000,  // 5 min back-off after usage cap
+  maxCapRetries   = 3,        // give up after this many usage-cap failures
 } = config;
 
 if (!apiBase || !agentToken || !defaultRepo) {
@@ -103,7 +104,7 @@ if (!apiBase || !agentToken || !defaultRepo) {
 let queueListId   = null;
 let activeListId  = null;
 let resultsListId = null;
-let capUntil      = 0;   // epoch ms — skip queue until cap window clears
+const capRetries  = new Map();  // taskId → number of cap failures so far
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
@@ -245,13 +246,6 @@ let processing = false;
 
 async function processQueue() {
   if (processing) return;
-
-  if (Date.now() < capUntil) {
-    const secsLeft = Math.ceil((capUntil - Date.now()) / 1000);
-    log(`Usage cap back-off: ${secsLeft}s remaining`);
-    return;
-  }
-
   processing = true;
   try {
     const tasks = await api('GET', `/api/lists/${queueListId}/tasks`);
@@ -289,14 +283,19 @@ async function processQueue() {
 
       } catch (err) {
         if (err.isCapHit) {
-          capUntil = Date.now() + retryCapMs;
-          log(`⏸ Usage cap hit — retry after ${retryCapMs / 1000}s`);
-          // Move task back to Queue so it retries
-          await api('PATCH', `/api/tasks/${task.id}`, { listId: queueListId });
-          // Leave a breadcrumb in Results
-          await api('POST', `/api/lists/${resultsListId}/tasks`, {
-            title: `[cap] retrying in ${retryCapMs / 60_000}m: "${task.title.slice(0, 200)}"`,
-          });
+          const attempts = (capRetries.get(task.id) || 0) + 1;
+          capRetries.set(task.id, attempts);
+          if (attempts < maxCapRetries) {
+            log(`⏸ Usage cap hit (attempt ${attempts}/${maxCapRetries}) — returning to Queue`);
+            await api('PATCH', `/api/tasks/${task.id}`, { listId: queueListId });
+          } else {
+            log(`✗ Usage cap hit ${maxCapRetries} times — giving up on "${task.title}"`);
+            capRetries.delete(task.id);
+            await api('POST', `/api/lists/${resultsListId}/tasks`, {
+              title: `[cap-failed] gave up after ${maxCapRetries} attempts: "${task.title.slice(0, 200)}"`,
+            });
+            await api('PATCH', `/api/tasks/${task.id}`, { completed: true });
+          }
           break; // stop processing more tasks this cycle
         } else {
           log(`✗ Error: ${err.message}`);
@@ -327,7 +326,7 @@ function log(msg) {
 async function main() {
   log('claude-dispatch starting');
   await ensureLists();
-  log(`Polling every ${pollMs / 1000}s  •  Cap back-off ${retryCapMs / 1000}s`);
+  log(`Polling every ${pollMs / 1000}s  •  Max cap retries: ${maxCapRetries}`);
   log(`Default repo: ${defaultRepo}`);
 
   await processQueue();
