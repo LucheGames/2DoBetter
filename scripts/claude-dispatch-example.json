@@ -1,16 +1,23 @@
 {
-  "_comment": "Copy this to ~/.claude-dispatch.json and fill in your values. Never commit the real file.",
+  "_comment": [
+    "All fields are optional if the 2dobetter MCP server is configured in Claude Code.",
+    "apiBase and agentToken are auto-read from ~/.claude.json (MCP config).",
+    "defaultRepo defaults to the ToDoBetter repo directory.",
+    "Override any field here by copying this file to ~/.claude-dispatch.json."
+  ],
 
-  "apiBase": "https://2dobetter.duckdns.org:3000",
-  "agentToken": "paste-your-agent-token-here",
+  "_auto_detected": {
+    "apiBase":     "read from ~/.claude.json MCP entry (API_BASE_URL)",
+    "agentToken":  "read from ~/.claude.json MCP entry (AUTH_TOKEN)",
+    "defaultRepo": "defaults to the repo containing this script"
+  },
 
-  "columnSlug": "claude",
-  "queueListName": "Queue",
-  "activeListName": "Active",
-  "resultsListName": "Results",
-
-  "defaultRepo": "/Users/YOU/_Repos/ToDoBetter",
-
-  "pollMs": 30000,
-  "model": "sonnet"
+  "_overrides_example": {
+    "apiBase":      "https://2dobetter.duckdns.org:3000",
+    "agentToken":   "your-agent-token-here",
+    "defaultRepo":  "/Users/you/_Repos/ToDoBetter",
+    "model":        "sonnet",
+    "pollMs":       30000,
+    "columnSlug":   "claude"
+  }
 }

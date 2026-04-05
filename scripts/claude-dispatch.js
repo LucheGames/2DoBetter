@@ -63,41 +63,62 @@ const path      = require('path');
 const os        = require('os');
 
 // ── Config loading ────────────────────────────────────────────────────────────
+// Priority: ~/.claude-dispatch.json overrides auto-detected values.
+// Auto-detection reads API_BASE_URL + AUTH_TOKEN from the 2dobetter MCP entry
+// in ~/.claude.json — the same values the MCP server already uses.
+
+function loadClaudeJson() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(path.join(os.homedir(), '.claude.json'), 'utf8'));
+    const servers = raw.mcpServers || {};
+    const entry = Object.values(servers).find(s =>
+      (s.env || {}).API_BASE_URL && (s.env || {}).AUTH_TOKEN
+    );
+    if (entry) return entry.env;
+  } catch {}
+  return {};
+}
+
+const claudeEnv = loadClaudeJson();
 
 const CONFIG_PATHS = [
   path.join(os.homedir(), '.claude-dispatch.json'),
   path.join(__dirname, '..', '.claude-dispatch.json'),
 ];
 
-let config;
+let userConfig = {};
 for (const p of CONFIG_PATHS) {
   if (fs.existsSync(p)) {
-    config = JSON.parse(fs.readFileSync(p, 'utf8'));
+    userConfig = JSON.parse(fs.readFileSync(p, 'utf8'));
     log(`Config loaded from ${p}`);
     break;
   }
 }
-if (!config) {
-  console.error('No config found. Create ~/.claude-dispatch.json (see scripts/claude-dispatch-example.json)');
-  process.exit(1);
-}
+
+const config = { ...userConfig };
+
+// Fill in from MCP config if not set manually
+const apiBase    = config.apiBase    || claudeEnv.API_BASE_URL;
+const agentToken = config.agentToken || claudeEnv.AUTH_TOKEN;
+const defaultRepo = config.defaultRepo || path.resolve(__dirname, '..');
 
 const {
-  apiBase,
-  agentToken,
   columnSlug      = 'claude',
   queueListName   = 'Queue',
   activeListName  = 'Active',
   resultsListName = 'Results',
-  defaultRepo,
-  pollMs = 30_000,
-  model = 'sonnet',  // passed as --model; 'sonnet', 'haiku', or full model ID
+  pollMs          = 30_000,
+  model           = 'sonnet',
 } = config;
 
 const MAX_CAP_RETRIES = 5;  // 5h windows in a week — give up after this many
 
-if (!apiBase || !agentToken || !defaultRepo) {
-  console.error('Config must include apiBase, agentToken, and defaultRepo');
+if (!apiBase || !agentToken) {
+  console.error(
+    'Cannot find API URL or auth token.\n' +
+    'Either configure the 2dobetter MCP server in Claude Code, or create\n' +
+    '~/.claude-dispatch.json with apiBase and agentToken fields.'
+  );
   process.exit(1);
 }
 
