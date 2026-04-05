@@ -52,11 +52,13 @@ function SortableTaskRow({
   onToggle,
   onSave,
   moveButton,
+  activeSpinner,
 }: {
   task: Task;
   onToggle: (task: Task) => void;
   onSave: (id: number, title: string) => void;
   moveButton?: React.ReactNode;
+  activeSpinner?: boolean;
 }) {
   const {
     attributes,
@@ -83,6 +85,7 @@ function SortableTaskRow({
         onToggle={onToggle}
         onSave={onSave}
         moveButton={moveButton}
+        activeSpinner={activeSpinner}
         dragHandle={
           <button
             className="flex-shrink-0 cursor-grab active:cursor-grabbing text-gray-700 hover:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity touch-none p-1"
@@ -130,7 +133,10 @@ function useTaskDnd(tasks: Task[], onRefresh: () => void) {
   return { taskIds, sensors, handleDragEnd };
 }
 
+const DISPATCH_ACTIVE_LIST = 'Active';
+
 export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardProps) {
+  const isDispatchActive = list.name === DISPATCH_ACTIVE_LIST;
   const [isExpanded, setIsExpanded] = useState(true);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [showTaskInput, setShowTaskInput] = useState(false);
@@ -328,6 +334,7 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
                   task={task}
                   onToggle={toggleTask}
                   onSave={saveTaskTitle}
+                  activeSpinner={isDispatchActive}
                   moveButton={
                     <MoveTaskButton
                       currentListId={list.id}

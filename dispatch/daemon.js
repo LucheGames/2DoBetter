@@ -334,22 +334,8 @@ async function processQueue() {
 
       await api('PATCH', `/api/tasks/${task.id}`, { listId: activeListId });
 
-      // Ticker: update task title every 30s with elapsed time so board shows progress
-      const startedAt = Date.now();
-      const ticker = setInterval(async () => {
-        const mins = Math.floor((Date.now() - startedAt) / 60_000);
-        const secs = Math.floor((Date.now() - startedAt) / 1_000) % 60;
-        const elapsed = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-        try {
-          await api('PATCH', `/api/tasks/${task.id}`, {
-            title: `⏳ ${elapsed} — ${task.title}`,
-          });
-        } catch {}
-      }, 30_000);
-
       try {
         const result = await runClaude(parsed);
-        clearInterval(ticker);
 
         const sessionId   = result.session_id || result.sessionId || 'unknown';
         const shortId     = String(sessionId).slice(0, 8);
@@ -369,8 +355,6 @@ async function processQueue() {
         log(`✓ Done  session=${sessionId}`);
 
       } catch (err) {
-        clearInterval(ticker);
-        await api('PATCH', `/api/tasks/${task.id}`, { title: task.title });
 
         if (err.isCapHit) {
           const prev = capRetries.get(task.id) || { count: 0 };
