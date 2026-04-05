@@ -180,10 +180,8 @@ async function ensureLists() {
   const stuck = await api('GET', `/api/lists/${activeListId}/tasks`);
   const orphans = stuck.filter(t => !t.completed);
   for (const t of orphans) {
-    // Strip any timestamp prefix we may have added before moving back
-    const cleanTitle = t.title.replace(/^\[\d{2}:\d{2} ▶\] /, '');
-    await api('PATCH', `/api/tasks/${t.id}`, { listId: queueListId, title: cleanTitle });
-    log(`Rescued orphaned task: "${cleanTitle}"`);
+    await api('PATCH', `/api/tasks/${t.id}`, { listId: queueListId });
+    log(`Rescued orphaned task: "${t.title}"`);
   }
 }
 
@@ -218,7 +216,13 @@ function runClaude({ resumeId, repo, prompt }) {
   return new Promise((resolve, reject) => {
     // Fresh session by default — avoids loading huge prior context.
     // Use "--resume <id>" prefix in the task title to continue a specific session.
-    const args = ['-p', prompt, '--output-format', 'json', '--model', model, '--max-turns', '10'];
+    const args = [
+      '-p', prompt,
+      '--output-format', 'json',
+      '--model', model,
+      '--max-turns', '10',
+      '--dangerously-skip-permissions',
+    ];
     if (resumeId) {
       args.push('--resume', resumeId);
     }
@@ -325,18 +329,10 @@ async function processQueue() {
       log(`Processing: "${task.title}"`);
       const parsed = parseTask(task.title);
 
-      // Move to Active with a timestamp so mobile shows what's running and when it started
-      const startTime = new Date().toISOString().slice(11, 16);
-      await api('PATCH', `/api/tasks/${task.id}`, {
-        listId: activeListId,
-        title: `[${startTime} ▶] ${task.title}`,
-      });
+      await api('PATCH', `/api/tasks/${task.id}`, { listId: activeListId });
 
       try {
         const result = await runClaude(parsed);
-
-        // Restore clean title before completing (strip the [HH:MM ▶] prefix)
-        await api('PATCH', `/api/tasks/${task.id}`, { title: task.title });
 
         const sessionId   = result.session_id || result.sessionId || 'unknown';
         const shortId     = String(sessionId).slice(0, 8);
