@@ -25,7 +25,7 @@
  *   Install once to keep the daemon alive across reboots:
  *
  *   1. Find your node binary:
- *        which node    (or: ~/.nvm/versions/node/v20.*/bin/node)
+ *        which node    (or: ~/.nvm/versions/node/v20.X.Y/bin/node)
  *
  *   2. Create ~/Library/LaunchAgents/com.2dobetter.dispatch.plist:
  *
