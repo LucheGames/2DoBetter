@@ -259,8 +259,12 @@ function runClaude({ resumeId, repo, prompt }) {
 
     let stdout = '';
     let stderr = '';
+    // Stream stderr live so terminal shows what claude is doing
+    proc.stderr.on('data', d => {
+      stderr += d;
+      process.stderr.write(d);
+    });
     proc.stdout.on('data', d => { stdout += d; });
-    proc.stderr.on('data', d => { stderr += d; });
 
     proc.on('error', err => {
       reject({ isCapHit: false, message: `spawn failed: ${err.message}`, stderr: '' });
@@ -271,7 +275,6 @@ function runClaude({ resumeId, repo, prompt }) {
         try {
           resolve(JSON.parse(stdout));
         } catch {
-          // Non-JSON output (e.g. --output-format text fallback)
           resolve({ result: stdout.trim(), session_id: null });
         }
       } else {
@@ -331,8 +334,22 @@ async function processQueue() {
 
       await api('PATCH', `/api/tasks/${task.id}`, { listId: activeListId });
 
+      // Ticker: update task title every 30s with elapsed time so board shows progress
+      const startedAt = Date.now();
+      const ticker = setInterval(async () => {
+        const mins = Math.floor((Date.now() - startedAt) / 60_000);
+        const secs = Math.floor((Date.now() - startedAt) / 1_000) % 60;
+        const elapsed = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+        try {
+          await api('PATCH', `/api/tasks/${task.id}`, {
+            title: `⏳ ${elapsed} — ${task.title}`,
+          });
+        } catch {}
+      }, 30_000);
+
       try {
         const result = await runClaude(parsed);
+        clearInterval(ticker);
 
         const sessionId   = result.session_id || result.sessionId || 'unknown';
         const shortId     = String(sessionId).slice(0, 8);
@@ -352,6 +369,9 @@ async function processQueue() {
         log(`✓ Done  session=${sessionId}`);
 
       } catch (err) {
+        clearInterval(ticker);
+        await api('PATCH', `/api/tasks/${task.id}`, { title: task.title });
+
         if (err.isCapHit) {
           const prev = capRetries.get(task.id) || { count: 0 };
           const count = prev.count + 1;
