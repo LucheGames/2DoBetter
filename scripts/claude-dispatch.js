@@ -17,9 +17,9 @@
  *   The session ID prefix lets you --resume the session interactively.
  *
  * ── Usage cap handling ────────────────────────────────────────────────────────
- *   When Claude hits a usage/rate-limit error the task is retried up to
- *   maxCapRetries times (default 3). On the third failure it is moved to
- *   Results as [cap-failed] and marked complete — no runaway token burn.
+ *   Claude Code limits reset every 5 hours. On a cap hit the task is held
+ *   until :01 past the next hour, then retried. After 5 failures the task is
+ *   posted to Results as [weekly-cap] — weekly limit likely exhausted.
  *
  * ── LaunchAgent (Mac) ─────────────────────────────────────────────────────────
  *   Install once to keep the daemon alive across reboots:
@@ -90,9 +90,10 @@ const {
   activeListName  = 'Active',
   resultsListName = 'Results',
   defaultRepo,
-  pollMs          = 30_000,
-  maxCapRetries   = 3,        // give up after this many usage-cap failures
+  pollMs = 30_000,
 } = config;
+
+const MAX_CAP_RETRIES = 5;  // 5h windows in a week — give up after this many
 
 if (!apiBase || !agentToken || !defaultRepo) {
   console.error('Config must include apiBase, agentToken, and defaultRepo');
@@ -104,7 +105,8 @@ if (!apiBase || !agentToken || !defaultRepo) {
 let queueListId   = null;
 let activeListId  = null;
 let resultsListId = null;
-const capRetries  = new Map();  // taskId → number of cap failures so far
+// taskId → { count: number, retryAfter: epochMs }
+const capRetries = new Map();
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
@@ -240,6 +242,14 @@ function runClaude({ resumeId, repo, prompt }) {
   });
 }
 
+// Returns epoch ms for :01 past the next top-of-hour (when 5h cap resets)
+function nextHourPlusOne() {
+  const d = new Date();
+  d.setMinutes(1, 0, 0);
+  if (new Date().getMinutes() >= 1) d.setHours(d.getHours() + 1);
+  return d.getTime();
+}
+
 // ── Queue processor ───────────────────────────────────────────────────────────
 
 let processing = false;
@@ -255,6 +265,14 @@ async function processQueue() {
     log(`${pending.length} task(s) in queue`);
 
     for (const task of pending) {
+      // Skip tasks still waiting for their hourly retry window
+      const capState = capRetries.get(task.id);
+      if (capState && Date.now() < capState.retryAfter) {
+        const minsLeft = Math.ceil((capState.retryAfter - Date.now()) / 60_000);
+        log(`Skipping "${task.title}" — cap retry in ${minsLeft}m (attempt ${capState.count}/${MAX_CAP_RETRIES})`);
+        continue;
+      }
+
       log(`Processing: "${task.title}"`);
       const parsed = parseTask(task.title);
 
@@ -283,16 +301,19 @@ async function processQueue() {
 
       } catch (err) {
         if (err.isCapHit) {
-          const attempts = (capRetries.get(task.id) || 0) + 1;
-          capRetries.set(task.id, attempts);
-          if (attempts < maxCapRetries) {
-            log(`⏸ Usage cap hit (attempt ${attempts}/${maxCapRetries}) — returning to Queue`);
+          const prev = capRetries.get(task.id) || { count: 0 };
+          const count = prev.count + 1;
+          if (count < MAX_CAP_RETRIES) {
+            const retryAfter = nextHourPlusOne();
+            capRetries.set(task.id, { count, retryAfter });
+            const retryTime = new Date(retryAfter).toISOString().slice(11, 16);
+            log(`⏸ Cap hit (${count}/${MAX_CAP_RETRIES}) — will retry at ${retryTime} UTC`);
             await api('PATCH', `/api/tasks/${task.id}`, { listId: queueListId });
           } else {
-            log(`✗ Usage cap hit ${maxCapRetries} times — giving up on "${task.title}"`);
+            log(`✗ Cap hit ${MAX_CAP_RETRIES} times — weekly limit likely exhausted`);
             capRetries.delete(task.id);
             await api('POST', `/api/lists/${resultsListId}/tasks`, {
-              title: `[cap-failed] gave up after ${maxCapRetries} attempts: "${task.title.slice(0, 200)}"`,
+              title: `[weekly-cap] gave up after ${MAX_CAP_RETRIES} attempts: "${task.title.slice(0, 180)}"`,
             });
             await api('PATCH', `/api/tasks/${task.id}`, { completed: true });
           }
@@ -326,7 +347,7 @@ function log(msg) {
 async function main() {
   log('claude-dispatch starting');
   await ensureLists();
-  log(`Polling every ${pollMs / 1000}s  •  Max cap retries: ${maxCapRetries}`);
+  log(`Polling every ${pollMs / 1000}s  •  Cap retry: hourly x${MAX_CAP_RETRIES}`);
   log(`Default repo: ${defaultRepo}`);
 
   await processQueue();
