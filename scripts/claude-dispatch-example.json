@@ -11,5 +11,6 @@
 
   "defaultRepo": "/Users/YOU/_Repos/ToDoBetter",
 
-  "pollMs": 30000
+  "pollMs": 30000,
+  "model": "sonnet"
 }

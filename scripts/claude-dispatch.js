@@ -91,6 +91,7 @@ const {
   resultsListName = 'Results',
   defaultRepo,
   pollMs = 30_000,
+  model = 'sonnet',  // passed as --model; 'sonnet', 'haiku', or full model ID
 } = config;
 
 const MAX_CAP_RETRIES = 5;  // 5h windows in a week — give up after this many
@@ -179,7 +180,7 @@ function parseTask(title) {
 
 function runClaude({ resumeId, repo, prompt }) {
   return new Promise((resolve, reject) => {
-    const args = ['-p', prompt, '--output-format', 'json'];
+    const args = ['-p', prompt, '--output-format', 'json', '--model', model];
     if (resumeId) {
       args.push('--resume', resumeId);
     } else {
@@ -359,7 +360,7 @@ function log(msg) {
 async function main() {
   log('claude-dispatch starting');
   await ensureLists();
-  log(`Polling every ${pollMs / 1000}s  •  Cap retry: hourly x${MAX_CAP_RETRIES}`);
+  log(`Polling every ${pollMs / 1000}s  •  Model: ${model}  •  Cap retry: hourly x${MAX_CAP_RETRIES}`);
   log(`Default repo: ${defaultRepo}`);
 
   await processQueue();
