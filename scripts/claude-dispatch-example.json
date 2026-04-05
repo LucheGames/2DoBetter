@@ -1,0 +1,16 @@
+{
+  "_comment": "Copy this to ~/.claude-dispatch.json and fill in your values. Never commit the real file.",
+
+  "apiBase": "https://2dobetter.duckdns.org:3000",
+  "agentToken": "paste-your-agent-token-here",
+
+  "columnSlug": "claude",
+  "queueListName": "Queue",
+  "activeListName": "Active",
+  "resultsListName": "Results",
+
+  "defaultRepo": "/Users/YOU/_Repos/ToDoBetter",
+
+  "pollMs": 30000,
+  "retryCapMs": 300000
+}
