@@ -250,6 +250,17 @@ function nextHourPlusOne() {
   return d.getTime();
 }
 
+// Completes Results tasks older than 24h — keeps the list from ballooning
+async function culResults() {
+  const tasks = await api('GET', `/api/lists/${resultsListId}/tasks`);
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+  for (const t of tasks) {
+    if (!t.completed && new Date(t.createdAt).getTime() < cutoff) {
+      await api('PATCH', `/api/tasks/${t.id}`, { completed: true });
+    }
+  }
+}
+
 // ── Queue processor ───────────────────────────────────────────────────────────
 
 let processing = false;
@@ -258,6 +269,7 @@ async function processQueue() {
   if (processing) return;
   processing = true;
   try {
+    await culResults();
     const tasks = await api('GET', `/api/lists/${queueListId}/tasks`);
     const pending = tasks.filter(t => !t.completed);
 

@@ -157,9 +157,20 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
     });
   }
 
+  const DISPATCH_LISTS = ['Queue', 'Active', 'Results'];
+  const DISPATCH_HIDE_WHEN_EMPTY = ['Active', 'Results'];
+
   const orderedLists = listIds
     .map((id) => column.lists.find((l) => l.id === id))
     .filter(Boolean) as ListData[];
+
+  // Active and Results only appear when they have incomplete tasks
+  const visibleLists = orderedLists.filter(list => {
+    if (DISPATCH_HIDE_WHEN_EMPTY.includes(list.name)) {
+      return list.tasks.some(t => !t.completed);
+    }
+    return true;
+  });
 
   async function createList(e: React.FormEvent) {
     e.preventDefault();
@@ -383,8 +394,14 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
         >
           <SortableContext items={listIds} strategy={verticalListSortingStrategy}>
             <div className="space-y-3">
-              {orderedLists.map((list) => (
-                <SortableListCard key={list.id} list={list} onRefresh={onRefresh} />
+              {visibleLists.map((list) => (
+                DISPATCH_LISTS.includes(list.name) ? (
+                  <div key={list.id} className="rounded-lg ring-1 ring-pink-500/40">
+                    <SortableListCard list={list} onRefresh={onRefresh} />
+                  </div>
+                ) : (
+                  <SortableListCard key={list.id} list={list} onRefresh={onRefresh} />
+                )
               ))}
             </div>
           </SortableContext>
