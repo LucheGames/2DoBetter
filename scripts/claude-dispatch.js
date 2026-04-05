@@ -101,6 +101,11 @@ if (!apiBase || !agentToken || !defaultRepo) {
   process.exit(1);
 }
 
+// 2DoBetter uses a self-signed cert — bypass TLS verification (same as MCP server)
+if (!apiBase.includes('localhost')) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+
 // ── State ─────────────────────────────────────────────────────────────────────
 
 let queueListId   = null;
