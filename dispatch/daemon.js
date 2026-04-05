@@ -6,10 +6,10 @@
  * See dispatch/config-example.json for the full config reference.
  *
  * ── Task syntax (task title in 2DoBetter) ────────────────────────────────────
- *   "check deploy logs"                      → --continue -p "..." in defaultRepo
- *   "--resume abc1234 check deploy logs"     → --resume <id> -p "..."
- *   "~/Repos/Lazear: run evals"              → --continue in that repo
- *   "--resume abc1234 ~/Repos/Foo: fix bug"  → --resume + custom repo
+ *   "check deploy logs"                      → fresh session, defaultRepo
+ *   "--resume abc1234 check deploy logs"     → resume specific session
+ *   "~/Repos/Lazear: run evals"              → fresh session, different repo
+ *   "--resume abc1234 ~/Repos/Foo: fix bug"  → resume + different repo
  *
  * ── Result format ─────────────────────────────────────────────────────────────
  *   A new task appears in the Results list:
@@ -206,11 +206,11 @@ function parseTask(title) {
 
 function runClaude({ resumeId, repo, prompt }) {
   return new Promise((resolve, reject) => {
+    // Fresh session by default — avoids loading huge prior context.
+    // Use "--resume <id>" prefix in the task title to continue a specific session.
     const args = ['-p', prompt, '--output-format', 'json', '--model', model];
     if (resumeId) {
       args.push('--resume', resumeId);
-    } else {
-      args.push('--continue');
     }
 
     log(`▶ claude ${args.join(' ')}`);

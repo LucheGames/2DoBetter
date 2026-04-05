@@ -57,9 +57,9 @@ Within 30 seconds it should move to Active, then a result appears in Results.
 
 | What you type in Queue | What fires |
 |---|---|
-| `summarize the deploy logs` | `claude --continue -p "..."` in default repo |
+| `summarize the deploy logs` | Fresh session in default repo |
 | `--resume abc12345 continue the auth fix` | Resume a specific session by ID |
-| `~/Repos/Lazear: run the eval suite` | `--continue` in a different repo |
+| `~/Repos/Lazear: run the eval suite` | Fresh session in a different repo |
 | `--resume abc12345 ~/Repos/Foo: fix bug` | Resume + different repo |
 
 ---
