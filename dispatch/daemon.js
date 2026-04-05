@@ -2,8 +2,8 @@
 /**
  * claude-dispatch — polls a 2DoBetter "Queue" list and fires Claude Code tasks.
  *
- * Config: ~/.claude-dispatch.json  (or .claude-dispatch.json next to this script)
- * See scripts/claude-dispatch-example.json for the full config reference.
+ * Config: ~/.claude-dispatch.json  (or dispatch/.claude-dispatch.json)
+ * See dispatch/config-example.json for the full config reference.
  *
  * ── Task syntax (task title in 2DoBetter) ────────────────────────────────────
  *   "check deploy logs"                      → --continue -p "..." in defaultRepo
@@ -36,7 +36,7 @@
  *        <key>Label</key><string>com.2dobetter.dispatch</string>
  *        <key>ProgramArguments</key><array>
  *          <string>/Users/YOU/.nvm/versions/node/v20.X.Y/bin/node</string>
- *          <string>/Users/YOU/_Repos/ToDoBetter/scripts/claude-dispatch.js</string>
+ *          <string>/Users/YOU/_Repos/ToDoBetter/dispatch/daemon.js</string>
  *        </array>
  *        <key>EnvironmentVariables</key><dict>
  *          <key>HOME</key><string>/Users/YOU</string>
