@@ -452,12 +452,8 @@ async function processQueue() {
           log(`Expanded ${parsed.resumeId} → ${fullId}`);
           parsed.resumeId = fullId;
         } else {
-          log(`✗ No full UUID found for short ID "${parsed.resumeId}"`);
-          await api('POST', `/api/lists/${resultsListId}/tasks`, {
-            title: `[error] session "${parsed.resumeId}" not found — only sessions run by this daemon can be resumed`,
-          });
-          await api('PATCH', `/api/tasks/${task.id}`, { completed: true });
-          continue;
+          log(`Short ID "${parsed.resumeId}" not in session map — passing as-is`);
+          // Let claude reject it if truly invalid; avoids blocking valid UUIDs we haven't seen
         }
       }
 
