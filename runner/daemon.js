@@ -375,6 +375,16 @@ async function processQueue() {
       log(`Processing: "${task.title}"`);
       const parsed = parseTask(task.title);
 
+      // Validate --resume ID before burning a Claude invocation
+      if (parsed.resumeId && !/^[0-9a-f-]{6,36}$/i.test(parsed.resumeId)) {
+        log(`✗ Invalid session ID: "${parsed.resumeId}"`);
+        await api('POST', `/api/lists/${resultsListId}/tasks`, {
+          title: `[error] invalid session ID "${parsed.resumeId}" — copy the hex ID from a Results entry`,
+        });
+        await api('PATCH', `/api/tasks/${task.id}`, { completed: true });
+        continue;
+      }
+
       await api('PATCH', `/api/tasks/${task.id}`, { listId: activeListId });
 
       try {
