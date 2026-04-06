@@ -69,6 +69,7 @@ com.luchegames.2dobetter.plist
 # claude-runner config — contains agent token, never commit
 .claude-dispatch.json
 .claude-runner.json
+.claude-runner-sessions.json
 # LaunchAgent plist — contains local paths, generated per machine
 com.2dobetter.dispatch.plist
 com.2dobetter.runner.plist

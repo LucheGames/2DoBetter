@@ -136,6 +136,17 @@ let resultsListId = null;
 // taskId → { count: number, retryAfter: epochMs }
 const capRetries = new Map();
 
+// shortId (8-char) → full UUID session mapping — persisted across restarts
+const SESSION_MAP_PATH = path.join(os.homedir(), '.claude-runner-sessions.json');
+
+function loadSessionMap() {
+  try { return JSON.parse(fs.readFileSync(SESSION_MAP_PATH, 'utf8')); } catch { return {}; }
+}
+function saveSessionMap(map) {
+  fs.writeFileSync(SESSION_MAP_PATH, JSON.stringify(map, null, 2));
+}
+const sessionMap = loadSessionMap();
+
 // ── API helpers ───────────────────────────────────────────────────────────────
 
 async function api(method, route, body) {
@@ -394,11 +405,12 @@ async function processQueue() {
 
       // Resolve --resume 'last' → actual session ID from most recent Results entry
       if (parsed.resumeId === 'last') {
-        const last = await lastSessionId();
+        // Try session map first (has full UUID), then fall back to Results list
+        const last = sessionMap['latest'] || await lastSessionId();
         if (!last) {
-          log(`✗ --resume: no previous session found in Results`);
+          log(`✗ --resume: no previous session found`);
           await api('POST', `/api/lists/${resultsListId}/tasks`, {
-            title: `[error] --resume: no previous session ID found in Results`,
+            title: `[error] --resume: no previous session found`,
           });
           await api('PATCH', `/api/tasks/${task.id}`, { completed: true });
           continue;
@@ -417,6 +429,22 @@ async function processQueue() {
         continue;
       }
 
+      // Expand short ID → full UUID from session map (claude --resume needs full UUID)
+      if (parsed.resumeId && parsed.resumeId.length < 36) {
+        const fullId = sessionMap[parsed.resumeId];
+        if (fullId) {
+          log(`Expanded ${parsed.resumeId} → ${fullId}`);
+          parsed.resumeId = fullId;
+        } else {
+          log(`✗ No full UUID found for short ID "${parsed.resumeId}"`);
+          await api('POST', `/api/lists/${resultsListId}/tasks`, {
+            title: `[error] session "${parsed.resumeId}" not found — only sessions run by this daemon can be resumed`,
+          });
+          await api('PATCH', `/api/tasks/${task.id}`, { completed: true });
+          continue;
+        }
+      }
+
       await api('PATCH', `/api/tasks/${task.id}`, { listId: activeListId });
 
       try {
@@ -424,6 +452,13 @@ async function processQueue() {
 
         const sessionId   = result.session_id || result.sessionId || 'unknown';
         const shortId     = String(sessionId).slice(0, 8);
+
+        // Persist shortId → full UUID mapping so --resume works with short IDs
+        if (sessionId && sessionId !== 'unknown') {
+          sessionMap[shortId] = sessionId;
+          sessionMap['latest'] = sessionId;
+          saveSessionMap(sessionMap);
+        }
 
         // Detect error subtypes before touching the text (e.g. error_max_turns)
         if (result.subtype && result.subtype !== 'success') {
