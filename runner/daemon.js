@@ -63,6 +63,22 @@ const fs        = require('fs');
 const path      = require('path');
 const os        = require('os');
 
+// Native fetch landed in Node 18. Polyfill for older versions.
+if (typeof fetch === 'undefined') {
+  try {
+    // node-fetch v2 is CommonJS-compatible
+    global.fetch = require('node-fetch');
+  } catch (e) {
+    console.error(
+      'Error: fetch is not available. Run with Node 18+ or install node-fetch:\n' +
+      '  npm install node-fetch@2\n' +
+      'Or start with nvm node:\n' +
+      '  ~/.nvm/versions/node/v20.*/bin/node runner/daemon.js'
+    );
+    process.exit(1);
+  }
+}
+
 // ── Config loading ────────────────────────────────────────────────────────────
 // Priority: ~/.claude-runner.json overrides auto-detected values.
 // Auto-detection reads API_BASE_URL + AUTH_TOKEN from the 2dobetter MCP entry
