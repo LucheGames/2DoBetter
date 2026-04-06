@@ -59,6 +59,7 @@ Within 30 seconds it should move to Active, then a result appears in Results.
 |---|---|
 | `summarize the deploy logs` | Fresh session in default repo |
 | `--continue check the auth fix` | Continue the most recent CLI session |
+| `--resume and add 3` | Resume last session (ID auto-filled) |
 | `--resume abc12345 continue the auth fix` | Resume a specific session by ID |
 | `~/Repos/Lazear: run the eval suite` | Fresh session in a different repo |
 | `--resume abc12345 ~/Repos/Foo: fix bug` | Resume + different repo |
@@ -72,15 +73,19 @@ Completed tasks appear in Results with a session ID and one-sentence summary:
 ✓ [abc12345] Christmas 2026 falls on a Friday.
 ```
 
-Copy `abc12345` and use it to resume the session interactively:
+Copy `abc12345` and use it to resume the session remotely:
+```
+--resume abc12345 now check if there are any holidays that week
+```
+
+Or just `--resume your follow-up here` — the daemon fills in the last session ID automatically.
+
+Resume interactively on the Mac:
 ```bash
 claude --resume abc12345
 ```
 
-Or add another task to Queue with the `--resume` prefix to continue remotely:
-```
---resume abc12345 now check if there are any holidays that week
-```
+> **Note:** `--resume` only works for sessions the daemon has run since startup. The daemon stores a short-ID → full-UUID map in `~/.claude-runner-sessions.json`. If the map is empty (fresh daemon, first run), `--resume` gracefully falls back to `--continue`.
 
 Results tasks older than 24 hours are automatically completed (sent to graveyard) each poll cycle to keep the list clean.
 
