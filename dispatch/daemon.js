@@ -256,9 +256,14 @@ function runClaude({ resumeId, repo, prompt }) {
 
     const TIMEOUT_MS = 5 * 60 * 1000;  // 5 minutes max per task
 
+    // Strip CLAUDECODE env var — otherwise Claude Code refuses to start
+    // when the daemon is launched from inside a Claude Code terminal
+    const spawnEnv = { ...process.env, HOME: os.homedir(), PATH };
+    delete spawnEnv.CLAUDECODE;
+
     const proc = spawn('claude', args, {
       cwd: repo,
-      env: { ...process.env, HOME: os.homedir(), PATH },
+      env: spawnEnv,
     });
 
     let stdout = '';
@@ -381,32 +386,41 @@ async function processQueue() {
         log(`✓ Done  session=${sessionId}`);
 
       } catch (err) {
-
-        if (err.isCapHit) {
-          const prev = capRetries.get(task.id) || { count: 0 };
-          const count = prev.count + 1;
-          if (count < MAX_CAP_RETRIES) {
-            const retryAfter = nextHourPlusOne();
-            capRetries.set(task.id, { count, retryAfter });
-            const retryTime = new Date(retryAfter).toISOString().slice(11, 16);
-            log(`⏸ Cap hit (${count}/${MAX_CAP_RETRIES}) — will retry at ${retryTime} UTC`);
-            await api('PATCH', `/api/tasks/${task.id}`, { listId: queueListId });
+        try {
+          if (err.isCapHit) {
+            const prev = capRetries.get(task.id) || { count: 0 };
+            const count = prev.count + 1;
+            if (count < MAX_CAP_RETRIES) {
+              const retryAfter = nextHourPlusOne();
+              capRetries.set(task.id, { count, retryAfter });
+              const retryTime = new Date(retryAfter).toISOString().slice(11, 16);
+              log(`⏸ Cap hit (${count}/${MAX_CAP_RETRIES}) — will retry at ${retryTime} UTC`);
+              await api('PATCH', `/api/tasks/${task.id}`, { listId: queueListId });
+            } else {
+              log(`✗ Cap hit ${MAX_CAP_RETRIES} times — weekly limit likely exhausted`);
+              capRetries.delete(task.id);
+              await api('POST', `/api/lists/${resultsListId}/tasks`, {
+                title: `[weekly-cap] gave up after ${MAX_CAP_RETRIES} attempts: "${task.title.slice(0, 180)}"`,
+              });
+              await api('PATCH', `/api/tasks/${task.id}`, { completed: true });
+            }
+            break; // stop processing more tasks this cycle
           } else {
-            log(`✗ Cap hit ${MAX_CAP_RETRIES} times — weekly limit likely exhausted`);
-            capRetries.delete(task.id);
+            const msg = err.message || err.code || String(err);
+            log(`✗ Error: ${msg}`);
+            const errorPreview = String(msg).slice(0, 380);
             await api('POST', `/api/lists/${resultsListId}/tasks`, {
-              title: `[weekly-cap] gave up after ${MAX_CAP_RETRIES} attempts: "${task.title.slice(0, 180)}"`,
+              title: `[error] ${errorPreview}`,
             });
             await api('PATCH', `/api/tasks/${task.id}`, { completed: true });
           }
-          break; // stop processing more tasks this cycle
-        } else {
-          log(`✗ Error: ${err.message}`);
-          const errorPreview = (err.message || 'unknown error').slice(0, 380);
-          await api('POST', `/api/lists/${resultsListId}/tasks`, {
-            title: `[error] ${errorPreview}`,
-          });
-          await api('PATCH', `/api/tasks/${task.id}`, { completed: true });
+        } catch (innerErr) {
+          // Last resort — don't leave tasks stuck in Active
+          log(`✗ Error handler failed: ${innerErr.message}`);
+          try {
+            await api('PATCH', `/api/tasks/${task.id}`, { listId: queueListId });
+            log('  → Moved task back to Queue for retry');
+          } catch { log('  → Could not move task back to Queue'); }
         }
       }
     }

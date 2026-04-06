@@ -220,8 +220,8 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
     }
   }
 
-  // Non-own columns (teammates + agents) can be collapsed
-  const canCollapse = !isOwnColumn;
+  // All columns can be collapsed (useful on mobile to reach other columns)
+  const canCollapse = true;
 
   // ── Collapsed view ──────────────────────────────────────────────────────────
   if (collapsed) {
