@@ -77,6 +77,9 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
   const scrollRef = useRef<HTMLDivElement>(null);
   useScrollbarFade(scrollRef);
 
+  // Dispatch panel collapse state
+  const [dispatchExpanded, setDispatchExpanded] = useState(true);
+
   // New agent column — only the principal (first column) can create these
   const [newAgentName, setNewAgentName] = useState("");
   const [showNewAgentInput, setShowNewAgentInput] = useState(false);
@@ -164,13 +167,17 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
     .map((id) => column.lists.find((l) => l.id === id))
     .filter(Boolean) as ListData[];
 
-  // Active and Results only appear when they have incomplete tasks
-  const visibleLists = orderedLists.filter(list => {
-    if (DISPATCH_HIDE_WHEN_EMPTY.includes(list.name)) {
-      return list.tasks.some(t => !t.completed);
-    }
-    return true;
-  });
+  // Split into dispatch lists (grouped panel) and regular lists
+  const dispatchLists = orderedLists
+    .filter(list => DISPATCH_LISTS.includes(list.name))
+    .filter(list => {
+      if (DISPATCH_HIDE_WHEN_EMPTY.includes(list.name)) {
+        return list.tasks.some(t => !t.completed);
+      }
+      return true;
+    });
+  const regularLists = orderedLists.filter(list => !DISPATCH_LISTS.includes(list.name));
+  const hasDispatch = dispatchLists.length > 0;
 
   async function createList(e: React.FormEvent) {
     e.preventDefault();
@@ -386,22 +393,55 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
           </button>
         )}
 
-        {/* Sortable lists */}
+        {/* Dispatch panel — collapsible group with pink border */}
+        {hasDispatch && (
+          <div className="rounded-lg ring-1 ring-pink-500/40 bg-pink-500/5 overflow-hidden">
+            <button
+              onClick={() => setDispatchExpanded(!dispatchExpanded)}
+              className="w-full flex items-center gap-2 px-3 py-2 text-left"
+              style={{ cursor: "pointer" }}
+            >
+              <svg
+                className={`w-3 h-3 text-pink-400 transition-transform duration-200 flex-shrink-0 ${dispatchExpanded ? "rotate-90" : ""}`}
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span className="text-xs font-semibold text-pink-400 uppercase tracking-wider">Remote Task Dispatch</span>
+            </button>
+            {dispatchExpanded && (
+              <div className="px-1 pb-2 space-y-1">
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleListDragEnd}
+                >
+                  <SortableContext items={dispatchLists.map(l => l.id)} strategy={verticalListSortingStrategy}>
+                    {dispatchLists.map((list) => (
+                      <SortableListCard key={list.id} list={list} onRefresh={onRefresh} />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Regular lists */}
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleListDragEnd}
         >
-          <SortableContext items={listIds} strategy={verticalListSortingStrategy}>
+          <SortableContext items={regularLists.map(l => l.id)} strategy={verticalListSortingStrategy}>
             <div className="space-y-3">
-              {visibleLists.map((list) => (
-                DISPATCH_LISTS.includes(list.name) ? (
-                  <div key={list.id} className="rounded-lg ring-1 ring-pink-500/40">
-                    <SortableListCard list={list} onRefresh={onRefresh} />
-                  </div>
-                ) : (
-                  <SortableListCard key={list.id} list={list} onRefresh={onRefresh} />
-                )
+              {regularLists.map((list) => (
+                <SortableListCard key={list.id} list={list} onRefresh={onRefresh} />
               ))}
             </div>
           </SortableContext>
