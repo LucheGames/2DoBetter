@@ -384,12 +384,18 @@ async function processQueue() {
         const shortId     = String(sessionId).slice(0, 8);
         const responseText = (result.result || result.response || JSON.stringify(result)).trim();
 
-        // Extract a one-sentence summary: first sentence or first line, whichever is shorter
-        const stripped = responseText.replace(/\*\*/g, '').replace(/^#+\s*/gm, '').trim();
-        const firstSentence = stripped.match(/^[^.!?\n]+[.!?]?/);
-        const summary = firstSentence
-          ? firstSentence[0].trim().slice(0, 140)
-          : stripped.slice(0, 140);
+        // Build a compact summary: strip markdown, grab first meaningful line/sentence
+        const stripped = responseText
+          .replace(/```[\s\S]*?```/g, '[code]')  // replace code blocks
+          .replace(/\*\*|__|\*|_|~~|`/g, '')      // strip inline markdown
+          .replace(/^#+\s*/gm, '')                 // strip headings
+          .replace(/^\s*[-*>]\s*/gm, '')           // strip bullets/blockquotes
+          .replace(/\n{2,}/g, '\n')                // collapse blank lines
+          .trim();
+        // First sentence (up to 120 chars), else first line, else hard truncate
+        const sentenceMatch = stripped.match(/^.{10,120}?[.!?]/);
+        const lineMatch = stripped.split('\n')[0].trim();
+        const summary = (sentenceMatch ? sentenceMatch[0] : lineMatch).slice(0, 120);
 
         // Post result as a completed task with session ID
         await api('POST', `/api/lists/${resultsListId}/tasks`, {
