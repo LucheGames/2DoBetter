@@ -412,7 +412,7 @@ export default function ColumnPanel({ column, currentUser, isAdmin, onRefresh, c
                   clipRule="evenodd"
                 />
               </svg>
-              <span className="text-xs font-semibold text-pink-400 uppercase tracking-wider">Remote Task Dispatch</span>
+              <span className="text-xs font-semibold text-pink-400 uppercase tracking-wider">Task Runner</span>
             </button>
             {dispatchExpanded && (
               <div className="px-1 pb-2 space-y-1">

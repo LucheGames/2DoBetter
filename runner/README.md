@@ -1,4 +1,4 @@
-# 2Do Better — Dispatch
+# 2Do Better — Task Runner
 
 Trigger Claude Code jobs from anywhere using your 2Do Better board as a task queue.
 
@@ -14,13 +14,13 @@ Mobile / browser
           │
           │  (polling every 30s)
           ▼
-  Mac daemon (dispatch/daemon.js)
-  ├─ Moves task to Active
-  ├─ Runs: claude -p "<task>" --continue --model sonnet
+  Mac daemon (runner/daemon.js)
+  ├─ Moves task to Active (spinner appears on board)
+  ├─ Runs: claude -p "<task>" --model sonnet
   └─ Posts result to Results list
           │
           ▼
-  Results list shows: [abc12345] Claude's response...
+  Results list shows: ✓ [abc12345] One-sentence summary
   └─ Copy the 8-char session ID to --resume interactively
 ```
 
@@ -37,7 +37,7 @@ The daemon lives on the same machine as Claude Code. The 2Do Better server is ju
 ```bash
 cd /path/to/ToDoBetter
 git pull
-node dispatch/daemon.js
+CLAUDECODE= node runner/daemon.js
 ```
 
 That's it. The daemon reads the API URL and auth token automatically from your existing MCP config in `~/.claude.json`.
@@ -58,6 +58,7 @@ Within 30 seconds it should move to Active, then a result appears in Results.
 | What you type in Queue | What fires |
 |---|---|
 | `summarize the deploy logs` | Fresh session in default repo |
+| `--continue check the auth fix` | Continue the most recent CLI session |
 | `--resume abc12345 continue the auth fix` | Resume a specific session by ID |
 | `~/Repos/Lazear: run the eval suite` | Fresh session in a different repo |
 | `--resume abc12345 ~/Repos/Foo: fix bug` | Resume + different repo |
@@ -66,14 +67,19 @@ Within 30 seconds it should move to Active, then a result appears in Results.
 
 ## Results
 
-Results tasks are prefixed with a short session ID:
+Completed tasks appear in Results with a session ID and one-sentence summary:
 ```
-[abc12345] The project is a Next.js todo app with...
+✓ [abc12345] Christmas 2026 falls on a Friday.
 ```
 
 Copy `abc12345` and use it to resume the session interactively:
 ```bash
 claude --resume abc12345
+```
+
+Or add another task to Queue with the `--resume` prefix to continue remotely:
+```
+--resume abc12345 now check if there are any holidays that week
 ```
 
 Results tasks older than 24 hours are automatically completed (sent to graveyard) each poll cycle to keep the list clean.
@@ -90,7 +96,7 @@ Claude Code limits reset every 5 hours. If a task hits a usage cap:
 
 ## Optional config
 
-By default no config file is needed. To override any setting, create `~/.claude-dispatch.json`:
+By default no config file is needed. To override any setting, create `~/.claude-runner.json`:
 
 ```json
 {
@@ -101,7 +107,7 @@ By default no config file is needed. To override any setting, create `~/.claude-
 }
 ```
 
-See `dispatch/config-example.json` for all available fields.
+See `runner/config-example.json` for all available fields.
 
 | Field | Default | Description |
 |---|---|---|
@@ -123,17 +129,17 @@ To keep the daemon alive across reboots, install it as a launchd service.
 which node   # run this after loading nvm
 ```
 
-**2. Create `~/Library/LaunchAgents/com.2dobetter.dispatch.plist`:**
+**2. Create `~/Library/LaunchAgents/com.2dobetter.runner.plist`:**
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
-  <key>Label</key><string>com.2dobetter.dispatch</string>
+  <key>Label</key><string>com.2dobetter.runner</string>
   <key>ProgramArguments</key><array>
     <string>/Users/YOU/.nvm/versions/node/v20.X.Y/bin/node</string>
-    <string>/Users/YOU/_Repos/ToDoBetter/dispatch/daemon.js</string>
+    <string>/Users/YOU/_Repos/ToDoBetter/runner/daemon.js</string>
   </array>
   <key>EnvironmentVariables</key><dict>
     <key>HOME</key><string>/Users/YOU</string>
@@ -141,17 +147,17 @@ which node   # run this after loading nvm
   </dict>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
-  <key>StandardOutPath</key><string>/tmp/claude-dispatch.log</string>
-  <key>StandardErrorPath</key><string>/tmp/claude-dispatch.err</string>
+  <key>StandardOutPath</key><string>/tmp/claude-runner.log</string>
+  <key>StandardErrorPath</key><string>/tmp/claude-runner.err</string>
 </dict></plist>
 ```
 
 **3. Load it:**
 ```bash
-launchctl load ~/Library/LaunchAgents/com.2dobetter.dispatch.plist
+launchctl load ~/Library/LaunchAgents/com.2dobetter.runner.plist
 ```
 
 **4. Tail the logs:**
 ```bash
-tail -f /tmp/claude-dispatch.log
+tail -f /tmp/claude-runner.log
 ```

@@ -405,7 +405,7 @@ Queue tasks from your phone and have Claude Code execute them on your Mac while 
 
 Add a task to the **Queue** list in your Claude column → a daemon on your Mac picks it up, runs a headless Claude Code session, and posts the result back to a **Results** list — visible on mobile within 30 seconds.
 
-→ **[dispatch/README.md](dispatch/README.md)**
+→ **[runner/README.md](runner/README.md)**
 
 ---
 

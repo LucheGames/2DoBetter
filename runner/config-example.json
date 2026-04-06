@@ -3,7 +3,7 @@
     "All fields are optional if the 2dobetter MCP server is configured in Claude Code.",
     "apiBase and agentToken are auto-read from ~/.claude.json (MCP config).",
     "defaultRepo defaults to the ToDoBetter repo directory.",
-    "Override any field here by copying this file to ~/.claude-dispatch.json."
+    "Override any field here by copying this file to ~/.claude-runner.json."
   ],
 
   "_auto_detected": {

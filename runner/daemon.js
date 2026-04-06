@@ -1,19 +1,20 @@
 #!/usr/bin/env node
 /**
- * claude-dispatch — polls a 2DoBetter "Queue" list and fires Claude Code tasks.
+ * claude-runner — polls a 2DoBetter "Queue" list and fires Claude Code tasks.
  *
- * Config: ~/.claude-dispatch.json  (or dispatch/.claude-dispatch.json)
- * See dispatch/config-example.json for the full config reference.
+ * Config: ~/.claude-runner.json  (or dispatch/.claude-runner.json)
+ * See runner/config-example.json for the full config reference.
  *
  * ── Task syntax (task title in 2DoBetter) ────────────────────────────────────
  *   "check deploy logs"                      → fresh session, defaultRepo
- *   "--resume abc1234 check deploy logs"     → resume specific session
+ *   "--continue check deploy logs"           → continue most recent CLI session
+ *   "--resume abc1234 check deploy logs"     → resume specific session by ID
  *   "~/Repos/Lazear: run evals"              → fresh session, different repo
  *   "--resume abc1234 ~/Repos/Foo: fix bug"  → resume + different repo
  *
  * ── Result format ─────────────────────────────────────────────────────────────
- *   A new task appears in the Results list:
- *   "[abc12345] First 400 chars of Claude's response..."
+ *   A completed task appears in the Results list:
+ *   "✓ [abc12345] One-sentence summary of Claude's response"
  *   The session ID prefix lets you --resume the session interactively.
  *
  * ── Usage cap handling ────────────────────────────────────────────────────────
@@ -27,16 +28,16 @@
  *   1. Find your node binary:
  *        which node    (or: ~/.nvm/versions/node/v20.X.Y/bin/node)
  *
- *   2. Create ~/Library/LaunchAgents/com.2dobetter.dispatch.plist:
+ *   2. Create ~/Library/LaunchAgents/com.2dobetter.runner.plist:
  *
  *      <?xml version="1.0" encoding="UTF-8"?>
  *      <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
  *        "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
  *      <plist version="1.0"><dict>
- *        <key>Label</key><string>com.2dobetter.dispatch</string>
+ *        <key>Label</key><string>com.2dobetter.runner</string>
  *        <key>ProgramArguments</key><array>
  *          <string>/Users/YOU/.nvm/versions/node/v20.X.Y/bin/node</string>
- *          <string>/Users/YOU/_Repos/ToDoBetter/dispatch/daemon.js</string>
+ *          <string>/Users/YOU/_Repos/ToDoBetter/runner/daemon.js</string>
  *        </array>
  *        <key>EnvironmentVariables</key><dict>
  *          <key>HOME</key><string>/Users/YOU</string>
@@ -44,15 +45,15 @@
  *        </dict>
  *        <key>RunAtLoad</key><true/>
  *        <key>KeepAlive</key><true/>
- *        <key>StandardOutPath</key><string>/tmp/claude-dispatch.log</string>
- *        <key>StandardErrorPath</key><string>/tmp/claude-dispatch.err</string>
+ *        <key>StandardOutPath</key><string>/tmp/claude-runner.log</string>
+ *        <key>StandardErrorPath</key><string>/tmp/claude-runner.err</string>
  *      </dict></plist>
  *
  *   3. Load it:
- *        launchctl load ~/Library/LaunchAgents/com.2dobetter.dispatch.plist
+ *        launchctl load ~/Library/LaunchAgents/com.2dobetter.runner.plist
  *
  *   4. Tail logs:
- *        tail -f /tmp/claude-dispatch.log
+ *        tail -f /tmp/claude-runner.log
  */
 
 'use strict';
@@ -63,7 +64,7 @@ const path      = require('path');
 const os        = require('os');
 
 // ── Config loading ────────────────────────────────────────────────────────────
-// Priority: ~/.claude-dispatch.json overrides auto-detected values.
+// Priority: ~/.claude-runner.json overrides auto-detected values.
 // Auto-detection reads API_BASE_URL + AUTH_TOKEN from the 2dobetter MCP entry
 // in ~/.claude.json — the same values the MCP server already uses.
 
@@ -82,8 +83,8 @@ function loadClaudeJson() {
 const claudeEnv = loadClaudeJson();
 
 const CONFIG_PATHS = [
-  path.join(os.homedir(), '.claude-dispatch.json'),
-  path.join(__dirname, '..', '.claude-dispatch.json'),
+  path.join(os.homedir(), '.claude-runner.json'),
+  path.join(__dirname, '..', '.claude-runner.json'),
 ];
 
 let userConfig = {};
@@ -117,7 +118,7 @@ if (!apiBase || !agentToken) {
   console.error(
     'Cannot find API URL or auth token.\n' +
     'Either configure the 2dobetter MCP server in Claude Code, or create\n' +
-    '~/.claude-dispatch.json with apiBase and agentToken fields.'
+    '~/.claude-runner.json with apiBase and agentToken fields.'
   );
   process.exit(1);
 }
@@ -188,10 +189,17 @@ async function ensureLists() {
 // ── Task parsing ──────────────────────────────────────────────────────────────
 
 function parseTask(title) {
-  // Returns { resumeId, repo, prompt }
+  // Returns { resumeId, continueSession, repo, prompt }
   let text = title.trim();
   let resumeId = null;
+  let continueSession = false;
   let repo = path.resolve(defaultRepo.replace(/^~/, os.homedir()));
+
+  // --continue (continue most recent CLI session)
+  if (/^--continue\b\s*/.test(text)) {
+    continueSession = true;
+    text = text.replace(/^--continue\s*/, '');
+  }
 
   // --resume <id>
   const resumeMatch = text.match(/^--resume\s+(\S+)\s*/);
@@ -207,15 +215,16 @@ function parseTask(title) {
     text = text.slice(repoMatch[0].length);
   }
 
-  return { resumeId, repo, prompt: text };
+  return { resumeId, continueSession, repo, prompt: text };
 }
 
 // ── Claude runner ─────────────────────────────────────────────────────────────
 
-function runClaude({ resumeId, repo, prompt }) {
+function runClaude({ resumeId, continueSession, repo, prompt }) {
   return new Promise((resolve, reject) => {
-    // Fresh session by default — avoids loading huge prior context.
-    // Use "--resume <id>" prefix in the task title to continue a specific session.
+    // Fresh session by default. Prefixes in the task title control session handling:
+    //   --resume <id> <prompt>   → resume a specific session
+    //   --continue <prompt>      → continue the most recent CLI session
     const args = [
       '-p', prompt,
       '--output-format', 'json',
@@ -225,6 +234,8 @@ function runClaude({ resumeId, repo, prompt }) {
     ];
     if (resumeId) {
       args.push('--resume', resumeId);
+    } else if (continueSession) {
+      args.push('--continue');
     }
 
     log(`▶ claude ${args.join(' ')}`);
@@ -372,19 +383,23 @@ async function processQueue() {
         const sessionId   = result.session_id || result.sessionId || 'unknown';
         const shortId     = String(sessionId).slice(0, 8);
         const responseText = (result.result || result.response || JSON.stringify(result)).trim();
-        const preview     = responseText.length > 400
-          ? responseText.slice(0, 397) + '...'
-          : responseText;
 
-        // Post result
+        // Extract a one-sentence summary: first sentence or first line, whichever is shorter
+        const stripped = responseText.replace(/\*\*/g, '').replace(/^#+\s*/gm, '').trim();
+        const firstSentence = stripped.match(/^[^.!?\n]+[.!?]?/);
+        const summary = firstSentence
+          ? firstSentence[0].trim().slice(0, 140)
+          : stripped.slice(0, 140);
+
+        // Post result as a completed task with session ID
         await api('POST', `/api/lists/${resultsListId}/tasks`, {
-          title: `[${shortId}] ${preview}`,
+          title: `✓ [${shortId}] ${summary}`,
         });
 
         // Complete the original task
         await api('PATCH', `/api/tasks/${task.id}`, { completed: true });
 
-        log(`✓ Done  session=${sessionId}`);
+        log(`✓ Done  session=${sessionId}  summary="${summary}"`);
 
       } catch (err) {
         try {
@@ -442,7 +457,7 @@ function log(msg) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
-  log('claude-dispatch starting');
+  log('claude-runner starting');
   await ensureLists();
   log(`Polling every ${pollMs / 1000}s  •  Model: ${model}  •  Cap retry: hourly x${MAX_CAP_RETRIES}`);
   log(`Default repo: ${defaultRepo}`);
