@@ -569,9 +569,31 @@ function log(msg) {
   console.log(`[${ts}] ${msg}`);
 }
 
+// ── Singleton enforcement ─────────────────────────────────────────────────────
+
+const PID_FILE = path.join(os.tmpdir(), 'claude-runner.pid');
+
+function enforcesingleton() {
+  if (fs.existsSync(PID_FILE)) {
+    const oldPid = parseInt(fs.readFileSync(PID_FILE, 'utf8').trim(), 10);
+    if (oldPid && oldPid !== process.pid) {
+      try {
+        process.kill(oldPid, 0);  // check if process exists
+        log(`Stopping previous daemon (PID ${oldPid})`);
+        process.kill(oldPid, 'SIGTERM');
+      } catch {
+        // Process already gone — stale PID file, ignore
+      }
+    }
+  }
+  fs.writeFileSync(PID_FILE, String(process.pid));
+  process.on('exit', () => { try { fs.unlinkSync(PID_FILE); } catch {} });
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
+  enforcesingleton();
   log('claude-runner starting');
   await ensureLists();
   const mapKeys = Object.keys(sessionMap);
