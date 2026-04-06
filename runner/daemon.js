@@ -381,7 +381,7 @@ async function processQueue() {
         const result = await runClaude(parsed);
 
         const sessionId   = result.session_id || result.sessionId || 'unknown';
-        const shortId     = String(sessionId).slice(0, 8);
+        const shortId     = String(sessionId).slice(0, 36);  // full UUID for --resume
 
         // Detect error subtypes before touching the text (e.g. error_max_turns)
         if (result.subtype && result.subtype !== 'success') {
@@ -389,7 +389,7 @@ async function processQueue() {
             ? `hit turn limit (${result.num_turns || '?'} turns)`
             : result.subtype;
           await api('POST', `/api/lists/${resultsListId}/tasks`, {
-            title: `⚠ [${shortId}] ${note}`,
+            title: `⚠ [${sessionId}] ${note}`,
           });
           await api('PATCH', `/api/tasks/${task.id}`, { completed: true });
           log(`⚠ Subtype: ${result.subtype}  session=${sessionId}`);
