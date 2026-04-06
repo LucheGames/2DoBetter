@@ -382,7 +382,22 @@ async function processQueue() {
 
         const sessionId   = result.session_id || result.sessionId || 'unknown';
         const shortId     = String(sessionId).slice(0, 8);
-        const responseText = (result.result || result.response || JSON.stringify(result)).trim();
+
+        // Detect error subtypes before touching the text (e.g. error_max_turns)
+        if (result.subtype && result.subtype !== 'success') {
+          const note = result.subtype === 'error_max_turns'
+            ? `hit turn limit (${result.num_turns || '?'} turns)`
+            : result.subtype;
+          await api('POST', `/api/lists/${resultsListId}/tasks`, {
+            title: `⚠ [${shortId}] ${note}`,
+          });
+          await api('PATCH', `/api/tasks/${task.id}`, { completed: true });
+          log(`⚠ Subtype: ${result.subtype}  session=${sessionId}`);
+          continue;
+        }
+
+        const responseText = (result.result || result.response || '').trim()
+          || JSON.stringify(result);
 
         // Build a compact summary: strip markdown, grab first meaningful line/sentence
         const stripped = responseText
