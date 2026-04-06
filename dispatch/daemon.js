@@ -264,6 +264,7 @@ function runClaude({ resumeId, repo, prompt }) {
     const proc = spawn('claude', args, {
       cwd: repo,
       env: spawnEnv,
+      stdio: ['ignore', 'pipe', 'pipe'],  // close stdin — claude hangs if it's open
     });
 
     let stdout = '';
