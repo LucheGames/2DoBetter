@@ -419,20 +419,23 @@ async function processQueue() {
       log(`Processing: "${task.title}"`);
       const parsed = parseTask(task.title);
 
-      // Resolve --resume 'last' → actual session ID from most recent Results entry
+      // Resolve --resume 'last' → full UUID of the most recent session
       if (parsed.resumeId === 'last') {
-        // Try session map first (has full UUID), then fall back to Results list
-        const last = sessionMap['latest'] || await lastSessionId();
-        if (!last) {
-          log(`✗ --resume: no previous session found`);
-          await api('POST', `/api/lists/${resultsListId}/tasks`, {
-            title: `[error] --resume: no previous session found`,
-          });
-          await api('PATCH', `/api/tasks/${task.id}`, { completed: true });
-          continue;
+        let fullId = sessionMap['latest'];  // best source: full UUID persisted from prior run
+        if (!fullId) {
+          // Fall back: find short ID from Results, then expand via session map
+          const shortId = await lastSessionId();
+          if (shortId) fullId = sessionMap[shortId] || null;
         }
-        parsed.resumeId = last;
-        log(`--resume defaulting to last session: ${last}`);
+        if (!fullId) {
+          // No session map at all — fall back to --continue instead
+          log(`--resume: no session map yet, falling back to --continue`);
+          parsed.resumeId = null;
+          parsed.continueSession = true;
+        } else {
+          parsed.resumeId = fullId;
+          log(`--resume defaulting to last session: ${fullId}`);
+        }
       }
 
       // Validate --resume ID before burning a Claude invocation
@@ -452,8 +455,10 @@ async function processQueue() {
           log(`Expanded ${parsed.resumeId} → ${fullId}`);
           parsed.resumeId = fullId;
         } else {
-          log(`Short ID "${parsed.resumeId}" not in session map — passing as-is`);
-          // Let claude reject it if truly invalid; avoids blocking valid UUIDs we haven't seen
+          // 8-char ID won't work with claude --resume — fall back to --continue
+          log(`Short ID "${parsed.resumeId}" not in session map — falling back to --continue`);
+          parsed.resumeId = null;
+          parsed.continueSession = true;
         }
       }
 
@@ -569,6 +574,8 @@ function log(msg) {
 async function main() {
   log('claude-runner starting');
   await ensureLists();
+  const mapKeys = Object.keys(sessionMap);
+  log(`Session map: ${mapKeys.length} entries${sessionMap['latest'] ? ' (latest: ' + sessionMap['latest'].slice(0, 8) + '…)' : ' (empty)'}`);
   log(`Polling every ${pollMs / 1000}s  •  Model: ${model}  •  Cap retry: hourly x${MAX_CAP_RETRIES}`);
   log(`Default repo: ${defaultRepo}`);
 
