@@ -83,6 +83,9 @@ export default function TaskRow({
             value={editValue}
             rows={1}
             autoFocus
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             onChange={(e) => {
               setEditValue(e.target.value);
               e.target.style.height = "auto";

@@ -201,11 +201,18 @@ function parseTask(title) {
     text = text.replace(/^--continue\s*/, '');
   }
 
-  // --resume <id>
-  const resumeMatch = text.match(/^--resume\s+(\S+)\s*/);
+  // --resume [<id>] <prompt>
+  // If no hex ID follows --resume, set resumeId to 'last' (resolved later)
+  const resumeMatch = text.match(/^--resume\b\s*/);
   if (resumeMatch) {
-    resumeId = resumeMatch[1];
     text = text.slice(resumeMatch[0].length);
+    const idMatch = text.match(/^([0-9a-f-]{6,36})\s+/i);
+    if (idMatch) {
+      resumeId = idMatch[1];
+      text = text.slice(idMatch[0].length);
+    } else {
+      resumeId = 'last';  // resolved to latest Results session ID at run time
+    }
   }
 
   // ~/path/to/repo: prompt  OR  /abs/path: prompt
@@ -337,6 +344,16 @@ function nextHourPlusOne() {
   return d.getTime();
 }
 
+// Returns the session ID from the most recent Results entry, or null
+async function lastSessionId() {
+  const tasks = await api('GET', `/api/lists/${resultsListId}/tasks`);
+  for (const t of [...tasks].reverse()) {
+    const m = t.title.match(/\[([0-9a-f]{8})\]/i);
+    if (m) return m[1];
+  }
+  return null;
+}
+
 // Completes Results tasks older than 24h — keeps the list from ballooning
 async function culResults() {
   const tasks = await api('GET', `/api/lists/${resultsListId}/tasks`);
@@ -374,6 +391,21 @@ async function processQueue() {
 
       log(`Processing: "${task.title}"`);
       const parsed = parseTask(task.title);
+
+      // Resolve --resume 'last' → actual session ID from most recent Results entry
+      if (parsed.resumeId === 'last') {
+        const last = await lastSessionId();
+        if (!last) {
+          log(`✗ --resume: no previous session found in Results`);
+          await api('POST', `/api/lists/${resultsListId}/tasks`, {
+            title: `[error] --resume: no previous session ID found in Results`,
+          });
+          await api('PATCH', `/api/tasks/${task.id}`, { completed: true });
+          continue;
+        }
+        parsed.resumeId = last;
+        log(`--resume defaulting to last session: ${last}`);
+      }
 
       // Validate --resume ID before burning a Claude invocation
       if (parsed.resumeId && !/^[0-9a-f-]{6,36}$/i.test(parsed.resumeId)) {

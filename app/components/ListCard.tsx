@@ -364,6 +364,9 @@ export default function ListCard({ list, onRefresh, dragHandleProps }: ListCardP
                 rows={1}
                 className="w-full rounded px-2 py-1 bg-gray-800/50 app-input text-gray-200 placeholder-gray-600 outline-none focus:ring-1 focus:ring-accent-500/50 transition-colors resize-none overflow-hidden"
                 placeholder="Task name..."
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 value={newTaskTitle}
                 onChange={(e) => {
                   setNewTaskTitle(e.target.value);
