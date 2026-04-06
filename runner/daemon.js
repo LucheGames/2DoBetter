@@ -233,7 +233,7 @@ function parseTask(title) {
   const resumeMatch = text.match(/^--resume\b\s*/);
   if (resumeMatch) {
     text = text.slice(resumeMatch[0].length);
-    const idMatch = text.match(/^([0-9a-f-]{6,36})\s+/i);
+    const idMatch = text.match(/^([0-9a-f]{8}[0-9a-f-]{0,28})\s+/i);
     if (idMatch) {
       resumeId = idMatch[1];
       text = text.slice(idMatch[0].length);
