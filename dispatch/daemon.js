@@ -244,13 +244,17 @@ function runClaude({ resumeId, repo, prompt }) {
     })();
 
     const PATH = [
+      path.join(os.homedir(), '.local', 'bin'),   // Claude Code CLI lives here
       nvmBin,
       path.join(os.homedir(), '.nvm', 'versions', 'node', 'v20', 'bin'),  // fallback
       '/usr/local/bin',
+      '/opt/homebrew/bin',
       '/usr/bin',
       '/bin',
       process.env.PATH || '',
     ].filter(Boolean).join(':');
+
+    const TIMEOUT_MS = 5 * 60 * 1000;  // 5 minutes max per task
 
     const proc = spawn('claude', args, {
       cwd: repo,
@@ -259,22 +263,44 @@ function runClaude({ resumeId, repo, prompt }) {
 
     let stdout = '';
     let stderr = '';
+    let finished = false;
+
+    // Kill the process if it exceeds the timeout
+    const timer = setTimeout(() => {
+      if (!finished) {
+        log('⏰ Timeout — killing claude process');
+        proc.kill('SIGTERM');
+        setTimeout(() => { if (!finished) proc.kill('SIGKILL'); }, 5000);
+      }
+    }, TIMEOUT_MS);
+
     // Stream stderr live so terminal shows what claude is doing
     proc.stderr.on('data', d => {
       stderr += d;
       process.stderr.write(d);
     });
-    proc.stdout.on('data', d => { stdout += d; });
+    proc.stdout.on('data', d => {
+      stdout += d;
+      process.stdout.write(`[stdout chunk] ${d.toString().slice(0, 200)}\n`);
+    });
 
     proc.on('error', err => {
+      finished = true;
+      clearTimeout(timer);
       reject({ isCapHit: false, message: `spawn failed: ${err.message}`, stderr: '' });
     });
 
-    proc.on('close', code => {
-      if (code === 0) {
+    proc.on('close', (code, signal) => {
+      finished = true;
+      clearTimeout(timer);
+      log(`claude exited  code=${code}  signal=${signal}  stdout=${stdout.length}B  stderr=${stderr.length}B`);
+      if (signal === 'SIGTERM' || signal === 'SIGKILL') {
+        reject({ isCapHit: false, message: `Timed out after ${TIMEOUT_MS / 1000}s`, stderr });
+      } else if (code === 0) {
         try {
           resolve(JSON.parse(stdout));
-        } catch {
+        } catch (e) {
+          log(`⚠ stdout was not JSON: ${stdout.slice(0, 300)}`);
           resolve({ result: stdout.trim(), session_id: null });
         }
       } else {
