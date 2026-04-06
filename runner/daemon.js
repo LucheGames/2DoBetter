@@ -108,7 +108,7 @@ const {
   queueListName   = 'Queue',
   activeListName  = 'Active',
   resultsListName = 'Results',
-  pollMs          = 30_000,
+  pollMs          = 30000,
   model           = 'sonnet',
 } = config;
 
@@ -395,7 +395,7 @@ async function processQueue() {
       // Skip tasks still waiting for their hourly retry window
       const capState = capRetries.get(task.id);
       if (capState && Date.now() < capState.retryAfter) {
-        const minsLeft = Math.ceil((capState.retryAfter - Date.now()) / 60_000);
+        const minsLeft = Math.ceil((capState.retryAfter - Date.now()) / 60000);
         log(`Skipping "${task.title}" — cap retry in ${minsLeft}m (attempt ${capState.count}/${MAX_CAP_RETRIES})`);
         continue;
       }
