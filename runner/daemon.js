@@ -357,7 +357,14 @@ function runClaude({ resumeId, continueSession, repo, prompt }) {
       } else {
         const combined = (stdout + stderr).toLowerCase();
         const isCapHit = /usage limit|rate.?limit|quota|capacity|overloaded/i.test(combined);
-        reject({ isCapHit, code, message: stderr.trim() || stdout.trim() });
+        // If stdout is JSON (claude exited non-zero but emitted a result object),
+        // extract the human-readable result field instead of dumping the raw blob
+        let message = stderr.trim() || stdout.trim();
+        try {
+          const parsed = JSON.parse(stdout);
+          if (parsed.result) message = parsed.result;
+        } catch {}
+        reject({ isCapHit, code, message });
       }
     });
   });
