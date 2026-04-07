@@ -634,6 +634,143 @@ function serviceUninstall() {
   throw new Error('service:uninstall is only supported on macOS and Linux');
 }
 
+// ── runner:install / runner:uninstall ────────────────────────────────────────
+function runnerInstall(columnSlug, agentToken, apiBase) {
+  // Find nvm node (same logic as serviceInstall)
+  let nodeBin = process.execPath;
+  const nvmDir = path.join(os.homedir(), '.nvm', 'versions', 'node');
+  if (fs.existsSync(nvmDir)) {
+    const v20 = fs.readdirSync(nvmDir)
+      .filter(v => /^v[2-9]\d*\./.test(v) && parseInt(v.slice(1), 10) >= 20)
+      .sort().reverse()[0];
+    if (v20) nodeBin = path.join(nvmDir, v20, 'bin', 'node');
+  }
+  const nodeDir = path.dirname(nodeBin);
+
+  // Write config
+  const configPath = path.join(os.homedir(), '.claude-runner.json');
+  const config = {
+    columnSlug: columnSlug || 'claude',
+    defaultRepo: ROOT,
+    model: 'sonnet',
+    pollMs: 30000,
+  };
+  if (apiBase)    config.apiBase    = apiBase;
+  if (agentToken) config.agentToken = agentToken;
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  ok('Config written: ' + configPath);
+
+  const serviceName = 'claude-runner';
+
+  if (process.platform === 'linux') {
+    const serviceContent = [
+      '[Unit]',
+      'Description=2DoBetter Claude Runner (' + (columnSlug || 'claude') + ')',
+      'After=network.target',
+      '',
+      '[Service]',
+      'ExecStart=' + nodeBin + ' ' + path.join(ROOT, 'runner', 'daemon.js'),
+      'Restart=always',
+      'RestartSec=10',
+      'Environment=HOME=' + os.homedir(),
+      'Environment=PATH=' + nodeDir + ':' + path.join(os.homedir(), '.local', 'bin') + ':/usr/local/bin:/usr/bin:/bin',
+      '',
+      '[Install]',
+      'WantedBy=default.target',
+      '',
+    ].join('\n');
+
+    const unitDir  = path.join(os.homedir(), '.config', 'systemd', 'user');
+    const unitFile = path.join(unitDir, serviceName + '.service');
+    fs.mkdirSync(unitDir, { recursive: true });
+    fs.writeFileSync(unitFile, serviceContent);
+
+    spawnSync('systemctl', ['--user', 'daemon-reload'],            { stdio: 'inherit' });
+    spawnSync('systemctl', ['--user', 'enable', serviceName],      { stdio: 'inherit' });
+    const r = spawnSync('systemctl', ['--user', 'start', serviceName], { stdio: 'inherit' });
+    if (r.status !== 0) throw new Error('systemctl start failed — check: journalctl --user -u ' + serviceName + ' -n 50');
+
+    spawnSync('loginctl', ['enable-linger', os.userInfo().username], { stdio: 'pipe' });
+
+    ok('Runner installed (Linux systemd). Starts at boot.');
+    console.log('  Unit file: ' + unitFile);
+    console.log('  Node:      ' + nodeBin);
+    console.log('  Logs:      journalctl --user -u ' + serviceName + ' -f');
+    console.log('');
+    return;
+  }
+
+  if (process.platform === 'darwin') {
+    const plistName = 'com.2dobetter.runner';
+    const launchDir = path.join(os.homedir(), 'Library', 'LaunchAgents');
+    const plistPath = path.join(launchDir, plistName + '.plist');
+    const logDir    = path.join(os.homedir(), 'Library', 'Logs');
+
+    fs.mkdirSync(launchDir, { recursive: true });
+    fs.mkdirSync(logDir,    { recursive: true });
+
+    const plist = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">',
+      '<plist version="1.0"><dict>',
+      '  <key>Label</key><string>' + plistName + '</string>',
+      '  <key>ProgramArguments</key><array>',
+      '    <string>' + nodeBin + '</string>',
+      '    <string>' + path.join(ROOT, 'runner', 'daemon.js') + '</string>',
+      '  </array>',
+      '  <key>EnvironmentVariables</key><dict>',
+      '    <key>HOME</key><string>' + os.homedir() + '</string>',
+      '    <key>PATH</key><string>' + nodeDir + ':' + path.join(os.homedir(), '.local', 'bin') + ':/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>',
+      '  </key>',
+      '  <key>RunAtLoad</key><true/>',
+      '  <key>KeepAlive</key><true/>',
+      '  <key>StandardOutPath</key><string>' + path.join(logDir, 'claude-runner.log') + '</string>',
+      '  <key>StandardErrorPath</key><string>' + path.join(logDir, 'claude-runner.err') + '</string>',
+      '</dict></plist>',
+    ].join('\n');
+
+    fs.writeFileSync(plistPath, plist);
+
+    if (spawnSync('launchctl', ['list', plistName], { stdio: 'pipe' }).status === 0) {
+      spawnSync('launchctl', ['unload', plistPath], { stdio: 'pipe' });
+    }
+    const r = spawnSync('launchctl', ['load', plistPath], { stdio: 'inherit' });
+    if (r.status !== 0) throw new Error('launchctl load failed');
+
+    ok('Runner installed (macOS launchd). Starts at login.');
+    console.log('  Plist: ' + plistPath);
+    console.log('  Logs:  tail -f ' + path.join(logDir, 'claude-runner.log'));
+    console.log('');
+    return;
+  }
+
+  throw new Error('runner:install is only supported on macOS and Linux');
+}
+
+function runnerUninstall() {
+  if (process.platform === 'linux') {
+    const unitFile = path.join(os.homedir(), '.config', 'systemd', 'user', 'claude-runner.service');
+    if (!fs.existsSync(unitFile)) { info('No claude-runner systemd service found — nothing to remove.'); return; }
+    spawnSync('systemctl', ['--user', 'stop',    'claude-runner'], { stdio: 'inherit' });
+    spawnSync('systemctl', ['--user', 'disable', 'claude-runner'], { stdio: 'inherit' });
+    fs.unlinkSync(unitFile);
+    spawnSync('systemctl', ['--user', 'daemon-reload'], { stdio: 'inherit' });
+    ok('Runner service removed (Linux systemd).');
+    return;
+  }
+
+  if (process.platform === 'darwin') {
+    const plistPath = path.join(os.homedir(), 'Library', 'LaunchAgents', 'com.2dobetter.runner.plist');
+    if (!fs.existsSync(plistPath)) { info('No claude-runner LaunchAgent found — nothing to remove.'); return; }
+    spawnSync('launchctl', ['unload', plistPath], { stdio: 'inherit' });
+    fs.unlinkSync(plistPath);
+    ok('Runner service removed (macOS launchd).');
+    return;
+  }
+
+  throw new Error('runner:uninstall is only supported on macOS and Linux');
+}
+
 // ── gen-invite ────────────────────────────────────────────────────────────────
 async function genInvite() {
   var minutesArg = parseInt(process.argv[3] || '0', 10);
@@ -973,6 +1110,8 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     npm run restart                 Restart the server (auto-detects launchctl / systemctl)
     npm run service:install         Install as auto-start service
     npm run service:uninstall       Remove auto-start service
+    npm run runner:install [col] [token] [apiBase]   Install claude-runner as a service
+    npm run runner:uninstall        Remove claude-runner service
     npm run uninstall               ${C.red}Nuke — remove all app footprint from this machine${C.reset}
 `);
 }
@@ -996,6 +1135,8 @@ const dispatch = {
   'restart':          () => restartService(),
   'service:install':  () => { serviceInstall();   return Promise.resolve(); },
   'service:uninstall':() => { serviceUninstall(); return Promise.resolve(); },
+  'runner:install':   () => { runnerInstall(process.argv[3], process.argv[4], process.argv[5]); return Promise.resolve(); },
+  'runner:uninstall': () => { runnerUninstall();  return Promise.resolve(); },
 };
 
 if (dispatch[cmd]) {
