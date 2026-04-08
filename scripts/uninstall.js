@@ -16,9 +16,15 @@ const os            = require('os');
 const readline      = require('readline');
 const { spawnSync } = require('child_process');
 
-const ROOT      = path.join(__dirname, '..');
+const ROOT      = path.resolve(path.join(__dirname, '..'));
 const HOME      = os.homedir();
 const PLATFORM  = process.platform; // 'darwin' | 'linux'
+
+// Safety check — ROOT must contain package.json and must not be /, /home, ~, etc.
+if (!fs.existsSync(path.join(ROOT, 'package.json')) || ROOT === HOME || ROOT === '/' || ROOT === os.homedir()) {
+  console.error('\n  ✗  Safety check failed: ROOT resolved to "' + ROOT + '" which does not look like a 2DoBetter install.\n  Aborting to prevent accidental deletion.\n');
+  process.exit(1);
+}
 
 // ── ANSI colours ─────────────────────────────────────────────────────────────
 const C = {
