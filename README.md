@@ -399,11 +399,11 @@ If you installed the CA certificate on any devices, remove it to clean up:
 
 ---
 
-## Dispatch — trigger Claude Code remotely
+## Task Runner — trigger an agent remotely
 
-Queue tasks from your phone and have Claude Code execute them on your Mac while you're away.
+Queue tasks from your phone and haveyour agent execute them on your Mac while you're away.
 
-Add a task to the **Queue** list in your Claude column → a daemon on your Mac picks it up, runs a headless Claude Code session, and posts the result back to a **Results** list — visible on mobile within 30 seconds.
+Add a task to the **Queue** list in your Agent column → a daemon on your PC picks it up, runs a headless Agent session, and posts the result back to a **Results** list — visible on mobile within 30 seconds.
 
 → **[runner/README.md](runner/README.md)**
 
