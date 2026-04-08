@@ -153,6 +153,7 @@ function saveUsers(users) {
 // setup.js runs on system node (may be v10), but prisma needs v18+.
 // Mirror the logic from scripts/build.sh.
 function findNodeBin() {
+  // Check nvm
   var nvmDir = path.join(os.homedir(), '.nvm', 'versions', 'node');
   if (fs.existsSync(nvmDir)) {
     var versions = fs.readdirSync(nvmDir)
@@ -160,7 +161,25 @@ function findNodeBin() {
       .sort().reverse();
     if (versions.length) return path.join(nvmDir, versions[0], 'bin', 'node');
   }
-  return process.execPath; // fall back to whatever node is running this script
+  // Check common paths for a modern node
+  var candidates = ['/usr/local/bin/node', '/usr/bin/node'];
+  for (var i = 0; i < candidates.length; i++) {
+    if (fs.existsSync(candidates[i])) {
+      try {
+        var ver = spawnSync(candidates[i], ['-e', 'process.stdout.write(process.versions.node.split(".")[0])'], { encoding: 'utf8', stdio: 'pipe' });
+        if (ver.stdout && parseInt(ver.stdout, 10) >= 18) return candidates[i];
+      } catch (e) { /* skip */ }
+    }
+  }
+  // Fall back to current process — warn if old
+  try {
+    var major = parseInt(process.versions.node.split('.')[0], 10);
+    if (major < 18) {
+      console.log('  \x1b[33m\u26a0\x1b[0m  Node ' + process.version + ' found — Prisma needs v18+. Migrations may fail.');
+      console.log('    Install via nvm:  nvm install 20');
+    }
+  } catch (e) { /* ignore */ }
+  return process.execPath;
 }
 
 // ── SQLite helper (uses sqlite3 CLI; no Prisma needed) ────────────────────────
@@ -280,7 +299,8 @@ log "=== Backup complete ==="
 }
 
 function installCron() {
-  const existing = spawnSync('crontab', ['-l']).stdout?.toString() || '';
+  var crontabResult = spawnSync('crontab', ['-l'], { encoding: 'utf8', stdio: 'pipe' });
+  var existing = (crontabResult.stdout || '').toString();
   const clean    = existing.split('\n').filter(l => !l.includes(CRON_MARKER));
   const updated  = [...clean, `0 3 * * * ${BACKUP_SCRIPT} # ${CRON_MARKER}`].join('\n').trim();
   const result   = spawnSync('crontab', ['-'], { input: updated + '\n' });

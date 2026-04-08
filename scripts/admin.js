@@ -543,15 +543,57 @@ async function restartService() {
 // ── service:install / service:uninstall ──────────────────────────────────────
 function serviceInstall() {
   if (process.platform === 'darwin') {
-    const plistSrc  = path.join(ROOT, 'com.luchegames.2dobetter.plist');
+    // Prefer nvm node v20+ over the system node
+    let nodeBin = process.execPath;
+    const nvmDir = path.join(os.homedir(), '.nvm', 'versions', 'node');
+    if (fs.existsSync(nvmDir)) {
+      const v20 = fs.readdirSync(nvmDir)
+        .filter(v => /^v[2-9]\d*\./.test(v) && parseInt(v.slice(1), 10) >= 20)
+        .sort().reverse()[0];
+      if (v20) nodeBin = path.join(nvmDir, v20, 'bin', 'node');
+    }
+    const nodeDir = path.dirname(nodeBin);
+
+    const plistName = 'com.luchegames.2dobetter';
     const launchDir = path.join(os.homedir(), 'Library', 'LaunchAgents');
-    const plistDst  = path.join(launchDir, 'com.luchegames.2dobetter.plist');
-    if (!fs.existsSync(plistSrc)) throw new Error('plist template not found: ' + plistSrc);
-    if (!fs.existsSync(launchDir)) fs.mkdirSync(launchDir, { recursive: true });
-    fs.copyFileSync(plistSrc, plistDst);
+    const plistDst  = path.join(launchDir, plistName + '.plist');
+    const logDir    = path.join(os.homedir(), 'Library', 'Logs');
+    fs.mkdirSync(launchDir, { recursive: true });
+    fs.mkdirSync(logDir,    { recursive: true });
+
+    const plist = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">',
+      '<plist version="1.0"><dict>',
+      '  <key>Label</key><string>' + plistName + '</string>',
+      '  <key>ProgramArguments</key><array>',
+      '    <string>' + nodeBin + '</string>',
+      '    <string>' + path.join(ROOT, 'server.js') + '</string>',
+      '  </array>',
+      '  <key>WorkingDirectory</key><string>' + ROOT + '</string>',
+      '  <key>EnvironmentVariables</key><dict>',
+      '    <key>HOME</key><string>' + os.homedir() + '</string>',
+      '    <key>NODE_ENV</key><string>production</string>',
+      '    <key>DATABASE_URL</key><string>file:' + path.join(ROOT, 'prisma', 'dev.db') + '</string>',
+      '    <key>PATH</key><string>' + nodeDir + ':/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>',
+      '  </dict>',
+      '  <key>RunAtLoad</key><true/>',
+      '  <key>KeepAlive</key><true/>',
+      '  <key>StandardOutPath</key><string>' + path.join(logDir, '2dobetter.log') + '</string>',
+      '  <key>StandardErrorPath</key><string>' + path.join(logDir, '2dobetter.err') + '</string>',
+      '</dict></plist>',
+    ].join('\n');
+
+    fs.writeFileSync(plistDst, plist);
+
+    if (spawnSync('launchctl', ['list', plistName], { stdio: 'pipe' }).status === 0) {
+      spawnSync('launchctl', ['unload', plistDst], { stdio: 'pipe' });
+    }
     const r = spawnSync('launchctl', ['load', plistDst], { stdio: 'inherit' });
     if (r.status !== 0) throw new Error('launchctl load failed');
     ok('Service installed (macOS launchd). 2Do Better will start at login.');
+    console.log('  Node: ' + nodeBin);
+    console.log('  Logs: tail -f ' + path.join(logDir, '2dobetter.log'));
     return;
   }
 
@@ -575,6 +617,7 @@ function serviceInstall() {
       'Type=simple',
       'WorkingDirectory=' + ROOT,
       'Environment=NODE_ENV=production',
+      'Environment=DATABASE_URL=file:' + path.join(ROOT, 'prisma', 'dev.db'),
       'ExecStart=' + nodeBin + ' ' + path.join(ROOT, 'server.js'),
       'Restart=always',
       'RestartSec=5',
@@ -721,7 +764,7 @@ function runnerInstall(columnSlug, agentToken, apiBase) {
       '  <key>EnvironmentVariables</key><dict>',
       '    <key>HOME</key><string>' + os.homedir() + '</string>',
       '    <key>PATH</key><string>' + nodeDir + ':' + path.join(os.homedir(), '.local', 'bin') + ':/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>',
-      '  </key>',
+      '  </dict>',
       '  <key>RunAtLoad</key><true/>',
       '  <key>KeepAlive</key><true/>',
       '  <key>StandardOutPath</key><string>' + path.join(logDir, 'claude-runner.log') + '</string>',
