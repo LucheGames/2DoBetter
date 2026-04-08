@@ -1,55 +1,71 @@
 # 2Do Better — Task Runner
 
-Trigger Claude Code jobs from anywhere using your 2Do Better board as a task queue.
+An optional background daemon that watches an agent's **Queue** list and fires headless Claude Code sessions automatically. Add a task from your phone, get a result posted back within 30 seconds.
 
-Add a task to the **Queue** list in your Claude column from your phone. A lightweight daemon running on your Mac picks it up, fires a headless Claude Code session, and posts the result back to the **Results** list — all within 30 seconds.
+The runner is **agent-agnostic** — any column with a Queue list can have one. Claude Code is the only supported agent today; other agents will be documented as they're tested.
 
 ---
 
 ## How it works
 
 ```
-Mobile / browser
-  └─ Add task to Queue list in Claude column
+Any device (phone, browser, another agent)
+  └─ Add task to Queue list in agent's column
           │
           │  (polling every 30s)
           ▼
-  Mac daemon (runner/daemon.js)
-  ├─ Moves task to Active (spinner appears on board)
-  ├─ Runs: claude -p "<task>" --model sonnet
-  └─ Posts result to Results list
+  Runner daemon (runner/daemon.js)
+  ├─ Moves task → Active
+  ├─ Fires: claude -p "<task>" --model sonnet
+  └─ Posts result → Results list
           │
           ▼
-  Results list shows: ✓ [abc12345] One-sentence summary
-  └─ Copy the 8-char session ID to --resume interactively
+  ✓ [abc12345] One-sentence summary of what Claude did
 ```
 
-The daemon lives on the same machine as Claude Code. The 2Do Better server is just the message bus — it can be on a different machine entirely.
+The daemon lives on the same machine as Claude Code. The 2Do Better server is just the message bus — it can be a different machine.
 
 ---
 
-## Setup
+## Prerequisites
 
-**Prerequisites:** Claude Code CLI installed, 2Do Better MCP server configured in Claude Code.
+- Claude Code CLI installed (`npm install -g @anthropic-ai/claude-code`)
+- Logged in to Claude Code (`claude login`)
+- 2Do Better server running and reachable
+- An agent user created in 2Do Better with an agent token (admin panel → agent column → Generate agent token)
 
-**1. Pull the latest code and start the daemon:**
+---
+
+## Install
 
 ```bash
-cd /path/to/ToDoBetter
-git pull
-CLAUDECODE= node runner/daemon.js
+npm run runner:install <columnSlug> <agentToken> <apiBase>
 ```
 
-That's it. The daemon reads the API URL and auth token automatically from your existing MCP config in `~/.claude.json`.
-
-**2. Verify it's working:**
-
-Add a task to the Queue list in your Claude column:
-```
-list the files in the current directory and tell me what the project does
+**Example (on the same machine as the 2Do Better server):**
+```bash
+npm run runner:install claude abc123token https://yourserver.duckdns.org:3000
 ```
 
-Within 30 seconds it should move to Active, then a result appears in Results.
+This:
+- Writes `~/.claude-runner.json` with your config
+- Installs and starts a background service (systemd on Linux, launchd on Mac)
+- Enables auto-start on boot/login
+
+**Verify it's running:**
+```bash
+# Linux
+journalctl --user -u claude-runner -f
+
+# Mac
+tail -f ~/Library/Logs/claude-runner.log
+```
+
+## Uninstall
+
+```bash
+npm run runner:uninstall
+```
 
 ---
 
@@ -57,7 +73,7 @@ Within 30 seconds it should move to Active, then a result appears in Results.
 
 | What you type in Queue | What fires |
 |---|---|
-| `summarize the deploy logs` | Fresh session in default repo |
+| `summarise the deploy logs` | Fresh session in default repo |
 | `--continue check the auth fix` | Continue the most recent CLI session |
 | `--resume and add 3` | Resume last session (ID auto-filled) |
 | `--resume abc12345 continue the auth fix` | Resume a specific session by ID |
@@ -68,101 +84,51 @@ Within 30 seconds it should move to Active, then a result appears in Results.
 
 ## Results
 
-Completed tasks appear in Results with a session ID and one-sentence summary:
+Completed tasks appear in the Results list:
 ```
 ✓ [abc12345] Christmas 2026 falls on a Friday.
 ```
 
-Copy `abc12345` and use it to resume the session remotely:
-```
---resume abc12345 now check if there are any holidays that week
-```
-
-Or just `--resume your follow-up here` — the daemon fills in the last session ID automatically.
-
-Resume interactively on the Mac:
+Use the 8-char session ID to resume interactively:
 ```bash
 claude --resume abc12345
 ```
 
-> **Note:** `--resume` only works for sessions the daemon has run since startup. The daemon stores a short-ID → full-UUID map in `~/.claude-runner-sessions.json`. If the map is empty (fresh daemon, first run), `--resume` gracefully falls back to `--continue`.
+Or queue a follow-up — the daemon fills in the last session ID automatically:
+```
+--resume now check if there are any holidays that week
+```
 
-Results tasks older than 24 hours are automatically completed (sent to graveyard) each poll cycle to keep the list clean.
+Results tasks older than 24 hours are automatically completed to keep the list clean.
 
 ---
 
 ## Usage cap handling
 
-Claude Code limits reset every 5 hours. If a task hits a usage cap:
-- It's returned to Queue and retried at :01 past the next hour
-- After 5 failures (covering the weekly window), it's posted to Results as `[weekly-cap]` and marked complete
+If a task hits a Claude Code usage cap:
+- Returned to Queue, retried at :01 past the next hour
+- After 5 failures, posted to Results as `[weekly-cap]` and closed
 
 ---
 
-## Optional config
+## Config reference
 
-By default no config file is needed. To override any setting, create `~/.claude-runner.json`:
-
-```json
-{
-  "defaultRepo": "/Users/you/_Repos/ToDoBetter",
-  "model": "sonnet",
-  "pollMs": 30000,
-  "columnSlug": "claude"
-}
-```
-
-See `runner/config-example.json` for all available fields.
+Config is written to `~/.claude-runner.json` by `runner:install`. Edit it directly to change any setting — restart the service after.
 
 | Field | Default | Description |
 |---|---|---|
-| `apiBase` | from MCP config | 2Do Better server URL |
-| `agentToken` | from MCP config | Auth token |
-| `defaultRepo` | repo containing daemon.js | Where `claude` runs |
-| `model` | `"sonnet"` | `sonnet`, `haiku`, or full model ID |
+| `apiBase` | required | 2Do Better server URL |
+| `agentToken` | required | Agent token from admin panel |
+| `defaultRepo` | runner's parent directory | Working directory for Claude sessions |
+| `columnSlug` | `"claude"` | Column slug to watch |
+| `model` | `"sonnet"` | Claude model to use |
 | `pollMs` | `30000` | Poll interval in milliseconds |
-| `columnSlug` | `"claude"` | Column to watch for Queue list |
 
 ---
 
-## Running as a background service (Mac)
+## Agent compatibility
 
-To keep the daemon alive across reboots, install it as a launchd service.
-
-**1. Find your node binary** (needs nvm node, not system node):
-```bash
-which node   # run this after loading nvm
-```
-
-**2. Create `~/Library/LaunchAgents/com.2dobetter.runner.plist`:**
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-  <key>Label</key><string>com.2dobetter.runner</string>
-  <key>ProgramArguments</key><array>
-    <string>/Users/YOU/.nvm/versions/node/v20.X.Y/bin/node</string>
-    <string>/Users/YOU/_Repos/ToDoBetter/runner/daemon.js</string>
-  </array>
-  <key>EnvironmentVariables</key><dict>
-    <key>HOME</key><string>/Users/YOU</string>
-    <key>PATH</key><string>/Users/YOU/.nvm/versions/node/v20.X.Y/bin:/usr/local/bin:/usr/bin:/bin</string>
-  </dict>
-  <key>RunAtLoad</key><true/>
-  <key>KeepAlive</key><true/>
-  <key>StandardOutPath</key><string>/tmp/claude-runner.log</string>
-  <key>StandardErrorPath</key><string>/tmp/claude-runner.err</string>
-</dict></plist>
-```
-
-**3. Load it:**
-```bash
-launchctl load ~/Library/LaunchAgents/com.2dobetter.runner.plist
-```
-
-**4. Tail the logs:**
-```bash
-tail -f /tmp/claude-runner.log
-```
+| Agent | Status | Notes |
+|---|---|---|
+| Claude Code | ✅ Tested | Linux (systemd) + Mac (launchd) |
+| Others | 🔲 Untested | PRs welcome |
