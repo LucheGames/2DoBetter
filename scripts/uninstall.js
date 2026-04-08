@@ -295,14 +295,21 @@ async function main() {
   }
 
   // ── Delete app directory ────────────────────────────────────────────────────
-  // The script can't rm -rf itself while running, so schedule the delete
-  // to happen after this process exits. `nohup` + short sleep ensures
-  // the node process has fully exited before the directory is removed.
+  // Can't rm -rf the directory we're running from, so we write a small shell
+  // script to a temp file outside the app dir and exec it after exit.
+  const tmpScript = path.join(os.tmpdir(), '2dobetter-cleanup.sh');
+  fs.writeFileSync(tmpScript,
+    '#!/bin/sh\nsleep 1\nrm -rf ' + JSON.stringify(ROOT) + '\nrm -f ' + JSON.stringify(tmpScript) + '\n'
+  );
+  fs.chmodSync(tmpScript, 0o755);
+  const { spawn } = require('child_process');
+  const child = spawn('sh', [tmpScript], {
+    detached: true,
+    stdio: 'ignore',
+  });
+  child.unref();
   console.log(`  ${C.bold}Deleting app directory...${C.reset}  ${C.dim}${ROOT}${C.reset}`);
-  spawnSync('bash', ['-c',
-    'nohup bash -c \'sleep 1 && rm -rf ' + JSON.stringify(ROOT) + '\' >/dev/null 2>&1 &'
-  ], { stdio: 'pipe' });
-  ok('App directory scheduled for deletion.');
+  ok('App directory will be deleted in 1 second.');
 
   console.log(`\n  ${C.bold}${C.green}Uninstall complete.${C.reset}  2Do Better has been removed from this machine.\n`);
 
