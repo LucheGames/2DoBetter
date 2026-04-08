@@ -226,7 +226,8 @@ async function main() {
 
   console.log(`  ${C.bold}This will permanently remove the following from this machine:${C.reset}\n`);
   inventory.forEach(i => console.log(`    ${C.yellow}•${C.reset}  ${i.label}`));
-  console.log(`    ${C.yellow}•${C.reset}  App directory  ${C.dim}(${ROOT})${C.reset}  — you run this step manually\n`);
+  console.log(`    ${C.yellow}•${C.reset}  User data, database, certs, .env files  ${C.dim}(${ROOT}/data, prisma/dev.db, certs/)${C.reset}`);
+  console.log(`    ${C.yellow}•${C.reset}  App directory  ${C.dim}(${ROOT})${C.reset}\n`);
 
   console.log(`  ${C.dim}Will NOT touch: npm, node, git, Tailscale, other apps, remote machines${C.reset}\n`);
 
@@ -268,6 +269,32 @@ async function main() {
   if (keys.includes('logs'))     removeLogs();
   if (keys.includes('backupkey'))removeBackupKey();
   if (keys.includes('mcp'))      removeMcpEntry();
+
+  // ── Wipe user data and DB explicitly ────────────────────────────────────────
+  // Do this before the directory rm-rf so credentials are gone even if that fails.
+  const sensitiveFiles = [
+    path.join(ROOT, 'data', 'users.json'),
+    path.join(ROOT, 'data', 'invites.json'),
+    path.join(ROOT, 'prisma', 'dev.db'),
+    path.join(ROOT, 'prisma', 'dev.db-shm'),
+    path.join(ROOT, 'prisma', 'dev.db-wal'),
+    path.join(ROOT, '.env.local'),
+    path.join(ROOT, '.env'),
+  ];
+  sensitiveFiles.forEach(function(f) {
+    try { fs.unlinkSync(f); ok('Deleted ' + path.relative(ROOT, f)); } catch (_) {}
+  });
+  // Wipe certs dir
+  const certsDir = path.join(ROOT, 'certs');
+  if (fs.existsSync(certsDir)) {
+    try {
+      fs.readdirSync(certsDir).forEach(function(f) {
+        fs.unlinkSync(path.join(certsDir, f));
+      });
+      fs.rmdirSync(certsDir);
+      ok('Deleted certs/');
+    } catch (e) { warn('Could not fully remove certs/: ' + e.message); }
+  }
 
   // ── CA cert instructions (manual — requires sudo or GUI) ─────────────────────
   if (isMac) {
