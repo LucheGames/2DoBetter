@@ -149,6 +149,20 @@ function saveUsers(users) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), { mode: 0o600 });
 }
 
+// ── Find Node v18+ binary (nvm-aware) ────────────────────────────────────────
+// setup.js runs on system node (may be v10), but prisma needs v18+.
+// Mirror the logic from scripts/build.sh.
+function findNodeBin() {
+  var nvmDir = path.join(os.homedir(), '.nvm', 'versions', 'node');
+  if (fs.existsSync(nvmDir)) {
+    var versions = fs.readdirSync(nvmDir)
+      .filter(function(v) { return /^v[2-9]\d*\./.test(v) && parseInt(v.slice(1), 10) >= 18; })
+      .sort().reverse();
+    if (versions.length) return path.join(nvmDir, versions[0], 'bin', 'node');
+  }
+  return process.execPath; // fall back to whatever node is running this script
+}
+
 // ── SQLite helper (uses sqlite3 CLI; no Prisma needed) ────────────────────────
 const DB_PATH = path.join(ROOT, 'prisma', 'dev.db');
 
@@ -499,15 +513,20 @@ ${C.bold}${C.cyan}  ╔═══════════════════
 
   // ── Run DB migrations ─────────────────────────────────────────────
   // Ensures the SQLite schema is up to date before we touch anything.
+  // Must use Node v18+ (prisma requirement) — find nvm node if available.
   info('Applying database migrations...');
+  var nodeBin = findNodeBin();
+  var migrateEnv = Object.assign({}, process.env, {
+    DATABASE_URL: 'file:' + path.join(ROOT, 'prisma', 'dev.db'),
+  });
   const migrateResult = spawnSync(
-    process.execPath,
+    nodeBin,
     [path.join(ROOT, 'node_modules', '.bin', 'prisma'), 'migrate', 'deploy'],
-    { stdio: 'inherit', cwd: ROOT }
+    { stdio: 'inherit', cwd: ROOT, env: migrateEnv }
   );
   if (migrateResult.status !== 0) {
     warn('Migration failed — the app may not work correctly.');
-    warn('Try running manually:  npx prisma migrate deploy');
+    warn('Try running manually:  DATABASE_URL="file:./prisma/dev.db" npx prisma migrate deploy');
   } else {
     ok('Database schema up to date.');
   }
@@ -622,10 +641,8 @@ ${C.bold}${C.cyan}  ╔═══════════════════
   info('Set up the first user — this will be your admin account.\n');
 
   const firstUsername = await ask('Username', 'admin');
-  cfg.AUTH_USERNAME = firstUsername;
 
   const firstToken = await collectToken(existing);
-  cfg.AUTH_TOKEN = firstToken; // kept for legacy single-user mode fallback
 
   users.push({ username: firstUsername, hash: await bcrypt.hash(firstToken, 12), isAdmin: true });
 
@@ -749,10 +766,11 @@ ${C.bold}${C.cyan}  ╔═══════════════════
     });
   }
 
-  // Write .env.local (preserves legacy AUTH_TOKEN for backward compat)
+  // Write .env.local — strip legacy single-user fields (superseded by users.json)
   const final = { ...existing, ...cfg };
-  // Remove legacy INVITE_CODE if present (replaced by per-invite admin panel flow)
-  delete final.INVITE_CODE;
+  delete final.INVITE_CODE;    // replaced by per-invite admin panel flow
+  delete final.AUTH_TOKEN;     // legacy single-user auth — users.json is the source of truth
+  delete final.AUTH_USERNAME;  // same
   writeEnv(ENV_LOCAL, final);
   ok('.env.local written (chmod 600)');
 
