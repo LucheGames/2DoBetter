@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__2dobetter__get_board",
+      "Bash(gh api repos/LucheGames/Docs/contents/_wins-log.txt)",
+      "Bash(python3 -c \"import sys, json, base64; data=json.load\\(sys.stdin\\); print\\(base64.b64decode\\(data[''content''].replace\\(''\\\\n'',''''\\)\\).decode\\(\\)\\)\")",
+      "Bash(gh api:*)",
+      "Bash(git diff-tree:*)",
+      "mcp__2dobetter__get_column",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(chmod +x .git/hooks/pre-commit)",
+      "Bash(source ~/.nvm/nvm.sh)",
+      "Bash(nvm use:*)",
+      "Bash(node -e \":*)",
+      "Bash(npx vitest:*)",
+      "Bash(node --eval \":*)",
+      "Bash(ssh davistator@100.105.251.44 \"bash -i -c ''cat ~/2DoBetter/.env.local 2>/dev/null | grep DATABASE''\")",
+      "Bash(ssh davistator@100.105.251.44 \"bash -i -c ''cat ~/2DoBetter/.env 2>/dev/null''\")",
+      "Bash(git push:*)",
+      "mcp__2dobetter__complete_task",
+      "Bash(python3 -c \"import sys,json,base64; data=json.load\\(sys.stdin\\); print\\(base64.b64decode\\(data[''''content''''].replace\\(''''\\\\n'''',''''''''\\)\\).decode\\(\\)\\)\")",
+      "Bash(scp /tmp/session_new.txt davistator@100.105.251.44:/tmp/session_new.txt)",
+      "Bash(ssh davistator@100.105.251.44 \"cat /tmp/session_new.txt >> ~/_wins-log.txt\")"
+    ]
+  }
+}
