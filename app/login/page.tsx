@@ -188,7 +188,7 @@ export default function LoginPage() {
     <>
       <h1 className="text-xl font-semibold text-gray-100 text-center mb-1 flex items-center justify-center gap-2">
         2Do Better
-        <a href="https://www.buymeacoffee.com/luchegames" target="_blank" rel="noopener noreferrer"
+        <a href="https://www.buymeacoffee.com/headlessclaudesmann" target="_blank" rel="noopener noreferrer"
           title="Support development ☕"
           className="text-base leading-none text-gray-700 hover:text-yellow-400 transition-colors duration-200 select-none font-normal">
           ☕

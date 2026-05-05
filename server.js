@@ -301,7 +301,7 @@ h1{font-size:1.25rem;font-weight:600;text-transform:uppercase;letter-spacing:.1e
 .note a{color:#60a5fa}
 </style></head>
 <body>
-<h1>2Do Better <a href="https://www.buymeacoffee.com/luchegames" target="_blank" class="coffee">\u2615</a></h1>
+<h1>2Do Better <a href="https://www.buymeacoffee.com/headlessclaudesmann" target="_blank" class="coffee">\u2615</a></h1>
 <p class="sub">Add this device</p>
 <div class="server-info">
   <div class="label">Server</div>

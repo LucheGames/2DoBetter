@@ -265,7 +265,7 @@ export default function Home() {
       <header className="flex-shrink-0 flex items-center justify-between px-4 py-2 border-b border-gray-800">
         <div className="flex items-center gap-2">
           <a
-            href="https://www.buymeacoffee.com/luchegames"
+            href="https://www.buymeacoffee.com/headlessclaudesmann"
             target="_blank"
             rel="noopener noreferrer"
             title="Support development ☕"
@@ -274,7 +274,7 @@ export default function Home() {
             2Do Better
           </a>
           <a
-            href="https://www.buymeacoffee.com/luchegames"
+            href="https://www.buymeacoffee.com/headlessclaudesmann"
             target="_blank"
             rel="noopener noreferrer"
             title="Support development ☕"

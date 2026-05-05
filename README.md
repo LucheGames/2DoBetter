@@ -8,7 +8,7 @@ Think through problems and queue up tasks from anywhere, and when you're back in
 
 Built from the ground up around [MCP](https://modelcontextprotocol.io) (Model Context Protocol), the open standard used by Anthropic, Google, Microsoft, and OpenAI for connecting AI to external systems, giving teammates and AI agents total visibility into your shared 2Dos. 
 
-[![Buy Me a Coffee](https://img.shields.io/badge/Support-Buy%20me%20a%20coffee-yellow?logo=buy-me-a-coffee)](https://www.buymeacoffee.com/luchegames)
+[![Buy Me a Coffee](https://img.shields.io/badge/Support-Buy%20me%20a%20coffee-yellow?logo=buy-me-a-coffee)](https://www.buymeacoffee.com/headlessclaudesmann)
 [![License](https://img.shields.io/badge/License-Custom%20Permissive-blue.svg)](LICENSE)
 
 ---
@@ -80,7 +80,7 @@ macOS / Windows: install [Docker Desktop](https://docs.docker.com/get-docker/).
 **2. Clone and start**
 
 ```bash
-git clone https://github.com/LucheGames/2DoBetter.git
+git clone https://github.com/HeadlessClaudsmann/2DoBetter.git
 cd 2DoBetter
 mkdir -p data certs prisma
 docker compose build    # ~2–5 min first time
@@ -90,7 +90,7 @@ docker compose restart
 ```
 
 > If git asks for a username/password, press **Ctrl+C** and use:
-> `git clone --config credential.helper= https://github.com/LucheGames/2DoBetter.git`
+> `git clone --config credential.helper= https://github.com/HeadlessClaudsmann/2DoBetter.git`
 
 Open `https://localhost:3000` and log in.
 
@@ -125,7 +125,7 @@ Windows: use [nvm-windows](https://github.com/coreybutler/nvm-windows).
 rm -rf 2DoBetter    # remove any previous install first
 # Linux: if you deleted the old folder via the file manager it went to Trash, not disk.
 # Make sure you are NOT inside ~/.local/share/Trash — run: cd ~ first.
-git clone https://github.com/LucheGames/2DoBetter.git
+git clone https://github.com/HeadlessClaudsmann/2DoBetter.git
 cd 2DoBetter
 npm install
 npm run setup       # wizard: DB, certs, admin account, build & start
@@ -419,11 +419,11 @@ See [ROADMAP.md](ROADMAP.md).
 
 2Do Better is free and open source. If it saves you time:
 
-[![Buy Me a Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://www.buymeacoffee.com/luchegames)
+[![Buy Me a Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://www.buymeacoffee.com/headlessclaudesmann)
 
 ## License
 
-Copyright © 2026 LucheGames
+Copyright © 2026 HeadlessClaudesmann
 
 Free to use, modify, and distribute — including commercially — under two conditions:
 
